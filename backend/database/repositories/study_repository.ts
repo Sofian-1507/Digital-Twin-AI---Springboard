@@ -75,8 +75,10 @@ export class StudyActivityRepository extends BaseRepository<IStudyActivity> {
 
     const logs = await this.model.find({
       user_id: uId,
-      quiz_marks_pct: { $exists: true, $ne: null },
-      exam_marks_pct: { $exists: true, $ne: null },
+      $or: [
+        { quiz_marks_pct: { $exists: true, $ne: null } },
+        { exam_marks_pct: { $exists: true, $ne: null } },
+      ],
     }).exec();
 
     return logs.map((l) => ({
@@ -84,8 +86,8 @@ export class StudyActivityRepository extends BaseRepository<IStudyActivity> {
       subject: l.subject,
       study_hours: parseFloat(l.study_hours.toString()),
       attendance_pct: parseFloat(l.attendance_pct.toString()),
-      quiz_marks_pct: parseFloat(l.quiz_marks_pct!.toString()),
-      target_exam_pct: parseFloat(l.exam_marks_pct!.toString()),
+      quiz_marks_pct: l.quiz_marks_pct ? parseFloat(l.quiz_marks_pct.toString()) : 0,
+      target_exam_pct: l.exam_marks_pct ? parseFloat(l.exam_marks_pct.toString()) : 0,
     }));
   }
 }

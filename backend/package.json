@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "sync-indexes": "ts-node database/indexes/sync_indexes.ts",
     "seed": "ts-node database/seed/seeder.ts",
-    "verify-integrity": "ts-node database/scripts/verify_integrity.ts"
+    "verify-integrity": "ts-node database/scripts/verify_integrity.ts",
+    "test:e2e": "ts-node database/scripts/e2e_test_suite.ts"
   },
   "keywords": [
     "mongodb",
