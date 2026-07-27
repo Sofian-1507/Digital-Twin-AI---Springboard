@@ -51,7 +51,7 @@ export class AtlasVectorClient {
     if (category) filter['category'] = category;
     if (status) filter['status'] = status;
 
-    const vectorSearchStage: PipelineStage.VectorSearch = {
+    const vectorSearchStage: any = {
       $vectorSearch: {
         index: 'idx_rec_vector_search',
         path: 'embedding',
