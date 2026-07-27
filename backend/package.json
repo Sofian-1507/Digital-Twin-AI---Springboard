@@ -1,0 +1,33 @@
+{
+  "name": "digital-twin-ai-database-layer",
+  "version": "1.0.0",
+  "description": "Enterprise MongoDB Atlas Database Layer & Mongoose Implementation for Digital Twin AI",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "sync-indexes": "ts-node database/indexes/sync_indexes.ts",
+    "seed": "ts-node database/seed/seeder.ts",
+    "verify-integrity": "ts-node database/scripts/verify_integrity.ts"
+  },
+  "keywords": [
+    "mongodb",
+    "atlas",
+    "mongoose",
+    "nosql",
+    "digital-twin",
+    "ai",
+    "typescript"
+  ],
+  "author": "Senior MongoDB Atlas Database Architect",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  }
+}
