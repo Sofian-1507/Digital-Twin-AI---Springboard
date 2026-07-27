@@ -182,18 +182,6 @@ Run `npm run test:e2e` to execute our automated verification suite against your 
 5. **Academic Feature Extraction:** Verifies pre-save middleware hooks calculating normalized percentage marks (`quiz_marks_pct`, `exam_marks_pct`).
 6. **K-Means 4D Biometric Vectors & Daily Uniqueness:** Confirms that the unique compound index `(user_id, log_date)` blocks duplicate daily check-ins and verifies continuous 4D feature vector extraction (`sleep`, `exercise`, `water`, `screen_time`).
 
----
 
-## 🐍 Python / FastAPI & Machine Learning Compatibility
 
-Because MongoDB is language-agnostic, this database layer interfaces seamlessly with Python/FastAPI backend architectures:
-1. **Shared Database Pattern:** Your Python/FastAPI service connects to the same Atlas cluster (`digital_twin_ai_prod`) using **Motor** (async PyMongo) or **Beanie ODM**.
-2. **Feature Consumption:** Python ML scripts call the MongoDB aggregation pipelines defined in our DAOs (or replicate the exact `$group` stages) to train Scikit-Learn **Random Forest** and **K-Means** models.
-3. **Twin State Write-Back:** Background Python workers update the user's twin summary by writing computed metrics back to `users.digital_twin_state`.
-4. **Engine-Level Safety:** Server-side JSON schema validation rules defined in [`all_collections_json_schemas.json`](file:///Users/sofian/Documents/Springboard/backend/database/validators/atlas_json_schemas/all_collections_json_schemas.json) guarantee that MongoDB Atlas will reject invalid data regardless of whether it originates from Node.js or Python.
 
----
-
-## 📄 License & Architecture Reference
-Designed and engineered by the **Senior MongoDB Atlas Database Architect & Solution Architect** for the Springboard Digital Twin AI Capstone Project.
-For full architectural rationales, ER diagrams, and index explain plans, refer to the documentation in [`backend/database/docs/`](file:///Users/sofian/Documents/Springboard/backend/database/docs/architecture_diagrams.md).
