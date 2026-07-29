@@ -1,0 +1,172 @@
+.sidebar {
+  width: 270px;
+  height: 100vh;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  background-color: #14213d;
+  color: white;
+
+  overflow-y: auto;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 25px 20px;
+
+  border-bottom:
+    1px solid rgba(255, 255, 255, 0.12);
+}
+
+.logo-icon {
+  width: 45px;
+  height: 45px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background-color: #4f7cff;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.logo-section h2 {
+  margin: 0;
+
+  font-size: 19px;
+}
+
+.logo-section p {
+  margin-top: 4px;
+
+  color: #aebbd5;
+
+  font-size: 11px;
+}
+
+.sidebar-menu {
+  flex: 1;
+
+  padding: 25px 14px;
+}
+
+.menu-title {
+  margin-bottom: 15px;
+
+  padding-left: 12px;
+
+  color: #8f9db9;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 1.2px;
+}
+
+.menu-link {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  margin-bottom: 8px;
+
+  padding: 13px 14px;
+
+  border-radius: 10px;
+
+  color: #c5cee1;
+
+  text-decoration: none;
+
+  font-size: 15px;
+
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.menu-link:hover {
+  background-color:
+    rgba(255, 255, 255, 0.08);
+
+  color: white;
+}
+
+.menu-link.active {
+  background-color: #4f7cff;
+
+  color: white;
+
+  font-weight: 600;
+}
+
+.menu-icon {
+  width: 22px;
+
+  display: flex;
+  justify-content: center;
+
+  font-size: 18px;
+}
+
+.sidebar-bottom {
+  padding: 18px;
+
+  border-top:
+    1px solid rgba(255, 255, 255, 0.12);
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background-color: #f0b429;
+
+  color: #14213d;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.user-box h4 {
+  margin: 0;
+
+  font-size: 13px;
+}
+
+.user-box p {
+  margin-top: 4px;
+
+  color: #9eacc6;
+
+  font-size: 11px;
+}

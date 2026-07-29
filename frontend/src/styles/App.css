@@ -1,0 +1,15 @@
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  background-color: #f4f7fb;
+}
+
+.main-section {
+  width: calc(100% - 270px);
+  min-height: 100vh;
+  margin-left: 270px;
+}
+
+.page-content {
+  padding: 30px;
+}
