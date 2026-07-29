@@ -7,8 +7,6 @@ import {
   Legend,
 } from "recharts";
 
-import { categoryData } from "../data/financeData";
-
 const COLORS = [
   "#4F46E5",
   "#10B981",
@@ -16,7 +14,7 @@ const COLORS = [
   "#EF4444",
 ];
 
-function CategoryChart() {
+function CategoryChart({ data }) {
   return (
     <div className="chart-card">
       <h3>Expense Categories</h3>
@@ -25,7 +23,7 @@ function CategoryChart() {
         <PieChart>
 
           <Pie
-            data={categoryData}
+            data={data}
             cx="50%"
             cy="50%"
             outerRadius={90}
@@ -33,7 +31,7 @@ function CategoryChart() {
             dataKey="value"
             label
           >
-            {categoryData.map((entry, index) => (
+            {data && data.map((entry, index) => (
               <Cell
                 key={index}
                 fill={

@@ -8,15 +8,13 @@ import {
   Tooltip,
 } from "recharts";
 
-import { monthlyExpenses } from "../data/financeData";
-
-function ExpenseChart() {
+function ExpenseChart({ data }) {
   return (
     <div className="chart-card">
       <h3>Monthly Expense Trend</h3>
 
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={monthlyExpenses}>
+        <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
 
           <XAxis dataKey="month" />

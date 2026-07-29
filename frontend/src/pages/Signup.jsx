@@ -2,8 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Auth.css";
 
+import { registerUser } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
+
 function Signup() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -14,6 +18,8 @@ function Signup() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -22,21 +28,39 @@ function Signup() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 
-    console.log("Signup Data:", formData);
+    setIsLoading(true);
 
-    // TODO: Call FastAPI Signup API here
+    try {
+      // Map frontend fields → backend RegisterRequest schema
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        age: 18,                     // Default — user can update in Profile later
+        monthly_income_baseline: 0,  // Default — user can update in Profile later
+      };
 
-    alert("Account created successfully!");
-
-    navigate("/login");
+      const data = await registerUser(payload);
+      // registerUser already stored the token; update auth context and redirect
+      login(data);
+      navigate("/dashboard");
+    } catch (err) {
+      const msg =
+        err.response?.data?.detail ||
+        "Registration failed. Please try again.";
+      setError(Array.isArray(msg) ? msg[0]?.msg || msg : msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -47,6 +71,12 @@ function Signup() {
           <h2>Create Account</h2>
           <p>Create your new account</p>
         </div>
+
+        {error && (
+          <p className="auth-error" style={{ color: "#e53e3e", marginBottom: "1rem", fontSize: "0.9rem" }}>
+            {error}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -123,8 +153,8 @@ function Signup() {
             </select>
           </div>
 
-          <button type="submit" className="auth-btn">
-            Create Account
+          <button type="submit" className="auth-btn" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 

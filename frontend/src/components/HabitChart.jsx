@@ -8,9 +8,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-import { weeklyHabits } from "../data/habitData";
-
-function HabitChart() {
+function HabitChart({ data }) {
   return (
     <div className="habit-chart-card">
 
@@ -21,7 +19,7 @@ function HabitChart() {
         height={320}
       >
 
-        <BarChart data={weeklyHabits}>
+        <BarChart data={data}>
 
           <CartesianGrid
             strokeDasharray="3 3"

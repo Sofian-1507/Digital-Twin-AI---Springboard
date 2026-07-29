@@ -2,8 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Auth.css";
 
+import { loginUser } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
+
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -11,6 +15,8 @@ function Login() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -19,14 +25,24 @@ function Login() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    console.log(formData);
-    localStorage.setItem("token", "demo-token");
-
-    navigate("/dashboard");
-    // API Call Here
+    try {
+      const data = await loginUser(formData);
+      // data = { access_token, token_type, user_id, email }
+      login(data);
+      navigate("/dashboard");
+    } catch (err) {
+      const msg =
+        err.response?.data?.detail ||
+        "Invalid email or password. Please try again.";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -43,6 +59,12 @@ function Login() {
           <p>Login to continue</p>
 
         </div>
+
+        {error && (
+          <p className="auth-error" style={{ color: "#e53e3e", marginBottom: "1rem", fontSize: "0.9rem" }}>
+            {error}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit}>
 
@@ -112,8 +134,8 @@ function Login() {
 
           </div>
 
-          <button className="auth-btn">
-            Login
+          <button className="auth-btn" disabled={isLoading}>
+            {isLoading ? "Logging in..." : "Login"}
           </button>
 
         </form>

@@ -1,22 +1,4 @@
-function SubjectProgress() {
-  const subjects = [
-    {
-      name: "React",
-      progress: 90,
-    },
-    {
-      name: "Java",
-      progress: 75,
-    },
-    {
-      name: "DBMS",
-      progress: 82,
-    },
-    {
-      name: "DSA",
-      progress: 65,
-    },
-  ];
+function SubjectProgress({ subjects = [] }) {
 
   return (
     <div className="subject-card">

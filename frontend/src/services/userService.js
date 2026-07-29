@@ -1,18 +1,53 @@
-const API_URL = "http://localhost:5000/api/users";
+/**
+ * src/services/userService.js
+ * User service layer — wraps /api/v1/users/* endpoints.
+ * All requests are authenticated via the Axios interceptor in api.js.
+ */
+import api from "./api";
 
-export async function getUser() {
-  return {
-    name: "Ishwari Shelke",
-    email: "ishwari@gmail.com",
-    phone: "9876543210",
-    age: "21",
-    city: "Pune",
-    occupation: "Student",
-    education: "B.E Computer Engineering"
-  };
-}
+/**
+ * Fetch the complete user context (profile + preferences + goals + digital_twin_state).
+ * GET /api/v1/users/me
+ * @returns {Promise<UserResponse>}
+ */
+export const getUser = async () => {
+  const response = await api.get("/users/me");
+  return response.data;
+};
 
-export async function updateUser(user) {
-  console.log(user);
-  return user;
-}
+/**
+ * Partially update the user's profile.
+ * PATCH /api/v1/users/me/profile
+ * @param {{ name?, age?, gender?, occupation?, monthly_income_baseline?, risk_tolerance? }} payload
+ * @returns {Promise<UserResponse>}
+ */
+export const updateProfile = async (payload) => {
+  const response = await api.patch("/users/me/profile", payload);
+  return response.data;
+};
+
+/**
+ * Fetch the user's active goals list.
+ * GET /api/v1/users/me/goals
+ * @returns {Promise<ActiveGoalResponse[]>}
+ */
+export const getGoals = async () => {
+  const response = await api.get("/users/me/goals");
+  return response.data;
+};
+
+/**
+ * Add a new active goal.
+ * POST /api/v1/users/me/goals
+ * @param {{ title, category, target_value, unit, target_date? }} payload
+ * @returns {Promise<UserResponse>}
+ */
+export const addGoal = async (payload) => {
+  const response = await api.post("/users/me/goals", payload);
+  return response.data;
+};
+
+/**
+ * Alias for updateProfile — kept for backward compatibility with Profile.jsx.
+ */
+export const updateUser = updateProfile;

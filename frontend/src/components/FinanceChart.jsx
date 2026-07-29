@@ -1,48 +1,48 @@
 import {
-
-LineChart,
-Line,
-XAxis,
-YAxis,
-Tooltip,
-ResponsiveContainer,
-CartesianGrid
-
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid
 } from "recharts";
 
-import { expenseData } from "../data/dashboardData";
+/**
+ * FinanceChart — renders a monthly savings/cashflow line chart.
+ * @param {{ data: Array<{ month: string, savings: number }> }} props
+ */
+function FinanceChart({ data = [] }) {
 
-function FinanceChart() {
+  return (
 
-return(
+    <ResponsiveContainer
+      width="100%"
+      height={280}
+    >
 
-<ResponsiveContainer
-width="100%"
-height={280}
->
+      <LineChart data={data}>
 
-<LineChart data={expenseData}>
+        <CartesianGrid strokeDasharray="3 3"/>
 
-<CartesianGrid strokeDasharray="3 3"/>
+        <XAxis dataKey="month"/>
 
-<XAxis dataKey="month"/>
+        <YAxis/>
 
-<YAxis/>
+        <Tooltip/>
 
-<Tooltip/>
+        <Line
+          type="monotone"
+          dataKey="savings"
+          stroke="#4F46E5"
+          strokeWidth={3}
+        />
 
-<Line
-type="monotone"
-dataKey="savings"
-stroke="#4F46E5"
-strokeWidth={3}
-/>
+      </LineChart>
 
-</LineChart>
+    </ResponsiveContainer>
 
-</ResponsiveContainer>
-
-);
+  );
 
 }
 

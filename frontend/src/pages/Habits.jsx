@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import HabitSummary from "../components/HabitSummary";
 import HabitForm from "../components/HabitForm";
@@ -7,39 +7,98 @@ import HabitProgress from "../components/HabitProgress";
 import HabitTable from "../components/HabitTable";
 import LifestyleRecommendation from "../components/LifestyleRecommendation";
 
-import { habits } from "../data/habitData";
+import { getHabitLogs, logDailyHabit } from "../services/habitService";
 
 import "../styles/Habits.css";
 
 function Habits() {
-  const [habitList, setHabitList] = useState(habits);
+  const [habitList, setHabitList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError]         = useState("");
 
-  function addHabit(habit) {
-    setHabitList([
-      {
-        id: Date.now(),
-        ...habit,
-      },
-      ...habitList,
-    ]);
+  useEffect(() => {
+    async function fetchHabits() {
+      try {
+        const result = await getHabitLogs({ limit: 30 });
+        setHabitList(result.data || []);
+      } catch (err) {
+        console.error("Failed to fetch habit logs:", err);
+        setError("Could not load habit logs. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchHabits();
+  }, []);
+
+  /**
+   * Posts today's habit log to the backend (upsert) and updates local state.
+   * HabitForm passes { date, water, sleep, exercise, mood }.
+   * Mapped to backend's HabitCreateRequest schema.
+   */
+  async function addHabit(formData) {
+    try {
+      // Map mood string → rating number (1-5)
+      const moodMap = { Excellent: 5, Happy: 4, Normal: 3, Sad: 2 };
+      const payload = {
+        sleep_hours: Number(formData.sleep),
+        exercise_minutes: Number(formData.exercise),
+        water_intake_liters: Number(formData.water),
+        screen_time_hours: 0,           // Form doesn't collect this; default to 0
+        mood_rating: moodMap[formData.mood] ?? 3,
+        log_date: formData.date
+          ? new Date(formData.date).toISOString()
+          : undefined,
+      };
+      const newRecord = await logDailyHabit(payload);
+      // The endpoint upserts — update the list (replace if same date, else prepend)
+      setHabitList((prev) => {
+        const exists = prev.some(
+          (h) =>
+            new Date(h.log_date).toDateString() ===
+            new Date(newRecord.log_date).toDateString()
+        );
+        if (exists) {
+          return prev.map((h) =>
+            new Date(h.log_date).toDateString() ===
+            new Date(newRecord.log_date).toDateString()
+              ? newRecord
+              : h
+          );
+        }
+        return [newRecord, ...prev];
+      });
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Failed to save habit log.";
+      alert(typeof msg === "string" ? msg : JSON.stringify(msg));
+    }
   }
 
   return (
-  <>
-    <HabitSummary habits={habitList} />
+    <>
+      {error && (
+        <p style={{ color: "#e53e3e", marginBottom: "1rem" }}>{error}</p>
+      )}
 
-    <HabitForm addHabit={addHabit} />
+      {isLoading ? (
+        <p>Loading habits…</p>
+      ) : (
+        <>
+          <HabitSummary habits={habitList} />
 
-    <HabitChart />
+          <HabitForm addHabit={addHabit} />
 
-    <HabitProgress habits={habitList} />
+          <HabitChart />
 
-    <LifestyleRecommendation />
+          <HabitProgress habits={habitList} />
 
-    <HabitTable habits={habitList} />
-  </>
-);
+          <LifestyleRecommendation />
+
+          <HabitTable habits={habitList} />
+        </>
+      )}
+    </>
+  );
 }
-
 
 export default Habits;

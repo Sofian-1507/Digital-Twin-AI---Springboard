@@ -8,9 +8,11 @@ import {
   Tooltip,
 } from "recharts";
 
-import { weeklyStudy } from "../data/studyData";
-
-function StudyChart() {
+/**
+ * StudyChart — renders a weekly study hours bar chart.
+ * @param {{ data: Array<{ day: string, hours: number }> }} props
+ */
+function StudyChart({ data = [] }) {
   return (
     <div className="study-chart-card">
 
@@ -20,7 +22,7 @@ function StudyChart() {
         width="100%"
         height={320}
       >
-        <BarChart data={weeklyStudy}>
+        <BarChart data={data}>
 
           <CartesianGrid
             strokeDasharray="3 3"
