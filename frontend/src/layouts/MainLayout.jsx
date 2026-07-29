@@ -3,17 +3,19 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
+import "../styles/App.css";
+
 function MainLayout() {
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="app-layout">
 
       <Sidebar />
 
-      <div className="ml-64 min-h-screen">
+      <div className="main-section">
 
         <Navbar />
 
-        <main className="w-full p-6">
+        <main className="page-content">
 
           <Outlet />
 

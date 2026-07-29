@@ -4,34 +4,33 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import Login from "../pages/auth/Login";
-import Signup from "../pages/auth/Signup";
+import Login from "../pages/Login";
+import Signup from "../pages/Signup";
+import ForgotPassword from "../pages/ForgotPassword";
+
+import Dashboard from "../pages/Dashboard";
+import Profile from "../pages/Profile";
+import Finance from "../pages/Finance";
+import Study from "../pages/Study";
+import Habits from "../pages/Habits";
+import Simulation from "../pages/Simulation";
+import Assistant from "../pages/Assistant";
 
 import MainLayout from "../layouts/MainLayout";
 
-import Dashboard from "../pages/dashboard/Dashboard";
-
-import Profile from "../pages/profile/Profile";
-
-import Financial from "../pages/financial/Financial";
-
-import Academic from "../pages/academic/Academic";
-
-import Habits from "../pages/habits/Habits";
-
-import Simulation from "../pages/simulation/Simulation";
-
-import Recommendations from "../pages/recommendations/Recommendations";
-
-import Reports from "../pages/reports/Reports";
-
-import Settings from "../pages/profile/Settings";
+import ProtectedRoute from "../utils/ProtectedRoute";
 
 function AppRoutes() {
   return (
     <Routes>
 
-      {/* Authentication Pages */}
+      {/* Public Routes */}
+
+      <Route
+        path="/"
+        element={<Navigate to="/login" replace />}
+      />
+
       <Route
         path="/login"
         element={<Login />}
@@ -42,8 +41,20 @@ function AppRoutes() {
         element={<Signup />}
       />
 
-      {/* Main Application Layout */}
-      <Route element={<MainLayout />}>
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
+
+      {/* Protected Routes */}
+
+      <Route
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
 
         <Route
           path="/dashboard"
@@ -56,13 +67,13 @@ function AppRoutes() {
         />
 
         <Route
-          path="/financial"
-          element={<Financial />}
+          path="/finance"
+          element={<Finance />}
         />
 
         <Route
-          path="/academic"
-          element={<Academic />}
+          path="/study"
+          element={<Study />}
         />
 
         <Route
@@ -76,42 +87,15 @@ function AppRoutes() {
         />
 
         <Route
-          path="/recommendations"
-          element={<Recommendations />}
-        />
-
-        <Route
-          path="/reports"
-          element={<Reports />}
-        />
-
-        <Route
-          path="/settings"
-          element={<Settings />}
+          path="/assistant"
+          element={<Assistant />}
         />
 
       </Route>
 
-      {/* Default Route */}
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to="/login"
-            replace
-          />
-        }
-      />
-
-      {/* Invalid Route */}
       <Route
         path="*"
-        element={
-          <Navigate
-            to="/login"
-            replace
-          />
-        }
+        element={<Navigate to="/login" replace />}
       />
 
     </Routes>
