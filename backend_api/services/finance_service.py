@@ -161,14 +161,14 @@ async def get_category_breakdown(
     ]
 
     results = await FinancialRecord.aggregate(pipeline).to_list()
-    grand_total = sum(float(r["total_amount"]) for r in results)
+    grand_total = sum(float(r["total_amount"].to_decimal()) for r in results)
 
     return [
         CategoryBreakdownItem(
             category=r["_id"],
             total_amount=Decimal(str(r["total_amount"])),
             percentage_of_total=round(
-                (float(r["total_amount"]) / grand_total * 100) if grand_total > 0 else 0.0, 2
+                (float(r["total_amount"].to_decimal()) / grand_total * 100) if grand_total > 0 else 0.0, 2
             ),
         )
         for r in results

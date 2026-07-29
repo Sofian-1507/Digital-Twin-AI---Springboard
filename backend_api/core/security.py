@@ -1,30 +1,45 @@
 """
 core/security.py — JWT creation/verification and bcrypt password hashing.
 Mirrors the authentication intent of the TS layer's password_hash field (users.password_hash).
+
+NOTE: passlib 1.7.4 is incompatible with bcrypt >= 4.x (bcrypt removed __about__ and
+enforces strict 72-byte password limits in _finalize_backend_mixin, causing a ValueError
+at import/first-use time). We therefore call the `bcrypt` library directly, which gives
+identical output format ($2b$ hashes) and is 100% compatible with any existing hashes
+stored in MongoDB by the TypeScript layer (which also uses bcrypt directly).
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt as _bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from core.config import get_settings
 
 settings = get_settings()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_BCRYPT_ROUNDS = 12  # matches typical TS bcrypt default
 
 
 # ─── Password ─────────────────────────────────────────────────────────────────
 
 def hash_password(plain: str) -> str:
-    """Returns a bcrypt hash of the provided plain-text password."""
-    return pwd_context.hash(plain)
+    """Returns a bcrypt $2b$ hash of the provided plain-text password.
+    Uses the bcrypt library directly to avoid passlib 1.7.4 / bcrypt >= 4.x incompatibility.
+    """
+    encoded = plain.encode("utf-8")
+    hashed = _bcrypt.hashpw(encoded, _bcrypt.gensalt(rounds=_BCRYPT_ROUNDS))
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    """Returns True if plain matches the stored bcrypt hash."""
-    return pwd_context.verify(plain, hashed)
+    """Returns True if plain matches the stored bcrypt hash.
+    Compatible with hashes produced by both this function and the TS bcrypt layer.
+    """
+    try:
+        return _bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 # ─── JWT ──────────────────────────────────────────────────────────────────────

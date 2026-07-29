@@ -63,25 +63,27 @@ async def upsert_daily_log(
     uid = PydanticObjectId(user_id)
     log_date = _midnight_utc(payload.log_date)
 
+    from bson.decimal128 import Decimal128
+    from pymongo import ReturnDocument
+
     update_fields = {
         "user_id": uid,
-        "sleep_hours": payload.sleep_hours,
+        "sleep_hours": Decimal128(payload.sleep_hours),
         "exercise_minutes": payload.exercise_minutes,
-        "water_intake_liters": payload.water_intake_liters,
-        "screen_time_hours": payload.screen_time_hours,
+        "water_intake_liters": Decimal128(payload.water_intake_liters),
+        "screen_time_hours": Decimal128(payload.screen_time_hours),
         "mood_rating": payload.mood_rating,
         "meditation_minutes": payload.meditation_minutes,
         "log_date": log_date,
     }
 
-    from beanie import get_database
-    collection = get_database()["habit_trackings"]
+    collection = HabitTracking.get_motor_collection()
 
     result = await collection.find_one_and_update(
         {"user_id": uid, "log_date": log_date},
         {"$set": update_fields, "$setOnInsert": {"created_at": datetime.now(timezone.utc), "burnout_risk_cluster": BurnoutRisk.UNKNOWN}},
         upsert=True,
-        return_document=True,
+        return_document=ReturnDocument.AFTER,
     )
 
     record = HabitTracking(**result)

@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from beanie import Document, PydanticObjectId
+from beanie import Document, DecimalAnnotation, PydanticObjectId
 from pydantic import Field, field_validator
 
 from models.enums import TransactionType, FinancialCategory, RecurringFrequency
@@ -19,7 +19,7 @@ from models.enums import TransactionType, FinancialCategory, RecurringFrequency
 class FinancialRecord(Document):
     user_id: PydanticObjectId
     type: TransactionType
-    amount: Decimal = Field(..., gt=0, description="Must be strictly greater than 0.00")
+    amount: DecimalAnnotation = Field(..., gt=0, description="Must be strictly greater than 0.00")
     category: FinancialCategory
     description: Optional[str] = Field(default=None, max_length=255)
     is_recurring: bool = False

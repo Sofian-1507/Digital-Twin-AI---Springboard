@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Annotated
 
-from beanie import Document, Indexed
+from beanie import Document, Indexed, DecimalAnnotation
 from pydantic import BaseModel, Field, field_validator, model_validator, EmailStr
 
 from models.enums import Gender, RiskTolerance, GoalCategory, BurnoutRisk
@@ -47,8 +47,8 @@ class ActiveGoal(BaseModel):
     goal_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str = Field(..., max_length=150)
     category: GoalCategory
-    target_value: Decimal = Field(..., gt=0)
-    current_value: Decimal = Field(default=Decimal("0.00"), ge=0)
+    target_value: DecimalAnnotation = Field(..., gt=0)
+    current_value: DecimalAnnotation = Field(default=Decimal("0.00"), ge=0)
     unit: str = Field(..., max_length=20)
     target_date: datetime
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -60,13 +60,13 @@ class ActiveGoal(BaseModel):
 # ─── Subdocument: DigitalTwinState ────────────────────────────────────────────
 # Mirrors: backend/database/schemas/subdocuments/digital_twin_state.ts
 class DigitalTwinState(BaseModel):
-    savings_rate_pct: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
-    emergency_fund_months: Decimal = Field(default=Decimal("0.0"), ge=0)
-    study_consistency_score: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
-    predicted_exam_score: Optional[Decimal] = Field(default=None, ge=0, le=100)
-    habit_completion_rate: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
-    lifestyle_score: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
-    productivity_score: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
+    savings_rate_pct: DecimalAnnotation = Field(default=Decimal("0.0"), ge=0, le=100)
+    emergency_fund_months: DecimalAnnotation = Field(default=Decimal("0.0"), ge=0)
+    study_consistency_score: DecimalAnnotation = Field(default=Decimal("0.0"), ge=0, le=100)
+    predicted_exam_score: Optional[DecimalAnnotation] = Field(default=None, ge=0, le=100)
+    habit_completion_rate: DecimalAnnotation = Field(default=Decimal("0.0"), ge=0, le=100)
+    lifestyle_score: DecimalAnnotation = Field(default=Decimal("0.0"), ge=0, le=100)
+    productivity_score: DecimalAnnotation = Field(default=Decimal("0.0"), ge=0, le=100)
     burnout_risk_cluster: BurnoutRisk = BurnoutRisk.UNKNOWN
     last_updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -81,7 +81,7 @@ class Profile(BaseModel):
     age: int = Field(..., ge=13, le=120)
     gender: Optional[Gender] = None
     occupation: Optional[str] = Field(default=None, max_length=100)
-    monthly_income_baseline: Decimal = Field(default=Decimal("0.00"), ge=0)
+    monthly_income_baseline: DecimalAnnotation = Field(default=Decimal("0.00"), ge=0)
     risk_tolerance: RiskTolerance = RiskTolerance.MODERATE
 
     class Config:

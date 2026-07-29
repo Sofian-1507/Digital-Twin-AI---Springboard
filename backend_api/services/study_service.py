@@ -135,9 +135,9 @@ async def get_subject_performance(
         SubjectPerformanceSummary(
             subject=r["_id"],
             total_study_hours=Decimal(str(r.get("total_study_hours") or 0)),
-            average_attendance_pct=round(float(r.get("average_attendance_pct") or 0), 2),
-            average_quiz_pct=round(float(r.get("average_quiz_pct") or 0), 2),
-            average_exam_pct=round(float(r.get("average_exam_pct") or 0), 2),
+            average_attendance_pct=round(float(str(r.get("average_attendance_pct") or 0)), 2),
+            average_quiz_pct=round(float(str(r.get("average_quiz_pct") or 0)), 2),
+            average_exam_pct=round(float(str(r.get("average_exam_pct") or 0)), 2),
             session_count=r["session_count"],
         )
         for r in results

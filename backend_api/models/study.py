@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from beanie import Document, PydanticObjectId
+from beanie import Document, DecimalAnnotation, PydanticObjectId
 from pydantic import Field, model_validator
 
 from models.enums import SessionType
@@ -19,18 +19,18 @@ from models.enums import SessionType
 class StudyActivity(Document):
     user_id: PydanticObjectId
     subject: str = Field(..., max_length=100)
-    study_hours: Decimal = Field(..., ge=Decimal("0.1"), le=Decimal("24.0"))
+    study_hours: DecimalAnnotation = Field(..., ge=Decimal("0.1"), le=Decimal("24.0"))
     session_type: SessionType
-    attendance_pct: Decimal = Field(default=Decimal("100.0"), ge=0, le=100)
+    attendance_pct: DecimalAnnotation = Field(default=Decimal("100.0"), ge=0, le=100)
 
     # Optional mark fields
-    quiz_marks: Optional[Decimal] = None
-    max_quiz_marks: Optional[Decimal] = None
-    quiz_marks_pct: Optional[Decimal] = None        # Auto-computed (mirrors pre-validate middleware)
+    quiz_marks: Optional[DecimalAnnotation] = None
+    max_quiz_marks: Optional[DecimalAnnotation] = None
+    quiz_marks_pct: Optional[DecimalAnnotation] = None        # Auto-computed (mirrors pre-validate middleware)
 
-    exam_marks: Optional[Decimal] = None
-    max_exam_marks: Optional[Decimal] = None
-    exam_marks_pct: Optional[Decimal] = None        # Auto-computed (mirrors pre-validate middleware)
+    exam_marks: Optional[DecimalAnnotation] = None
+    max_exam_marks: Optional[DecimalAnnotation] = None
+    exam_marks_pct: Optional[DecimalAnnotation] = None        # Auto-computed (mirrors pre-validate middleware)
 
     focus_score: Optional[int] = Field(default=None, ge=0, le=100)
     linked_goal_id: Optional[PydanticObjectId] = None

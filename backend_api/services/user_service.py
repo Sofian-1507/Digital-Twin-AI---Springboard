@@ -12,10 +12,10 @@ from decimal import Decimal
 from beanie import PydanticObjectId
 from beanie.operators import Set, Push, Pull
 
-from core.exceptions import NotFoundError, BusinessRuleError, ConflictError
+from core.exceptions import NotFoundError, BusinessRuleError, ConflictError, AuthenticationError
 from core.security import hash_password, verify_password
 from models.user import User, Profile, ActiveGoal, DigitalTwinState, UserPreferences
-from models.enums import GoalStatus
+
 from schemas.auth_schema import RegisterRequest
 from schemas.user_schema import ProfileUpdateRequest, ActiveGoalCreateRequest, PreferencesUpdateRequest
 
@@ -46,25 +46,24 @@ async def authenticate_user(email: str, password: str) -> User:
     """
     Validates credentials and returns the User document.
     Equivalent to the TS pattern: findOne({email}) + bcrypt.compare().
-    """
-    user = await User.find_one(
-        User.email == email.lower(),
-        projection_model=None,    # We need password_hash which is excluded by default
-        fetch_links=False,
-    )
 
-    # Fetch again with password_hash explicitly included
-    from motor.motor_asyncio import AsyncIOMotorCollection
-    from beanie import get_database
-    raw = await get_database()["users"].find_one(
+    NOTE: password_hash is marked `exclude=True` on the Pydantic model so normal
+    Beanie find_one() won't return it. We use get_motor_collection() to fetch the
+    raw MongoDB document (which includes password_hash), verify the hash, then
+    fetch the full Beanie User document for the authenticated session.
+    This is the correct pattern for Beanie 1.26.x.
+    """
+    # Fetch raw document to access password_hash (excluded from Beanie model)
+    collection = User.get_motor_collection()
+    raw = await collection.find_one(
         {"email": email.lower()},
         {"password_hash": 1, "email": 1}
     )
 
     if not raw or not verify_password(password, raw.get("password_hash", "")):
-        from core.exceptions import AuthenticationError
         raise AuthenticationError("Incorrect email or password.")
 
+    # Fetch full Beanie document for the authenticated session
     user = await User.find_one(User.email == email.lower())
     return user
 
