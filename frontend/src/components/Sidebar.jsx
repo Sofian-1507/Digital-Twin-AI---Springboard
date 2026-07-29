@@ -1,46 +1,27 @@
 import { NavLink } from "react-router-dom";
+import {
+  LayoutDashboard,
+  User,
+  Wallet,
+  BookOpen,
+  CheckSquare,
+  BrainCircuit,
+  MessageSquare,
+} from "lucide-react";
 
 import "../styles/Sidebar.css";
 
-function Sidebar() {
-  const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/",
-      icon: "▦",
-    },
-    {
-      name: "My Profile",
-      path: "/profile",
-      icon: "◉",
-    },
-    {
-      name: "Finance",
-      path: "/finance",
-      icon: "₹",
-    },
-    {
-      name: "Study",
-      path: "/study",
-      icon: "▤",
-    },
-    {
-      name: "Habits",
-      path: "/habits",
-      icon: "✓",
-    },
-    {
-      name: "Simulation",
-      path: "/simulation",
-      icon: "◌",
-    },
-    {
-      name: "AI Assistant",
-      path: "/assistant",
-      icon: "✦",
-    },
-  ];
+const menuItems = [
+  { name: "Dashboard",    path: "/dashboard",  icon: LayoutDashboard },
+  { name: "My Profile",   path: "/profile",    icon: User            },
+  { name: "Finance",      path: "/finance",    icon: Wallet          },
+  { name: "Study",        path: "/study",      icon: BookOpen        },
+  { name: "Habits",       path: "/habits",     icon: CheckSquare     },
+  { name: "Simulation",   path: "/simulation", icon: BrainCircuit    },
+  { name: "AI Assistant", path: "/assistant",  icon: MessageSquare   },
+];
 
+function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="logo-section">
@@ -60,22 +41,20 @@ function Sidebar() {
           MAIN MENU
         </p>
 
-        {menuItems.map((item) => (
+        {menuItems.map(({ name, path, icon: Icon }) => (
           <NavLink
-            key={item.name}
-            to={item.path}
+            key={name}
+            to={path}
             className={({ isActive }) =>
-              isActive
-                ? "menu-link active"
-                : "menu-link"
+              isActive ? "menu-link active" : "menu-link"
             }
           >
             <span className="menu-icon">
-              {item.icon}
+              <Icon size={18} strokeWidth={1.8} />
             </span>
 
             <span>
-              {item.name}
+              {name}
             </span>
           </NavLink>
         ))}
@@ -84,7 +63,7 @@ function Sidebar() {
       <div className="sidebar-bottom">
         <div className="user-box">
           <div className="user-avatar">
-            IS
+            DT
           </div>
 
           <div>

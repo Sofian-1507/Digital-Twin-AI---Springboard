@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 
 function StudyForm({ addSession }) {
   const [formData, setFormData] = useState({
@@ -7,6 +8,7 @@ function StudyForm({ addSession }) {
     hours: "",
     status: "Completed",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -15,26 +17,32 @@ function StudyForm({ addSession }) {
     });
   };
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (
-      !formData.date ||
-      !formData.subject ||
-      !formData.hours
-    ) {
-      alert("Please fill all fields.");
+    if (!formData.date || !formData.subject || !formData.hours) {
+      toast.error("Please fill in Date, Subject, and Hours.");
       return;
     }
 
-    addSession(formData);
+    if (Number(formData.hours) <= 0 || Number(formData.hours) > 24) {
+      toast.error("Hours must be between 0.1 and 24.");
+      return;
+    }
 
-    setFormData({
-      date: "",
-      subject: "",
-      hours: "",
-      status: "Completed",
-    });
+    setIsSubmitting(true);
+    try {
+      await addSession(formData);
+      setFormData({
+        date: "",
+        subject: "",
+        hours: "",
+        status: "Completed",
+      });
+      toast.success("Study session added successfully.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -64,7 +72,10 @@ function StudyForm({ addSession }) {
         <input
           type="number"
           name="hours"
-          placeholder="Hours"
+          placeholder="Hours (0.1–24)"
+          min="0.1"
+          max="24"
+          step="0.1"
           value={formData.hours}
           onChange={handleChange}
         />
@@ -80,8 +91,8 @@ function StudyForm({ addSession }) {
 
       </div>
 
-      <button className="study-btn">
-        Add Session
+      <button className="study-btn" disabled={isSubmitting}>
+        {isSubmitting ? "Adding..." : "Add Session"}
       </button>
     </form>
   );

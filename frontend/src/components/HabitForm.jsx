@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 
 function HabitForm({ addHabit }) {
 
@@ -9,6 +10,7 @@ function HabitForm({ addHabit }) {
     exercise: "",
     mood: "Happy",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -17,28 +19,28 @@ function HabitForm({ addHabit }) {
     });
   };
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (
-      !formData.date ||
-      !formData.water ||
-      !formData.sleep ||
-      !formData.exercise
-    ) {
-      alert("Please fill all fields.");
+    if (!formData.date || !formData.water || !formData.sleep || !formData.exercise) {
+      toast.error("Please fill in all habit fields.");
       return;
     }
 
-    addHabit(formData);
-
-    setFormData({
-      date: "",
-      water: "",
-      sleep: "",
-      exercise: "",
-      mood: "Happy",
-    });
+    setIsSubmitting(true);
+    try {
+      await addHabit(formData);
+      setFormData({
+        date: "",
+        water: "",
+        sleep: "",
+        exercise: "",
+        mood: "Happy",
+      });
+      toast.success("Habit log saved successfully.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -61,6 +63,8 @@ function HabitForm({ addHabit }) {
         <input
           type="number"
           step="0.1"
+          min="0"
+          max="20"
           name="water"
           placeholder="Water (L)"
           value={formData.water}
@@ -69,6 +73,9 @@ function HabitForm({ addHabit }) {
 
         <input
           type="number"
+          step="0.5"
+          min="0"
+          max="24"
           name="sleep"
           placeholder="Sleep (hrs)"
           value={formData.sleep}
@@ -77,6 +84,8 @@ function HabitForm({ addHabit }) {
 
         <input
           type="number"
+          min="0"
+          max="1440"
           name="exercise"
           placeholder="Exercise (min)"
           value={formData.exercise}
@@ -96,8 +105,8 @@ function HabitForm({ addHabit }) {
 
       </div>
 
-      <button className="habit-btn">
-        Save Habit
+      <button className="habit-btn" disabled={isSubmitting}>
+        {isSubmitting ? "Saving..." : "Save Habit"}
       </button>
 
     </form>

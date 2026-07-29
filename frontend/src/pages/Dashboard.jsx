@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CheckCircle2, Circle } from "lucide-react";
 import "../styles/Dashboard.css";
 
 import StatCard from "../components/StatCard";
@@ -243,19 +244,21 @@ function Dashboard() {
 
           <ul>
             {goals.length > 0
-              ? goals.slice(0, 5).map((g) => (
-                  <li key={g.goal_id}>
-                    {Number(g.current_value) >= Number(g.target_value) ? "✔" : "○"} {g.title}
-                  </li>
-                ))
+              ? goals.slice(0, 5).map((g) => {
+                  const done = Number(g.current_value) >= Number(g.target_value);
+                  return (
+                    <li key={g.goal_id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      {done
+                        ? <CheckCircle2 size={15} strokeWidth={2} style={{ color: "#38EF7D", flexShrink: 0 }} />
+                        : <Circle       size={15} strokeWidth={2} style={{ color: "#888",     flexShrink: 0 }} />}
+                      {g.title}
+                    </li>
+                  );
+                })
               : (
-                <>
-                  <li>✔ Complete React Project</li>
-                  <li>✔ Finish ML Course</li>
-                  <li>✔ Save $1,000</li>
-                  <li>✔ Exercise 5 Days/Week</li>
-                  <li>✔ Read Two Books</li>
-                </>
+                <li style={{ color: "#888", fontStyle: "italic" }}>
+                  No active goals yet. Add one from your Profile page.
+                </li>
               )}
           </ul>
 

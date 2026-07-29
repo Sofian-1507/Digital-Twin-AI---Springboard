@@ -1,20 +1,26 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import "../styles/Auth.css";
 
 function ForgotPassword() {
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e) => {
-
     e.preventDefault();
-
-    alert(
-      "Password reset link sent!"
-    );
-
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    // No backend endpoint yet — show informational toast
+    setIsLoading(true);
+    setTimeout(() => {
+      toast.info("If that email exists, a reset link has been sent.");
+      setEmail("");
+      setIsLoading(false);
+    }, 800);
   };
 
   return (
@@ -43,20 +49,14 @@ function ForgotPassword() {
               type="email"
               placeholder="Enter Email"
               value={email}
-              onChange={(e) =>
-                setEmail(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
 
           </div>
 
-          <button className="auth-btn">
-
-            Send Reset Link
-
+          <button className="auth-btn" disabled={isLoading}>
+            {isLoading ? "Sending..." : "Send Reset Link"}
           </button>
 
         </form>
@@ -64,9 +64,7 @@ function ForgotPassword() {
         <p className="switch-auth">
 
           <Link to="/login">
-
             Back to Login
-
           </Link>
 
         </p>

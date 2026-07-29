@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react";
 import "../styles/Auth.css";
 
 import { loginUser } from "../services/authService";
@@ -15,7 +17,6 @@ function Login() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -27,19 +28,17 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
 
     try {
       const data = await loginUser(formData);
-      // data = { access_token, token_type, user_id, email }
       login(data);
       navigate("/dashboard");
     } catch (err) {
       const msg =
         err.response?.data?.detail ||
         "Invalid email or password. Please try again.";
-      setError(msg);
+      toast.error(typeof msg === "string" ? msg : "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -59,12 +58,6 @@ function Login() {
           <p>Login to continue</p>
 
         </div>
-
-        {error && (
-          <p className="auth-error" style={{ color: "#e53e3e", marginBottom: "1rem", fontSize: "0.9rem" }}>
-            {error}
-          </p>
-        )}
 
         <form onSubmit={handleSubmit}>
 
@@ -90,11 +83,7 @@ function Login() {
             <div className="password-box">
 
               <input
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Enter Password"
                 value={formData.password}
@@ -105,13 +94,10 @@ function Login() {
               <button
                 type="button"
                 className="eye-btn"
-                onClick={() =>
-                  setShowPassword(
-                    !showPassword
-                  )
-                }
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? "🙈" : "👁"}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
 
             </div>
@@ -134,7 +120,7 @@ function Login() {
 
           </div>
 
-          <button className="auth-btn" disabled={isLoading}>
+          <button className="auth-btn" type="submit" disabled={isLoading}>
             {isLoading ? "Logging in..." : "Login"}
           </button>
 

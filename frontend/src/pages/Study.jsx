@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 
 import StudySummary from "../components/StudySummary";
 import StudyForm from "../components/StudyForm";
@@ -11,7 +12,6 @@ import { getSessions, createSession } from "../services/studyService";
 
 import "../styles/Study.css";
 
-// Map study form sessions to chart data: { day, hours }
 const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function buildWeeklyChart(sessions) {
@@ -28,10 +28,9 @@ function buildWeeklyChart(sessions) {
 }
 
 function Study() {
-  const [sessions, setSessions]     = useState([]);
-  const [chartData, setChartData]   = useState([]);
-  const [isLoading, setIsLoading]   = useState(true);
-  const [error, setError]           = useState("");
+  const [sessions, setSessions]   = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchSessions() {
@@ -42,7 +41,7 @@ function Study() {
         setChartData(buildWeeklyChart(data));
       } catch (err) {
         console.error("Failed to fetch study sessions:", err);
-        setError("Could not load study sessions. Please try again later.");
+        toast.error("Could not load study sessions. Please try again later.");
       } finally {
         setIsLoading(false);
       }
@@ -52,40 +51,30 @@ function Study() {
 
   /**
    * Posts a new session to the backend and prepends it to the local list.
-   * StudyForm passes { date, subject, hours, status }.
-   * Mapped to backend's StudyCreateRequest schema.
+   * session_type uses a valid backend enum value: "DEEP_WORK".
    */
   async function addSession(formData) {
-    try {
-      const payload = {
-        subject: formData.subject,
-        study_hours: Number(formData.hours),
-        session_type: "Self-Study",      // Default — form doesn't have this field
-        attendance_pct: 100,
-        session_date: formData.date
-          ? new Date(formData.date).toISOString()
-          : undefined,
-      };
-      const newRecord = await createSession(payload);
-      setSessions((prev) => {
-        const updated = [newRecord, ...prev];
-        setChartData(buildWeeklyChart(updated));
-        return updated;
-      });
-    } catch (err) {
-      const msg = err.response?.data?.detail || "Failed to add session.";
-      alert(typeof msg === "string" ? msg : JSON.stringify(msg));
-    }
+    const payload = {
+      subject:      formData.subject,
+      study_hours:  Number(formData.hours),
+      session_type: "DEEP_WORK",   // Backend enum: DEEP_WORK | REVIEW | LECTURE | PRACTICE_EXAM | ASSIGNMENT | RESEARCH
+      attendance_pct: 100,
+      session_date: formData.date
+        ? new Date(formData.date).toISOString()
+        : undefined,
+    };
+    const newRecord = await createSession(payload);
+    setSessions((prev) => {
+      const updated = [newRecord, ...prev];
+      setChartData(buildWeeklyChart(updated));
+      return updated;
+    });
   }
 
   return (
     <div className="study-page">
 
       <h2>Study Dashboard</h2>
-
-      {error && (
-        <p style={{ color: "#e53e3e", marginBottom: "1rem" }}>{error}</p>
-      )}
 
       {isLoading ? (
         <p>Loading sessions…</p>

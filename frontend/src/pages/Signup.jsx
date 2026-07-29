@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react";
 import "../styles/Auth.css";
 
 import { registerUser } from "../services/authService";
@@ -18,7 +20,6 @@ function Signup() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -30,34 +31,34 @@ function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      toast.error("Passwords do not match.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Map frontend fields → backend RegisterRequest schema
       const payload = {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        age: 18,                     // Default — user can update in Profile later
-        monthly_income_baseline: 0,  // Default — user can update in Profile later
+        age: 18,
+        monthly_income_baseline: 0,
       };
 
       const data = await registerUser(payload);
-      // registerUser already stored the token; update auth context and redirect
       login(data);
       navigate("/dashboard");
     } catch (err) {
       const msg =
         err.response?.data?.detail ||
         "Registration failed. Please try again.";
-      setError(Array.isArray(msg) ? msg[0]?.msg || msg : msg);
+      const readable = Array.isArray(msg)
+        ? msg[0]?.msg || "Registration failed."
+        : msg;
+      toast.error(readable);
     } finally {
       setIsLoading(false);
     }
@@ -71,12 +72,6 @@ function Signup() {
           <h2>Create Account</h2>
           <p>Create your new account</p>
         </div>
-
-        {error && (
-          <p className="auth-error" style={{ color: "#e53e3e", marginBottom: "1rem", fontSize: "0.9rem" }}>
-            {error}
-          </p>
-        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -120,8 +115,9 @@ function Signup() {
                 type="button"
                 className="eye-btn"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? "🙈" : "👁"}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>

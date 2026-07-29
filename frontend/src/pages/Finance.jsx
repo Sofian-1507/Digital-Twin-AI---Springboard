@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 
 import FinanceSummary from "../components/FinanceSummary";
 import TransactionForm from "../components/TransactionForm";
@@ -14,9 +15,7 @@ import "../styles/Finance.css";
 function Finance() {
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading]       = useState(true);
-  const [error, setError]               = useState("");
 
-  // Fetch transactions on mount
   useEffect(() => {
     async function fetchTransactions() {
       try {
@@ -24,7 +23,7 @@ function Finance() {
         setTransactions(result.data || []);
       } catch (err) {
         console.error("Failed to fetch transactions:", err);
-        setError("Could not load transactions. Please try again later.");
+        toast.error("Could not load transactions. Please try again later.");
       } finally {
         setIsLoading(false);
       }
@@ -34,35 +33,26 @@ function Finance() {
 
   /**
    * Submits a new transaction to the backend and prepends it to the local list.
-   * TransactionForm passes { date, type, category, amount, description }.
-   * We map these to the backend's FinanceCreateRequest schema.
+   * TransactionForm now sends correctly-cased enum values (INCOME, EXPENSE, FOOD, etc.)
+   * matching the FinancialRecord model.
    */
   const addTransaction = async (formData) => {
-    try {
-      const payload = {
-        type: formData.type,           // "Income" | "Expense"
-        amount: Number(formData.amount),
-        category: formData.category,
-        description: formData.description || undefined,
-        transaction_date: formData.date
-          ? new Date(formData.date).toISOString()
-          : undefined,
-      };
-      const newRecord = await createTransaction(payload);
-      setTransactions((prev) => [newRecord, ...prev]);
-    } catch (err) {
-      const msg = err.response?.data?.detail || "Failed to add transaction.";
-      alert(typeof msg === "string" ? msg : JSON.stringify(msg));
-    }
+    const payload = {
+      type:             formData.type,        // e.g. "INCOME" | "EXPENSE"
+      amount:           Number(formData.amount),
+      category:         formData.category,    // e.g. "SALARY" | "FOOD"
+      description:      formData.description || undefined,
+      transaction_date: formData.date
+        ? new Date(formData.date).toISOString()
+        : undefined,
+    };
+    const newRecord = await createTransaction(payload);
+    setTransactions((prev) => [newRecord, ...prev]);
   };
 
   return (
     <div className="finance-page">
       <h2>Finance Dashboard</h2>
-
-      {error && (
-        <p style={{ color: "#e53e3e", marginBottom: "1rem" }}>{error}</p>
-      )}
 
       {isLoading ? (
         <p>Loading transactions…</p>
