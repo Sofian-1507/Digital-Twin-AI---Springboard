@@ -1,0 +1,70 @@
+"""
+schemas/finance_schema.py — Pydantic request/response schemas for finance endpoints.
+Field names mirror backend/database/schemas/finance_schema.ts exactly.
+"""
+from __future__ import annotations
+
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel, Field, model_validator
+
+from models.enums import TransactionType, FinancialCategory, RecurringFrequency
+
+
+class FinanceCreateRequest(BaseModel):
+    """POST /api/v1/finance/transactions"""
+    type: TransactionType
+    amount: Decimal = Field(..., gt=0, description="Must be strictly > 0.00")
+    category: FinancialCategory
+    description: Optional[str] = Field(default=None, max_length=255)
+    is_recurring: bool = False
+    recurring_frequency: Optional[RecurringFrequency] = None
+    linked_goal_id: Optional[str] = None
+    transaction_date: Optional[datetime] = None
+
+    @model_validator(mode="after")
+    def frequency_required_when_recurring(self) -> "FinanceCreateRequest":
+        """Mirrors: required: function() { return this.is_recurring === true; }"""
+        if self.is_recurring and not self.recurring_frequency:
+            raise ValueError("recurring_frequency is required when is_recurring is True.")
+        return self
+
+
+class FinanceRecordResponse(BaseModel):
+    """Response schema for a single financial record."""
+    id: str
+    user_id: str
+    type: TransactionType
+    amount: Decimal
+    category: FinancialCategory
+    description: Optional[str]
+    is_recurring: bool
+    recurring_frequency: Optional[RecurringFrequency]
+    linked_goal_id: Optional[str]
+    transaction_date: datetime
+    created_at: datetime
+
+
+class PaginatedFinanceResponse(BaseModel):
+    data: list[FinanceRecordResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
+
+class MonthlyCashflowItem(BaseModel):
+    """Monthly aggregated cashflow row for ML feature pipelines."""
+    year: int
+    month: int
+    type: TransactionType
+    total_amount: Decimal
+    transaction_count: int
+
+
+class CategoryBreakdownItem(BaseModel):
+    category: str
+    total_amount: Decimal
+    percentage_of_total: float

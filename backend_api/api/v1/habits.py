@@ -1,0 +1,78 @@
+"""
+api/v1/habits.py — Habit data collection endpoints.
+POST /api/v1/habits/daily-log                  → upsert today's biometric check-in
+GET  /api/v1/habits/daily-log                  → paginated habit log history
+GET  /api/v1/habits/analytics/kmeans-features  → 4D feature matrix for K-Means ML
+"""
+import logging
+
+from fastapi import APIRouter, Query, status
+
+from api.dependencies import CurrentUser
+from schemas.habit_schema import (
+    HabitCreateRequest,
+    HabitRecordResponse,
+    PaginatedHabitResponse,
+    KMeansFeatureRow,
+)
+import services.habit_service as habit_service
+
+logger = logging.getLogger("digital_twin_ai.habits_router")
+router = APIRouter(prefix="/habits", tags=["Habit Tracking"])
+
+
+@router.post(
+    "/daily-log",
+    response_model=HabitRecordResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Upsert today's daily biometric check-in",
+)
+async def upsert_daily_log(
+    payload: HabitCreateRequest,
+    current_user: CurrentUser,
+) -> HabitRecordResponse:
+    """
+    Creates or updates the habit log for today (UTC).
+    The unique compound index (user_id, log_date) in MongoDB enforces strictly 1 entry per day.
+    log_date is auto-normalized to midnight UTC (mirrors HabitTrackingSchema.pre('validate')).
+    Returns 200 (not 201) because this is an upsert — the record may already exist.
+    """
+    return await habit_service.upsert_daily_log(str(current_user.id), payload)
+
+
+@router.get(
+    "/daily-log",
+    response_model=PaginatedHabitResponse,
+    summary="Get paginated habit log history",
+)
+async def list_logs(
+    current_user: CurrentUser,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=30, ge=1, le=100),
+) -> PaginatedHabitResponse:
+    """
+    Returns paginated habit records sorted by log_date descending.
+    Leverages idx_habit_user_date_desc ESR index.
+    """
+    return await habit_service.list_logs(
+        user_id=str(current_user.id),
+        page=page,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/analytics/kmeans-features",
+    response_model=list[KMeansFeatureRow],
+    summary="Extract 4D biometric feature matrix for K-Means burnout clustering",
+)
+async def kmeans_feature_space(
+    current_user: CurrentUser,
+    days: int = Query(default=30, ge=7, le=365, description="Lookback window in days"),
+) -> list[KMeansFeatureRow]:
+    """
+    Returns the 4D biometric feature vectors (sleep, exercise, water, screen_time)
+    over the specified time window.
+    Python port of extractKMeansFeatureSpace() from habit_repository.ts.
+    """
+    return await habit_service.extract_kmeans_feature_space(str(current_user.id), days)

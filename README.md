@@ -4,7 +4,16 @@
 ## 📁 Enterprise Folder Architecture
 
 ```
-backend/
+backend_api/ (NEW: Python FastAPI Layer)
+├── main.py                     ← FastAPI application factory & router wiring
+├── requirements.txt            ← Pinned dependencies (FastAPI, Motor, Beanie, Pydantic)
+├── core/                       ← Settings, database lifecycle, security (JWT), exceptions
+├── models/                     ← Beanie ODMs (Python ports of Mongoose schemas)
+├── schemas/                    ← Pydantic DTOs for request/response validation
+├── services/                   ← Business logic & aggregation pipelines
+└── api/v1/                     ← 18 REST endpoints across Auth, Finance, Study, Habits
+
+backend/ (Original Database Admin Toolkit)
 ├── package.json                          ← Configured with Mongoose 8+, TypeScript 5+, and CLI maintenance scripts
 ├── tsconfig.json                         ← Strict ES2022 TypeScript compiler configuration
 ├── .env.example                          ← MongoDB Atlas connection URI and M10+ pooling template
@@ -117,6 +126,22 @@ MONGODB_MAX_POOL_SIZE=100
 MONGODB_MIN_POOL_SIZE=10
 NODE_ENV=development
 ```
+
+### 3. Start the FastAPI Python Server
+The live API backend is located in the `backend_api/` folder.
+First, make sure you have added a JWT secret key to your `.env` file in the `backend_api/` folder:
+```env
+JWT_SECRET_KEY=your_secure_generated_key
+```
+
+Then, install dependencies and start the server:
+```bash
+cd ../backend_api
+pip install -r requirements.txt
+export PYTHONPATH=$(pwd)
+python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+Interactive Swagger UI Docs are available at: `http://localhost:8000/api/docs`
 
 ---
 

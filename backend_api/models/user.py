@@ -1,0 +1,115 @@
+"""
+models/user.py — Beanie ODM Document mirroring backend/database/schemas/user_schema.ts.
+Collection: `users`
+Subdocuments: UserPreferences, ActiveGoal, DigitalTwinState (embedded, no _id).
+DO NOT alter field names or collection name — they map directly to existing MongoDB documents.
+"""
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Optional, Annotated
+
+from beanie import Document, Indexed
+from pydantic import BaseModel, Field, field_validator, model_validator, EmailStr
+
+from models.enums import Gender, RiskTolerance, GoalCategory, BurnoutRisk
+
+
+# ─── Subdocument: UserPreferences ─────────────────────────────────────────────
+# Mirrors: backend/database/schemas/subdocuments/user_preferences.ts
+class UserPreferences(BaseModel):
+    currency: str = Field(default="INR", max_length=5)
+    language: str = Field(default="en", max_length=10)
+    dark_mode: bool = True
+    email_notifications: bool = True
+    weekly_report_enabled: bool = True
+
+    @field_validator("currency")
+    @classmethod
+    def currency_upper(cls, v: str) -> str:
+        return v.upper().strip()
+
+    @field_validator("language")
+    @classmethod
+    def language_lower(cls, v: str) -> str:
+        return v.lower().strip()
+
+    class Config:
+        populate_by_name = True
+
+
+# ─── Subdocument: ActiveGoal ──────────────────────────────────────────────────
+# Mirrors: backend/database/schemas/subdocuments/active_goal.ts
+# Note: goal_id is stored as a string UUID (compatible with MongoDB ObjectId-less embedded docs)
+class ActiveGoal(BaseModel):
+    goal_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str = Field(..., max_length=150)
+    category: GoalCategory
+    target_value: Decimal = Field(..., gt=0)
+    current_value: Decimal = Field(default=Decimal("0.00"), ge=0)
+    unit: str = Field(..., max_length=20)
+    target_date: datetime
+    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Config:
+        populate_by_name = True
+
+
+# ─── Subdocument: DigitalTwinState ────────────────────────────────────────────
+# Mirrors: backend/database/schemas/subdocuments/digital_twin_state.ts
+class DigitalTwinState(BaseModel):
+    savings_rate_pct: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
+    emergency_fund_months: Decimal = Field(default=Decimal("0.0"), ge=0)
+    study_consistency_score: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
+    predicted_exam_score: Optional[Decimal] = Field(default=None, ge=0, le=100)
+    habit_completion_rate: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
+    lifestyle_score: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
+    productivity_score: Decimal = Field(default=Decimal("0.0"), ge=0, le=100)
+    burnout_risk_cluster: BurnoutRisk = BurnoutRisk.UNKNOWN
+    last_updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Config:
+        populate_by_name = True
+
+
+# ─── Subdocument: Profile ─────────────────────────────────────────────────────
+# Mirrors: ProfileSchema within backend/database/schemas/user_schema.ts
+class Profile(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    age: int = Field(..., ge=13, le=120)
+    gender: Optional[Gender] = None
+    occupation: Optional[str] = Field(default=None, max_length=100)
+    monthly_income_baseline: Decimal = Field(default=Decimal("0.00"), ge=0)
+    risk_tolerance: RiskTolerance = RiskTolerance.MODERATE
+
+    class Config:
+        populate_by_name = True
+
+
+# ─── Document: User ───────────────────────────────────────────────────────────
+# Mirrors: UserSchema → Collection `users`
+class User(Document):
+    email: Annotated[str, Indexed(unique=True)]
+    password_hash: str = Field(..., exclude=True)  # Never serialised in responses
+    profile: Profile = Field(default_factory=Profile.model_construct)
+    preferences: UserPreferences = Field(default_factory=UserPreferences)
+    active_goals: list[ActiveGoal] = Field(default_factory=list)
+    digital_twin_state: DigitalTwinState = Field(default_factory=DigitalTwinState)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("active_goals")
+    @classmethod
+    def goals_cap(cls, v: list[ActiveGoal]) -> list[ActiveGoal]:
+        if len(v) > 30:
+            raise ValueError("Active goals array cannot exceed 30 items.")
+        return v
+
+    class Settings:
+        name = "users"               # ← Exact collection name from TS layer
+        use_state_management = True
+
+    class Config:
+        populate_by_name = True
