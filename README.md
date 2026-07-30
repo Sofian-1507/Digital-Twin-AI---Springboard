@@ -1,184 +1,109 @@
 # 🤖 Digital Twin AI — Personal Life Simulation & Decision Assistant
 
+An end-to-end full-stack personal life simulation system powered by **FastAPI**, **MongoDB Atlas**, and **React (Vite)**. The platform tracks personal finance, academic telemetry, daily biometric habits, and generates actionable AI twin recommendations.
 
-## 📁 Enterprise Folder Architecture
+---
 
-```
-backend_api/ (NEW: Python FastAPI Layer)
-├── main.py                     ← FastAPI application factory & router wiring
-├── requirements.txt            ← Pinned dependencies (FastAPI, Motor, Beanie, Pydantic)
-├── core/                       ← Settings, database lifecycle, security (JWT), exceptions
-├── models/                     ← Beanie ODMs (Python ports of Mongoose schemas)
-├── schemas/                    ← Pydantic DTOs for request/response validation
-├── services/                   ← Business logic & aggregation pipelines
-└── api/v1/                     ← 18 REST endpoints across Auth, Finance, Study, Habits
+## 📁 Repository Structure
 
-backend/ (Original Database Admin Toolkit)
-├── package.json                          ← Configured with Mongoose 8+, TypeScript 5+, and CLI maintenance scripts
-├── tsconfig.json                         ← Strict ES2022 TypeScript compiler configuration
-├── .env.example                          ← MongoDB Atlas connection URI and M10+ pooling template
-├── src/
-│   ├── config/env.ts                     ← Compatibility alias bridging environment imports
-│   └── database/
-│       ├── index.ts                      ← Compatibility alias re-exporting master DB package
-│       └── repositories/                 ← Alias exports for UserRepository & FinancialRecordRepository
-└── database/
-    ├── index.ts                          ← Master package entry point exporting DB singletons & DAOs
-    ├── config/
-    │   ├── db_settings.ts                ← Type-safe environment variable loader (URI, Pool Size, Timeout)
-    │   └── atlas_vector_indexes.json     ← HNSW vector index definitions for Atlas Admin API / UI deploy
-    ├── connections/
-    │   ├── atlas_pool.ts                 ← Singleton connection manager with Atlas pooling (10–100 conns)
-    │   └── vector_client.ts              ← Native Atlas Vector Search helper client ($vectorSearch RAG)
-    ├── schemas/
-    │   ├── enums.ts                      ← Centralized TypeScript enums with ODM enum bindings
-    │   ├── subdocuments/
-    │   │   ├── user_preferences.ts       ← Embedded 1:1 preferences schema (INR currency default)
-    │   │   ├── active_goal.ts            ← Embedded bounded active goal schema (hard-capped at 30 items)
-    │   │   ├── digital_twin_state.ts     ← Embedded 1:1 real-time AI summary snapshot schema
-    │   │   └── chat_turn.ts              ← Embedded message turn schema for chat_history threads
-    │   ├── user_schema.ts                ← Core User aggregate root (embeds profiles, goals, twin state)
-    │   ├── finance_schema.ts             ← FinancialRecord time-series ledger (immutable cash flow)
-    │   ├── academic_schema.ts            ← StudyActivity telemetry log with pre-save percentage calculation
-    │   ├── habit_schema.ts               ← HabitTracking 4D K-Means log (midnight UTC daily normalization)
-    │   ├── simulation_schema.ts          ← Simulation What-If scenario archive (polymorphic mixed BSON)
-    │   ├── recommendation_schema.ts      ← Recommendation AI advice feed (768-dim vector embedding)
-    │   ├── chat_schema.ts                ← ChatHistory conversational thread (hard-capped at 100 turns)
-    │   ├── report_schema.ts              ← Report generated PDF artifact metadata schema
-    │   ├── analytics_schema.ts           ← AnalyticsLog telemetry sink with 90-Day Automatic TTL Index
-    │   ├── cache_schema.ts               ← DashboardCache ephemeral UI payload with 15-Minute TTL Index
-    │   └── goal_archive_schema.ts        ← GoalArchive historical target store (Phase 3 #7 resolution)
-    ├── models/
-    │   ├── index.ts                      ← Central barrel export preventing duplicate compilation crashes
-    │   ├── User.ts                       ← Compiled ODM model for users collection
-    │   ├── FinancialRecord.ts            ← Compiled ODM model for financial_records collection
-    │   ├── StudyActivity.ts              ← Compiled ODM model for study_activities collection
-    │   ├── HabitTracking.ts              ← Compiled ODM model for habit_tracking collection
-    │   ├── Simulation.ts                 ← Compiled ODM model for simulations collection
-    │   ├── Recommendation.ts             ← Compiled ODM model for recommendations collection
-    │   ├── ChatHistory.ts                ← Compiled ODM model for chat_history collection
-    │   ├── Report.ts                     ← Compiled ODM model for reports collection
-    │   ├── AnalyticsLog.ts               ← Compiled ODM model for analytics_logs collection
-    │   ├── DashboardCache.ts             ← Compiled ODM model for dashboard_cache collection
-    │   └── GoalArchive.ts                ← Compiled ODM model for goals archive collection
-    ├── validators/
-    │   ├── schema_validators.ts          ← Reusable custom validators (ISO currency, 768-dim bounds)
-    │   └── atlas_json_schemas/
-    │       └── all_collections_json_schemas.json ← Server-side Atlas engine validation rules
-    ├── indexes/
-    │   ├── index_registry.ts             ← Central declarative registry of all ESR, TTL, and unique indexes
-    │   └── sync_indexes.ts               ← Idempotent CLI migration script (Model.syncIndexes())
-    ├── repositories/
-    │   ├── base_repository.ts            ← Generic Repository Pattern abstract class (CRUD & pagination)
-    │   ├── user_repository.ts            ← User DAO featuring getTwinContext() O(1) read & goal archival
-    │   ├── finance_repository.ts         ← Financial DAO featuring monthly cashflow aggregation for ML
-    │   ├── study_repository.ts           ← Academic DAO featuring 3D feature matrix extraction
-    │   ├── habit_repository.ts           ← Habit DAO featuring 4D K-Means feature extraction & write-back
-    │   ├── simulation_repository.ts      ← Simulation DAO managing immutable What-If history retrieval
-    │   └── recommendation_repository.ts  ← Recommendation DAO managing Action Center sorting & RAG vectors
-    ├── seed/
-    │   ├── seed_data/
-    │   │   ├── mock_users.json           ← Realistic mock Indian student profile (INR, active goals)
-    │   │   ├── mock_finance.json         ← Stipend income, hostel rent, and savings deposit telemetry
-    │   │   ├── mock_study.json           ← Algorithms and DBMS study telemetry with quiz/exam marks
-    │   │   └── mock_habits.json          ← 4D biometric check-in snapshots
-    │   └── seeder.ts                     ← Automated development database wipe and seeding CLI script
-    ├── migrations/
-    │   ├── 001_initial_setup.ts          ← Automated index deployment migration script
-    │   └── 002_vector_search_guide.md    ← Step-by-step Atlas UI HNSW vector search setup guide
-    ├── scripts/
-    │   ├── e2e_test_suite.ts             ← End-to-End integration test suite (18 assertions, 100% pass rate)
-    │   ├── db_backup.sh                  ← Executable mongodump backup automation script (gzip compressed)
-    │   ├── db_restore.sh                 ← Executable mongorestore recovery script with drop protection
-    │   └── verify_integrity.ts           ← Diagnostic script verifying 100% foreign key reference integrity
-    └── docs/
-        ├── architecture_diagrams.md      ← Complete Mermaid ER Data Model and Read/Write Matrix
-        ├── indexing_strategy.md          ← ESR index directory and query optimization rationale
-        └── ml_feature_mapping.md         ← Direct mapping of ODM fields to Random Forest/K-Means/RAG
+```text
+Digital-Twin-AI---Springboard/
+├── backend_api/        ← FastAPI Python Backend Application Layer
+│   ├── api/v1/         ← REST Endpoints (Auth, Profile, Finance, Study, Habits, Recommendations)
+│   ├── core/           ← Settings, Database (Motor/Beanie), JWT Security, Exceptions
+│   ├── models/         ← Beanie ODM Models (User, Finance, Study, Habit, etc.)
+│   ├── schemas/        ← Pydantic Validation Schemas & DTOs
+│   ├── services/       ← Business Logic & Analytical Aggregations
+│   ├── main.py         ← FastAPI App Entry Point
+│   └── requirements.txt
+│
+├── frontend/           ← React + Vite Single Page Application
+│   ├── src/
+│   │   ├── components/ ← Reusable UI Components (Navbar, Sidebar, Forms, Charts)
+│   │   ├── context/    ← Auth Context & Global State Management
+│   │   ├── pages/      ← Core Dashboard Pages (Home, Login, Signup, Profile, Finance, Study, Habits)
+│   │   ├── services/   ← API Service Connectors (Axios with Auth Interceptors)
+│   │   └── styles/     ← Modern Scoped CSS Stylesheets
+│   ├── package.json
+│   └── vite.config.js
+│
+└── backend/            ← Mongoose TypeScript Database Seeding & Maintenance Suite
+    ├── database/       ← Schema Validators, Index Registries, Seeder Scripts, E2E Test Suite
+    └── package.json
 ```
 
 ---
 
-## 🚀 Getting Started & Installation
+## 🚀 Quick Start Guide
 
-105: ### Prerequisites
-106: * **Node.js** v20.x or higher
-107: * **npm** v10.x or higher
-108: * **Python** v3.10+
-109: * **MongoDB Atlas** Cluster (Shared M0, Dedicated M10+, or Local MongoDB v7.0+ instance)
-110: 
-111: ### 1. Clone Project
-112: ```bash
-113: git clone https://github.com/Sofian-1507/Digital-Twin-AI---Springboard.git
-114: cd Digital-Twin-AI---Springboard
-115: ```
-116: 
-117: ### 2. Backend Setup (FastAPI & MongoDB Atlas)
-118: Navigate to the `backend_api/` directory and configure environment variables:
-119: ```bash
-120: cd backend_api
-121: pip install -r requirements.txt
-122: ```
-123: Create `.env` inside `backend_api/`:
-124: ```env
-125: MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-126: MONGODB_DB_NAME=digital_twin_ai_prod
-127: JWT_SECRET_KEY=your_secure_generated_key
-128: ```
-129: Start the FastAPI server:
-130: ```bash
-131: export PYTHONPATH=$(pwd)
-132: python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-133: ```
-134: * API Documentation (Swagger UI): `http://localhost:8000/api/docs`
-135: 
-136: ### 3. Frontend Setup (React + Vite)
-137: In a new terminal window, navigate to the `frontend/` directory:
-138: ```bash
-139: cd frontend
-140: npm install
-141: npm run dev
-142: ```
-143: * Frontend App: `http://localhost:5173`
-144: 
-145: ---
-146: 
-147: ## 🎨 Frontend Architecture
-148: 
-149: The application features a dynamic React (Vite) single-page frontend:
-150: * **State & Authentication Context**: Centralized JWT state management with auto-token inclusion via Axios interceptors.
-151: * **Responsive Dashboards**: Interactive modules for Finance (cashflow trends, savings targets), Academic Study (weekly tracking, exam scores), Habit Biometrics (4D health logs), and AI Twin Recommendations.
-152: * **Toast Notifications**: Built-in visual alerts and robust form validation using `react-toastify`.
-153: * **Iconography & Styling**: Modern design language powered by `lucide-react` icons and scoped CSS layouts.
-154: 
-155: ---
-156: 
-157: ## 🛠️ Command-Line Maintenance & Verification Suite
-158: 
-159: We have engineered an automated CLI toolkit to manage database lifecycle, indexing, verification, and seeding directly from the terminal inside `backend/`:
-160: 
-161: | Command | Script Executed | Description |
-162: | :--- | :--- | :--- |
-163: | **`npm run typecheck`** | `tsc --noEmit` | Validates 100% TypeScript type safety across all schemas and DAOs. |
-164: | **`npm run build`** | `tsc` | Compiles TypeScript database layer into production JavaScript (`dist/`). |
-165: | **`npm run sync-indexes`**| `ts-node database/indexes/sync_indexes.ts` | Connects to Atlas and idempotently synchronizes all 12 declarative ESR/TTL/Unique indexes. |
-166: | **`npm run seed`** | `ts-node database/seed/seeder.ts` | Wipes development collections and populates mock Indian student telemetry datasets. |
-167: | **`npm run verify-integrity`**| `ts-node database/scripts/verify_integrity.ts` | Scans all foreign keys across 9 collections to confirm 0 orphaned records exist. |
-168: | **`npm run test:e2e`** | `ts-node database/scripts/e2e_test_suite.ts` | Executes the complete E2E integration test suite (18 assertions against live Atlas cluster). |
-169: | **`./database/scripts/db_backup.sh`** | `mongodump` archive | Creates a timestamped, gzip-compressed backup of your active Atlas cluster. |
-170: 
-171: ---
-172: 
-173: ## 🧪 End-to-End Integration Test Suite
-174: 
-175: Run `npm run test:e2e` inside `backend/` to execute our automated verification suite against your active MongoDB Atlas cluster. The suite tests:
-176: 1. **Connection Pooling:** Verifies Mongoose 8+ connection pool creation and clean shutdown hooks.
-177: 2. **Zero-Hop Reads ($O(1)$ Complexity):** Confirms that fetching a user profile, preferences, active goals, and AI twin state requires exactly **1 database read**.
-178: 3. **Atomic Goal Archival:** Completes a target goal and verifies that it is cleanly pulled from `users.active_goals` and inserted into `GoalArchive` without data loss.
-179: 4. **Random Forest Cashflow Pipelines:** Executes MongoDB aggregation pipelines (`$group` by month/type) extracting structured training matrices for savings regression.
-180: 5. **Academic Feature Extraction:** Verifies pre-save middleware hooks calculating normalized percentage marks (`quiz_marks_pct`, `exam_marks_pct`).
-181: 6. **K-Means 4D Biometric Vectors & Daily Uniqueness:** Confirms that the unique compound index `(user_id, log_date)` blocks duplicate daily check-ins and verifies continuous 4D feature vector extraction (`sleep`, `exercise`, `water`, `screen_time`).
+### Prerequisites
+* **Node.js** v20.x or higher
+* **Python** v3.10 or higher
+* **MongoDB Atlas** Cluster (or local MongoDB v7.0+)
 
+---
 
+### 1. Backend Setup (FastAPI)
 
+1. Navigate to `backend_api/`:
+   ```bash
+   cd backend_api
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Create a `.env` file inside `backend_api/`:
+   ```env
+   MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+   MONGODB_DB_NAME=digital_twin_ai_prod
+   JWT_SECRET_KEY=your_secure_generated_key
+   ```
+4. Start the backend server:
+   ```bash
+   export PYTHONPATH=$(pwd)
+   python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+   * **Swagger API Documentation**: `http://localhost:8000/api/docs`
 
+---
+
+### 2. Frontend Setup (React + Vite)
+
+1. In a new terminal window, navigate to `frontend/`:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Launch the development server:
+   ```bash
+   npm run dev
+   ```
+   * **Web Application Interface**: `http://localhost:5173`
+
+---
+
+## ✨ Features & Architecture
+
+* **🔐 Authentication & Security**: JWT-based bearer authentication with automatic token persistence and Axios request interceptors.
+* **💰 Financial Tracking**: Income, expense, and savings goal management with real-time balance aggregations.
+* **📚 Academic Analytics**: Study session logger, weekly hours visualization, and subject performance metrics.
+* **🏃 Habit & Health Telemetry**: 4D biometric tracking (`sleep`, `exercise`, `water`, `screen_time`).
+* **🤖 AI Twin Engine**: Unified user context aggregation and personalized decision recommendation feed.
+* **💅 UI & UX**: Toast feedback (`react-toastify`), dynamic icons (`lucide-react`), and clean responsive layouts.
+
+---
+
+## 🧪 Database Maintenance Suite
+
+Inside `backend/`, CLI tools are available for indexing and test verification:
+
+| Command | Description |
+| :--- | :--- |
+| `npm run typecheck` | Validates TypeScript type safety across database schemas. |
+| `npm run sync-indexes` | Synchronizes declarative ESR and unique indexes on Atlas. |
+| `npm run seed` | Resets and seeds development telemetry data. |
+| `npm run test:e2e` | Runs end-to-end database verification assertions. |
