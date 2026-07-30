@@ -101,75 +101,83 @@ backend/ (Original Database Admin Toolkit)
 
 ## 🚀 Getting Started & Installation
 
-### Prerequisites
-* **Node.js** v20.x or higher
-* **npm** v10.x or higher
-* **MongoDB Atlas** Cluster (Shared M0, Dedicated M10+, or Local MongoDB v7.0+ instance)
-
-### 1. Clone & Install Dependencies
-```bash
-git clone https://github.com/Sofian-1507/Digital-Twin-AI---Springboard.git
-cd Digital-Twin-AI---Springboard/backend
-npm install
-```
-
-### 2. Environment Configuration
-Create a `.env` file in the `backend/` directory by duplicating the example template:
-```bash
-cp .env.example .env
-```
-Edit `.env` and paste your MongoDB Atlas connection string:
-```env
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-MONGODB_DB_NAME=digital_twin_ai_prod
-MONGODB_MAX_POOL_SIZE=100
-MONGODB_MIN_POOL_SIZE=10
-NODE_ENV=development
-```
-
-### 3. Start the FastAPI Python Server
-The live API backend is located in the `backend_api/` folder.
-First, make sure you have added a JWT secret key to your `.env` file in the `backend_api/` folder:
-```env
-JWT_SECRET_KEY=your_secure_generated_key
-```
-
-Then, install dependencies and start the server:
-```bash
-cd ../backend_api
-pip install -r requirements.txt
-export PYTHONPATH=$(pwd)
-python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-Interactive Swagger UI Docs are available at: `http://localhost:8000/api/docs`
-
----
-
-## 🛠️ Command-Line Maintenance & Verification Suite
-
-We have engineered an automated CLI toolkit to manage database lifecycle, indexing, verification, and seeding directly from the terminal inside `backend/`:
-
-| Command | Script Executed | Description |
-| :--- | :--- | :--- |
-| **`npm run typecheck`** | `tsc --noEmit` | Validates 100% TypeScript type safety across all schemas and DAOs. |
-| **`npm run build`** | `tsc` | Compiles TypeScript database layer into production JavaScript (`dist/`). |
-| **`npm run sync-indexes`**| `ts-node database/indexes/sync_indexes.ts` | Connects to Atlas and idempotently synchronizes all 12 declarative ESR/TTL/Unique indexes. |
-| **`npm run seed`** | `ts-node database/seed/seeder.ts` | Wipes development collections and populates mock Indian student telemetry datasets. |
-| **`npm run verify-integrity`**| `ts-node database/scripts/verify_integrity.ts` | Scans all foreign keys across 9 collections to confirm 0 orphaned records exist. |
-| **`npm run test:e2e`** | `ts-node database/scripts/e2e_test_suite.ts` | Executes the complete E2E integration test suite (18 assertions against live Atlas cluster). |
-| **`./database/scripts/db_backup.sh`** | `mongodump` archive | Creates a timestamped, gzip-compressed backup of your active Atlas cluster. |
-
----
-
-## 🧪 End-to-End Integration Test Suite
-
-Run `npm run test:e2e` to execute our automated verification suite against your active MongoDB Atlas cluster. The suite tests:
-1. **Connection Pooling:** Verifies Mongoose 8+ connection pool creation and clean shutdown hooks.
-2. **Zero-Hop Reads ($O(1)$ Complexity):** Confirms that fetching a user profile, preferences, active goals, and AI twin state requires exactly **1 database read**.
-3. **Atomic Goal Archival:** Completes a target goal and verifies that it is cleanly pulled from `users.active_goals` and inserted into `GoalArchive` without data loss.
-4. **Random Forest Cashflow Pipelines:** Executes MongoDB aggregation pipelines (`$group` by month/type) extracting structured training matrices for savings regression.
-5. **Academic Feature Extraction:** Verifies pre-save middleware hooks calculating normalized percentage marks (`quiz_marks_pct`, `exam_marks_pct`).
-6. **K-Means 4D Biometric Vectors & Daily Uniqueness:** Confirms that the unique compound index `(user_id, log_date)` blocks duplicate daily check-ins and verifies continuous 4D feature vector extraction (`sleep`, `exercise`, `water`, `screen_time`).
+105: ### Prerequisites
+106: * **Node.js** v20.x or higher
+107: * **npm** v10.x or higher
+108: * **Python** v3.10+
+109: * **MongoDB Atlas** Cluster (Shared M0, Dedicated M10+, or Local MongoDB v7.0+ instance)
+110: 
+111: ### 1. Clone Project
+112: ```bash
+113: git clone https://github.com/Sofian-1507/Digital-Twin-AI---Springboard.git
+114: cd Digital-Twin-AI---Springboard
+115: ```
+116: 
+117: ### 2. Backend Setup (FastAPI & MongoDB Atlas)
+118: Navigate to the `backend_api/` directory and configure environment variables:
+119: ```bash
+120: cd backend_api
+121: pip install -r requirements.txt
+122: ```
+123: Create `.env` inside `backend_api/`:
+124: ```env
+125: MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+126: MONGODB_DB_NAME=digital_twin_ai_prod
+127: JWT_SECRET_KEY=your_secure_generated_key
+128: ```
+129: Start the FastAPI server:
+130: ```bash
+131: export PYTHONPATH=$(pwd)
+132: python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+133: ```
+134: * API Documentation (Swagger UI): `http://localhost:8000/api/docs`
+135: 
+136: ### 3. Frontend Setup (React + Vite)
+137: In a new terminal window, navigate to the `frontend/` directory:
+138: ```bash
+139: cd frontend
+140: npm install
+141: npm run dev
+142: ```
+143: * Frontend App: `http://localhost:5173`
+144: 
+145: ---
+146: 
+147: ## 🎨 Frontend Architecture
+148: 
+149: The application features a dynamic React (Vite) single-page frontend:
+150: * **State & Authentication Context**: Centralized JWT state management with auto-token inclusion via Axios interceptors.
+151: * **Responsive Dashboards**: Interactive modules for Finance (cashflow trends, savings targets), Academic Study (weekly tracking, exam scores), Habit Biometrics (4D health logs), and AI Twin Recommendations.
+152: * **Toast Notifications**: Built-in visual alerts and robust form validation using `react-toastify`.
+153: * **Iconography & Styling**: Modern design language powered by `lucide-react` icons and scoped CSS layouts.
+154: 
+155: ---
+156: 
+157: ## 🛠️ Command-Line Maintenance & Verification Suite
+158: 
+159: We have engineered an automated CLI toolkit to manage database lifecycle, indexing, verification, and seeding directly from the terminal inside `backend/`:
+160: 
+161: | Command | Script Executed | Description |
+162: | :--- | :--- | :--- |
+163: | **`npm run typecheck`** | `tsc --noEmit` | Validates 100% TypeScript type safety across all schemas and DAOs. |
+164: | **`npm run build`** | `tsc` | Compiles TypeScript database layer into production JavaScript (`dist/`). |
+165: | **`npm run sync-indexes`**| `ts-node database/indexes/sync_indexes.ts` | Connects to Atlas and idempotently synchronizes all 12 declarative ESR/TTL/Unique indexes. |
+166: | **`npm run seed`** | `ts-node database/seed/seeder.ts` | Wipes development collections and populates mock Indian student telemetry datasets. |
+167: | **`npm run verify-integrity`**| `ts-node database/scripts/verify_integrity.ts` | Scans all foreign keys across 9 collections to confirm 0 orphaned records exist. |
+168: | **`npm run test:e2e`** | `ts-node database/scripts/e2e_test_suite.ts` | Executes the complete E2E integration test suite (18 assertions against live Atlas cluster). |
+169: | **`./database/scripts/db_backup.sh`** | `mongodump` archive | Creates a timestamped, gzip-compressed backup of your active Atlas cluster. |
+170: 
+171: ---
+172: 
+173: ## 🧪 End-to-End Integration Test Suite
+174: 
+175: Run `npm run test:e2e` inside `backend/` to execute our automated verification suite against your active MongoDB Atlas cluster. The suite tests:
+176: 1. **Connection Pooling:** Verifies Mongoose 8+ connection pool creation and clean shutdown hooks.
+177: 2. **Zero-Hop Reads ($O(1)$ Complexity):** Confirms that fetching a user profile, preferences, active goals, and AI twin state requires exactly **1 database read**.
+178: 3. **Atomic Goal Archival:** Completes a target goal and verifies that it is cleanly pulled from `users.active_goals` and inserted into `GoalArchive` without data loss.
+179: 4. **Random Forest Cashflow Pipelines:** Executes MongoDB aggregation pipelines (`$group` by month/type) extracting structured training matrices for savings regression.
+180: 5. **Academic Feature Extraction:** Verifies pre-save middleware hooks calculating normalized percentage marks (`quiz_marks_pct`, `exam_marks_pct`).
+181: 6. **K-Means 4D Biometric Vectors & Daily Uniqueness:** Confirms that the unique compound index `(user_id, log_date)` blocks duplicate daily check-ins and verifies continuous 4D feature vector extraction (`sleep`, `exercise`, `water`, `screen_time`).
 
 
 
