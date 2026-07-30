@@ -40,7 +40,7 @@ function TransactionTable({ transactions, onEdit, onDelete }) {
         <tbody>
           {filteredTransactions.map((item) => (
             <tr key={item.id}>
-              <td>{item.date}</td>
+              <td>{item.transaction_date ? new Date(item.transaction_date).toLocaleDateString() : "-"}</td>
 
               <td>
                 <span

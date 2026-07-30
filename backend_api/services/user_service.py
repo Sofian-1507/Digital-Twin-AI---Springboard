@@ -39,6 +39,7 @@ async def create_user(payload: RegisterRequest) -> User:
         profile=Profile(
             name=payload.name,
             age=payload.age,
+            occupation=payload.occupation,
             monthly_income_baseline=Decimal(str(payload.monthly_income_baseline)),
         ),
     )

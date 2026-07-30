@@ -7,7 +7,6 @@ function HabitForm({ addHabit }) {
     date: "",
     water: "",
     sleep: "",
-    sleep: "",
     exercise: "",
     screenTime: "",
     mood: "Happy",
@@ -42,7 +41,9 @@ function HabitForm({ addHabit }) {
       });
       // The parent handler (Habits.jsx) handles the success toast now
     } catch (err) {
-      // The parent handler handles the error toast and throws here
+      // Parent (Habits.jsx) handles the error toast.
+      // Log here for debugging in case of unexpected errors.
+      console.error("HabitForm submission error:", err);
     } finally {
       setIsSubmitting(false);
     }

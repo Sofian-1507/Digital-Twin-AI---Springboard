@@ -5,7 +5,7 @@ function StudyTable({ sessions, onEdit, onDelete }) {
 
   const [search, setSearch] = useState("");
 
-  const [status, setStatus] = useState("All");
+  const [sessionType, setSessionType] = useState("All");
 
   const filteredSessions = sessions.filter((item) => {
 
@@ -13,12 +13,12 @@ function StudyTable({ sessions, onEdit, onDelete }) {
       .toLowerCase()
       .includes(search.toLowerCase());
 
-    const statusMatch =
-      status === "All"
+    const typeMatch =
+      sessionType === "All"
         ? true
-        : item.status === status;
+        : item.session_type === sessionType;
 
-    return subjectMatch && statusMatch;
+    return subjectMatch && typeMatch;
   });
 
   return (
@@ -40,14 +40,17 @@ function StudyTable({ sessions, onEdit, onDelete }) {
           />
 
           <select
-            value={status}
+            value={sessionType}
             onChange={(e) =>
-              setStatus(e.target.value)
+              setSessionType(e.target.value)
             }
           >
-            <option>All</option>
-            <option>Completed</option>
-            <option>Pending</option>
+            <option value="All">All Types</option>
+            <option value="DEEP_WORK">Deep Work</option>
+            <option value="REVISION">Revision</option>
+            <option value="LECTURE">Lecture</option>
+            <option value="GROUP_STUDY">Group Study</option>
+            <option value="PRACTICE">Practice</option>
           </select>
 
         </div>
@@ -66,7 +69,7 @@ function StudyTable({ sessions, onEdit, onDelete }) {
 
             <th>Hours</th>
 
-            <th>Status</th>
+            <th>Session Type</th>
 
             <th>Actions</th>
 
@@ -80,22 +83,22 @@ function StudyTable({ sessions, onEdit, onDelete }) {
 
             <tr key={item.id}>
 
-              <td>{item.date}</td>
+              <td>{item.session_date ? new Date(item.session_date).toLocaleDateString() : "-"}</td>
 
               <td>{item.subject}</td>
 
-              <td>{item.hours} hrs</td>
+              <td>{item.study_hours ?? item.hours ?? 0} hrs</td>
 
               <td>
 
                 <span
                   className={
-                    item.status === "Completed"
+                    item.session_type === "DEEP_WORK" || item.session_type === "REVISION"
                       ? "completed-tag"
                       : "pending-tag"
                   }
                 >
-                  {item.status}
+                  {item.session_type ? item.session_type.replace(/_/g, " ") : "-"}
                 </span>
 
               </td>

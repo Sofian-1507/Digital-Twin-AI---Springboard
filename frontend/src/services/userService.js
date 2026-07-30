@@ -53,8 +53,9 @@ export const updateGoal = async (id, payload) => {
 };
 
 export const deleteGoal = async (id) => {
-  const response = await api.delete(`/users/me/goals/${id}`);
-  return response.data;
+  await api.delete(`/users/me/goals/${id}`);
+  // DELETE returns 204 No Content — re-fetch the full UserResponse
+  return await getUser();
 };
 
 export const deleteUser = async () => {

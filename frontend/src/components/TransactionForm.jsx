@@ -68,7 +68,7 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
       className="transaction-form"
       onSubmit={submitHandler}
     >
-      <h3>Add Transaction</h3>
+      <h3>{initialData ? "Edit Transaction" : "Add Transaction"}</h3>
 
       <div className="form-grid">
         <input

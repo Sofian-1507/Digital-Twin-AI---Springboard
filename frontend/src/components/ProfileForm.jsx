@@ -50,7 +50,7 @@ function ProfileForm({ user, onSave, onCancel }) {
                                    : undefined,
         risk_tolerance:          formData.risk_tolerance || undefined,
       });
-      toast.success("Profile updated successfully.");
+      // Success toast is shown by Profile.jsx to avoid duplicates
     } catch {
       toast.error("Failed to save profile. Please try again.");
     } finally {
