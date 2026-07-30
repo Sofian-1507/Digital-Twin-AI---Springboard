@@ -32,7 +32,7 @@ function Login() {
 
     try {
       const data = await loginUser(formData);
-      login(data);
+      await login(data);
       navigate("/dashboard");
     } catch (err) {
       const msg =

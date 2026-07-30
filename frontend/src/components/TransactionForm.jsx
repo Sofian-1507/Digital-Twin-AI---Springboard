@@ -10,14 +10,16 @@ import { toast } from "react-toastify";
  *   category: HOUSING | FOOD | UTILITIES | SALARY | ENTERTAINMENT |
  *             HEALTH | EDUCATION | INVESTMENT | TRANSPORT | SAVINGS | OTHER
  */
-function TransactionForm({ addTransaction }) {
-  const [formData, setFormData] = useState({
-    date:        "",
-    type:        "EXPENSE",
-    category:    "OTHER",
-    amount:      "",
-    description: "",
-  });
+function TransactionForm({ addTransaction, initialData = null, onUpdate = null, onCancel = null }) {
+  const [formData, setFormData] = useState(
+    initialData || {
+      date:        "",
+      type:        "EXPENSE",
+      category:    "OTHER",
+      amount:      "",
+      description: "",
+    }
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -42,15 +44,20 @@ function TransactionForm({ addTransaction }) {
 
     setIsSubmitting(true);
     try {
-      await addTransaction(formData);
-      setFormData({
-        date:        "",
-        type:        "EXPENSE",
-        category:    "OTHER",
-        amount:      "",
-        description: "",
-      });
-      toast.success("Transaction added successfully.");
+      if (initialData && onUpdate) {
+        await onUpdate(initialData.id, formData);
+      } else {
+        await addTransaction(formData);
+        setFormData({
+          date:        "",
+          type:        "EXPENSE",
+          category:    "OTHER",
+          amount:      "",
+          description: "",
+        });
+      }
+      // The parent handles the success toast for addTransaction now,
+      // but for onUpdate it can be handled here or parent. Let's let parent handle it.
     } finally {
       setIsSubmitting(false);
     }
@@ -121,9 +128,16 @@ function TransactionForm({ addTransaction }) {
         />
       </div>
 
-      <button className="save-btn" disabled={isSubmitting}>
-        {isSubmitting ? "Adding..." : "Add Transaction"}
-      </button>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button className="save-btn" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : initialData ? "Update Transaction" : "Add Transaction"}
+        </button>
+        {initialData && onCancel && (
+          <button type="button" onClick={onCancel} className="save-btn" style={{ background: '#6c757d' }}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

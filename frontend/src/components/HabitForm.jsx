@@ -7,7 +7,9 @@ function HabitForm({ addHabit }) {
     date: "",
     water: "",
     sleep: "",
+    sleep: "",
     exercise: "",
+    screenTime: "",
     mood: "Happy",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,9 +37,12 @@ function HabitForm({ addHabit }) {
         water: "",
         sleep: "",
         exercise: "",
+        screenTime: "",
         mood: "Happy",
       });
-      toast.success("Habit log saved successfully.");
+      // The parent handler (Habits.jsx) handles the success toast now
+    } catch (err) {
+      // The parent handler handles the error toast and throws here
     } finally {
       setIsSubmitting(false);
     }
@@ -89,6 +94,17 @@ function HabitForm({ addHabit }) {
           name="exercise"
           placeholder="Exercise (min)"
           value={formData.exercise}
+          onChange={handleChange}
+        />
+
+        <input
+          type="number"
+          step="0.5"
+          min="0"
+          max="24"
+          name="screenTime"
+          placeholder="Screen Time (hrs)"
+          value={formData.screenTime}
           onChange={handleChange}
         />
 

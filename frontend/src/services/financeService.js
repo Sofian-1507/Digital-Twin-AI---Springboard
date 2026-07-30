@@ -52,3 +52,13 @@ export const getCategoryBreakdown = async (monthsBack = 1) => {
   });
   return response.data;
 };
+
+export const updateTransaction = async (id, payload) => {
+  const response = await api.patch(`/finance/transactions/${id}`, payload);
+  return response.data;
+};
+
+export const deleteTransaction = async (id) => {
+  const response = await api.delete(`/finance/transactions/${id}`);
+  return response.data;
+};

@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 
-function HabitTable({ habits }) {
+function HabitTable({ habits, onDelete }) {
 
   const [searchMood, setSearchMood] = useState("");
 
@@ -44,6 +45,8 @@ function HabitTable({ habits }) {
 
             <th>Mood</th>
 
+            <th>Actions</th>
+
           </tr>
 
         </thead>
@@ -68,6 +71,16 @@ function HabitTable({ habits }) {
                   {habit.mood}
                 </span>
 
+              </td>
+
+              <td>
+                <button 
+                  onClick={() => onDelete && onDelete(habit.id)} 
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--danger-color, #ef4444)' }}
+                  aria-label="Delete"
+                >
+                  <Trash2 size={16} />
+                </button>
               </td>
 
             </tr>

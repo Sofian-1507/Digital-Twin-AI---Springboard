@@ -15,6 +15,7 @@ import Study from "../pages/Study";
 import Habits from "../pages/Habits";
 import Simulation from "../pages/Simulation";
 import Assistant from "../pages/Assistant";
+import Activity from "../pages/Activity";
 
 import MainLayout from "../layouts/MainLayout";
 
@@ -89,6 +90,11 @@ function AppRoutes() {
         <Route
           path="/assistant"
           element={<Assistant />}
+        />
+
+        <Route
+          path="/activity"
+          element={<Activity />}
         />
 
       </Route>

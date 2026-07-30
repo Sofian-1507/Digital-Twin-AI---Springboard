@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Edit, Trash2 } from "lucide-react";
 
-function StudyTable({ sessions }) {
+function StudyTable({ sessions, onEdit, onDelete }) {
 
   const [search, setSearch] = useState("");
 
@@ -67,6 +68,8 @@ function StudyTable({ sessions }) {
 
             <th>Status</th>
 
+            <th>Actions</th>
+
           </tr>
 
         </thead>
@@ -95,6 +98,25 @@ function StudyTable({ sessions }) {
                   {item.status}
                 </span>
 
+              </td>
+
+              <td>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    onClick={() => onEdit && onEdit(item)} 
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    aria-label="Edit"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button 
+                    onClick={() => onDelete && onDelete(item.id)} 
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--danger-color, #ef4444)' }}
+                    aria-label="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </td>
 
             </tr>

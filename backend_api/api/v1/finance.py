@@ -15,6 +15,7 @@ from api.dependencies import CurrentUser
 from models.enums import TransactionType, FinancialCategory
 from schemas.finance_schema import (
     FinanceCreateRequest,
+    FinanceUpdateRequest,
     FinanceRecordResponse,
     PaginatedFinanceResponse,
     MonthlyCashflowItem,
@@ -44,6 +45,33 @@ async def create_transaction(
     Validates recurring_frequency requirement via Pydantic model_validator.
     """
     return await finance_service.create_transaction(str(current_user.id), payload)
+
+
+@router.patch(
+    "/transactions/{transaction_id}",
+    response_model=FinanceRecordResponse,
+    summary="Update a financial transaction",
+)
+async def update_transaction(
+    transaction_id: str,
+    payload: FinanceUpdateRequest,
+    current_user: CurrentUser,
+) -> FinanceRecordResponse:
+    """Updates an existing financial record."""
+    return await finance_service.update_transaction(str(current_user.id), transaction_id, payload)
+
+
+@router.delete(
+    "/transactions/{transaction_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a financial transaction",
+)
+async def delete_transaction(
+    transaction_id: str,
+    current_user: CurrentUser,
+) -> None:
+    """Deletes a financial record."""
+    await finance_service.delete_transaction(str(current_user.id), transaction_id)
 
 
 @router.get(

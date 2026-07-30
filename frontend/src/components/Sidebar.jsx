@@ -7,6 +7,7 @@ import {
   CheckSquare,
   BrainCircuit,
   MessageSquare,
+  Activity
 } from "lucide-react";
 
 import "../styles/Sidebar.css";
@@ -19,6 +20,7 @@ const menuItems = [
   { name: "Habits",       path: "/habits",     icon: CheckSquare     },
   { name: "Simulation",   path: "/simulation", icon: BrainCircuit    },
   { name: "AI Assistant", path: "/assistant",  icon: MessageSquare   },
+  { name: "Activity",     path: "/activity",   icon: Activity        },
 ];
 
 function Sidebar() {

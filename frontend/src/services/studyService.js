@@ -38,3 +38,13 @@ export const getSubjectPerformance = async (monthsBack) => {
   const response = await api.get("/study/analytics/subject-performance", { params });
   return response.data;
 };
+
+export const updateSession = async (id, payload) => {
+  const response = await api.patch(`/study/sessions/${id}`, payload);
+  return response.data;
+};
+
+export const deleteSession = async (id) => {
+  const response = await api.delete(`/study/sessions/${id}`);
+  return response.data;
+};

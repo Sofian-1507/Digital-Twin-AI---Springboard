@@ -23,6 +23,7 @@ from schemas.habit_schema import (
     PaginatedHabitResponse,
     KMeansFeatureRow,
 )
+import services.activity_service as activity_service
 
 logger = logging.getLogger("digital_twin_ai.habit_service")
 
@@ -88,7 +89,37 @@ async def upsert_daily_log(
 
     record = HabitTracking(**result)
     logger.info("Habit log upserted for user %s on %s", user_id, log_date.date())
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="UPSERTED_HABIT",
+        entity_type="HABIT",
+        entity_id=str(record.id),
+        description=f"Upserted habit log for {log_date.date()}"
+    )
     return _to_response(record)
+
+async def delete_daily_log(user_id: str, log_id: str) -> None:
+    uid = PydanticObjectId(user_id)
+    try:
+        lid = PydanticObjectId(log_id)
+    except Exception:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Habit log not found")
+        
+    record = await HabitTracking.find_one({"_id": lid, "user_id": uid})
+    if not record:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Habit log not found")
+        
+    await record.delete()
+    
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="DELETED_HABIT",
+        entity_type="HABIT",
+        entity_id=str(record.id),
+        description=f"Deleted habit log for {record.log_date.date()}"
+    )
 
 
 async def list_logs(

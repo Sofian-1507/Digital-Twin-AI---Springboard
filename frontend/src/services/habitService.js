@@ -26,3 +26,8 @@ export const logDailyHabit = async (payload) => {
   const response = await api.post("/habits/daily-log", payload);
   return response.data;
 };
+
+export const deleteHabitLog = async (id) => {
+  const response = await api.delete(`/habits/daily-log/${id}`);
+  return response.data;
+};

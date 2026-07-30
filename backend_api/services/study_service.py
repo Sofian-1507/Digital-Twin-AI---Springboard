@@ -15,10 +15,12 @@ from beanie import PydanticObjectId
 from models.study import StudyActivity
 from schemas.study_schema import (
     StudyCreateRequest,
+    StudyUpdateRequest,
     StudyRecordResponse,
     PaginatedStudyResponse,
     SubjectPerformanceSummary,
 )
+import services.activity_service as activity_service
 
 logger = logging.getLogger("digital_twin_ai.study_service")
 
@@ -68,7 +70,78 @@ async def log_study_session(
     )
     await record.insert()
     logger.info("Study session logged: %s for user %s", record.subject, user_id)
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="CREATED_STUDY",
+        entity_type="STUDY",
+        entity_id=str(record.id),
+        description=f"Logged {record.study_hours}h study session for {record.subject}"
+    )
     return _to_response(record)
+
+async def update_session(
+    user_id: str, session_id: str, payload: StudyUpdateRequest
+) -> StudyRecordResponse:
+    uid = PydanticObjectId(user_id)
+    try:
+        sid = PydanticObjectId(session_id)
+    except Exception:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        
+    record = await StudyActivity.find_one({"_id": sid, "user_id": uid})
+    if not record:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        
+    update_data = payload.model_dump(exclude_unset=True)
+    if not update_data:
+        return _to_response(record)
+        
+    if "linked_goal_id" in update_data:
+        val = update_data["linked_goal_id"]
+        update_data["linked_goal_id"] = PydanticObjectId(val) if val else None
+
+    for key, value in update_data.items():
+        setattr(record, key, value)
+        
+    # Re-trigger percentage computation
+    record = record.compute_percentage_scores()
+        
+    await record.save()
+    
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="UPDATED_STUDY",
+        entity_type="STUDY",
+        entity_id=str(record.id),
+        description=f"Updated study session for {record.subject}"
+    )
+    
+    return _to_response(record)
+
+async def delete_session(user_id: str, session_id: str) -> None:
+    uid = PydanticObjectId(user_id)
+    try:
+        sid = PydanticObjectId(session_id)
+    except Exception:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        
+    record = await StudyActivity.find_one({"_id": sid, "user_id": uid})
+    if not record:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        
+    await record.delete()
+    
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="DELETED_STUDY",
+        entity_type="STUDY",
+        entity_id=str(record.id),
+        description=f"Deleted study session for {record.subject}"
+    )
 
 
 async def list_sessions(

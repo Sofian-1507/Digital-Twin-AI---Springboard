@@ -31,6 +31,23 @@ class FinanceCreateRequest(BaseModel):
             raise ValueError("recurring_frequency is required when is_recurring is True.")
         return self
 
+class FinanceUpdateRequest(BaseModel):
+    """PATCH /api/v1/finance/transactions/{id}"""
+    type: Optional[TransactionType] = None
+    amount: Optional[Decimal] = Field(None, gt=0, description="Must be strictly > 0.00")
+    category: Optional[FinancialCategory] = None
+    description: Optional[str] = Field(default=None, max_length=255)
+    is_recurring: Optional[bool] = None
+    recurring_frequency: Optional[RecurringFrequency] = None
+    linked_goal_id: Optional[str] = None
+    transaction_date: Optional[datetime] = None
+
+    @model_validator(mode="after")
+    def frequency_required_when_recurring(self) -> "FinanceUpdateRequest":
+        if self.is_recurring and not self.recurring_frequency:
+            raise ValueError("recurring_frequency is required when is_recurring is True.")
+        return self
+
 
 class FinanceRecordResponse(BaseModel):
     """Response schema for a single financial record."""

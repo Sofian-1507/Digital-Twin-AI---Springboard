@@ -40,6 +40,19 @@ async def upsert_daily_log(
     return await habit_service.upsert_daily_log(str(current_user.id), payload)
 
 
+@router.delete(
+    "/daily-log/{log_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a daily habit log",
+)
+async def delete_daily_log(
+    log_id: str,
+    current_user: CurrentUser,
+) -> None:
+    """Deletes a habit log."""
+    await habit_service.delete_daily_log(str(current_user.id), log_id)
+
+
 @router.get(
     "/daily-log",
     response_model=PaginatedHabitResponse,

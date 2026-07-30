@@ -47,6 +47,21 @@ export const addGoal = async (payload) => {
   return response.data;
 };
 
+export const updateGoal = async (id, payload) => {
+  const response = await api.patch(`/users/me/goals/${id}`, payload);
+  return response.data;
+};
+
+export const deleteGoal = async (id) => {
+  const response = await api.delete(`/users/me/goals/${id}`);
+  return response.data;
+};
+
+export const deleteUser = async () => {
+  const response = await api.delete("/users/me");
+  return response.data;
+};
+
 /**
  * Alias for updateProfile — kept for backward compatibility with Profile.jsx.
  */

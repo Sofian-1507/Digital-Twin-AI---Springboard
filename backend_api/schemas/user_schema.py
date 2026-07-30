@@ -69,6 +69,15 @@ class ActiveGoalCreateRequest(BaseModel):
     target_date: datetime
 
 
+class ActiveGoalUpdateRequest(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=150)
+    category: Optional[GoalCategory] = None
+    target_value: Optional[Decimal] = Field(default=None, gt=0)
+    current_value: Optional[Decimal] = Field(default=None, ge=0)
+    unit: Optional[str] = Field(default=None, max_length=20)
+    target_date: Optional[datetime] = None
+
+
 class DigitalTwinStateResponse(BaseModel):
     savings_rate_pct: Decimal
     emergency_fund_months: Decimal

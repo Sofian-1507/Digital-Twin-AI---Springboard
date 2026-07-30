@@ -15,9 +15,14 @@ from beanie.operators import Set, Push, Pull
 from core.exceptions import NotFoundError, BusinessRuleError, ConflictError, AuthenticationError
 from core.security import hash_password, verify_password
 from models.user import User, Profile, ActiveGoal, DigitalTwinState, UserPreferences
+from models.finance import FinancialRecord
+from models.study import StudyActivity
+from models.habit import HabitTracking
+from models.activity import UserActivity
 
 from schemas.auth_schema import RegisterRequest
-from schemas.user_schema import ProfileUpdateRequest, ActiveGoalCreateRequest, PreferencesUpdateRequest
+from schemas.user_schema import ProfileUpdateRequest, ActiveGoalCreateRequest, ActiveGoalUpdateRequest, PreferencesUpdateRequest
+import services.activity_service as activity_service
 
 logger = logging.getLogger("digital_twin_ai.user_service")
 
@@ -92,6 +97,12 @@ async def update_profile(user: User, payload: ProfileUpdateRequest) -> User:
     await user.update(Set(update_data))
     await user.sync()
     logger.info("Profile updated for user: %s", user.id)
+    await activity_service.log_activity(
+        user_id=str(user.id),
+        action_type="UPDATED_PROFILE",
+        entity_type="PROFILE",
+        description="Updated user profile"
+    )
     return user
 
 
@@ -107,6 +118,12 @@ async def update_preferences(user: User, payload: PreferencesUpdateRequest) -> U
     update_data["updated_at"] = datetime.now(timezone.utc)
     await user.update(Set(update_data))
     await user.sync()
+    await activity_service.log_activity(
+        user_id=str(user.id),
+        action_type="UPDATED_PREFERENCES",
+        entity_type="PROFILE",
+        description="Updated user preferences"
+    )
     return user
 
 
@@ -132,4 +149,62 @@ async def add_active_goal(user: User, payload: ActiveGoalCreateRequest) -> User:
     await user.update(Push({User.active_goals: new_goal}))
     await user.sync()
     logger.info("Goal '%s' added for user %s", new_goal.title, user.id)
+    await activity_service.log_activity(
+        user_id=str(user.id),
+        action_type="CREATED_GOAL",
+        entity_type="PROFILE",
+        entity_id=new_goal.goal_id,
+        description=f"Added new goal '{new_goal.title}'"
+    )
     return user
+
+async def update_active_goal(user: User, goal_id: str, payload: ActiveGoalUpdateRequest) -> User:
+    goal = next((g for g in user.active_goals if g.goal_id == goal_id), None)
+    if not goal:
+        raise NotFoundError("Goal", goal_id)
+        
+    update_data = payload.model_dump(exclude_unset=True)
+    if not update_data:
+        return user
+        
+    for key, value in update_data.items():
+        setattr(goal, key, value)
+        
+    await user.save()
+    
+    await activity_service.log_activity(
+        user_id=str(user.id),
+        action_type="UPDATED_GOAL",
+        entity_type="PROFILE",
+        entity_id=goal_id,
+        description=f"Updated goal '{goal.title}'"
+    )
+    return user
+
+async def delete_active_goal(user: User, goal_id: str) -> User:
+    goal = next((g for g in user.active_goals if g.goal_id == goal_id), None)
+    if not goal:
+        raise NotFoundError("Goal", goal_id)
+        
+    user.active_goals = [g for g in user.active_goals if g.goal_id != goal_id]
+    await user.save()
+    
+    await activity_service.log_activity(
+        user_id=str(user.id),
+        action_type="DELETED_GOAL",
+        entity_type="PROFILE",
+        entity_id=goal_id,
+        description=f"Deleted goal '{goal.title}'"
+    )
+    return user
+
+async def delete_user(user: User) -> None:
+    uid = user.id
+    
+    await FinancialRecord.find(FinancialRecord.user_id == uid).delete()
+    await StudyActivity.find(StudyActivity.user_id == uid).delete()
+    await HabitTracking.find(HabitTracking.user_id == uid).delete()
+    await UserActivity.find(UserActivity.user_id == uid).delete()
+    
+    await user.delete()
+    logger.info("User %s and all associated records deleted.", uid)

@@ -24,6 +24,7 @@ from schemas.user_schema import (
     PreferencesUpdateRequest,
     ActiveGoalResponse,
     ActiveGoalCreateRequest,
+    ActiveGoalUpdateRequest,
     DigitalTwinStateResponse,
 )
 import services.user_service as user_service
@@ -94,6 +95,17 @@ async def get_me(current_user: CurrentUser) -> UserResponse:
     """
     return _serialize_user(current_user)
 
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete current user and all data",
+)
+async def delete_me(
+    current_user: CurrentUser,
+) -> None:
+    """Permanently deletes the user and all associated records."""
+    await user_service.delete_user(current_user)
+
 
 @router.patch(
     "/me/profile",
@@ -162,3 +174,29 @@ async def list_goals(current_user: CurrentUser) -> list[ActiveGoalResponse]:
         )
         for g in current_user.active_goals
     ]
+
+@router.patch(
+    "/me/goals/{goal_id}",
+    response_model=UserResponse,
+    summary="Update an active goal",
+)
+async def update_goal(
+    goal_id: str,
+    payload: ActiveGoalUpdateRequest,
+    current_user: CurrentUser,
+) -> UserResponse:
+    """Updates an existing goal in the user's active_goals array."""
+    updated = await user_service.update_active_goal(current_user, goal_id, payload)
+    return _serialize_user(updated)
+
+@router.delete(
+    "/me/goals/{goal_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete an active goal",
+)
+async def delete_goal(
+    goal_id: str,
+    current_user: CurrentUser,
+) -> None:
+    """Removes a goal from the user's active_goals array."""
+    await user_service.delete_active_goal(current_user, goal_id)

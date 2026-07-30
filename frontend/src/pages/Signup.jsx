@@ -46,10 +46,11 @@ function Signup() {
         password: formData.password,
         age: 18,
         monthly_income_baseline: 0,
+        occupation: formData.profession,
       };
 
       const data = await registerUser(payload);
-      login(data);
+      await login(data);
       navigate("/dashboard");
     } catch (err) {
       const msg =

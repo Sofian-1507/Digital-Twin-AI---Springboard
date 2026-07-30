@@ -13,6 +13,7 @@ from fastapi import APIRouter, Query, status
 from api.dependencies import CurrentUser
 from schemas.study_schema import (
     StudyCreateRequest,
+    StudyUpdateRequest,
     StudyRecordResponse,
     PaginatedStudyResponse,
     SubjectPerformanceSummary,
@@ -39,6 +40,33 @@ async def log_session(
     by the StudyActivity model_validator, mirroring the TS pre-validate middleware.
     """
     return await study_service.log_study_session(str(current_user.id), payload)
+
+
+@router.patch(
+    "/sessions/{session_id}",
+    response_model=StudyRecordResponse,
+    summary="Update a study session",
+)
+async def update_session(
+    session_id: str,
+    payload: StudyUpdateRequest,
+    current_user: CurrentUser,
+) -> StudyRecordResponse:
+    """Updates an existing study session."""
+    return await study_service.update_session(str(current_user.id), session_id, payload)
+
+
+@router.delete(
+    "/sessions/{session_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a study session",
+)
+async def delete_session(
+    session_id: str,
+    current_user: CurrentUser,
+) -> None:
+    """Deletes a study session."""
+    await study_service.delete_session(str(current_user.id), session_id)
 
 
 @router.get(

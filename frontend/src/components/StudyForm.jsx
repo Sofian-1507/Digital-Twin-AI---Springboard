@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-function StudyForm({ addSession }) {
-  const [formData, setFormData] = useState({
-    date: "",
-    subject: "",
-    hours: "",
-    status: "Completed",
-  });
+function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel = null }) {
+  const [formData, setFormData] = useState(
+    initialData || {
+      date: "",
+      subject: "",
+      hours: "",
+      status: "Completed",
+    }
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -32,14 +34,17 @@ function StudyForm({ addSession }) {
 
     setIsSubmitting(true);
     try {
-      await addSession(formData);
-      setFormData({
-        date: "",
-        subject: "",
-        hours: "",
-        status: "Completed",
-      });
-      toast.success("Study session added successfully.");
+      if (initialData && onUpdate) {
+        await onUpdate(initialData.id, formData);
+      } else {
+        await addSession(formData);
+        setFormData({
+          date: "",
+          subject: "",
+          hours: "",
+          status: "Completed",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -91,9 +96,16 @@ function StudyForm({ addSession }) {
 
       </div>
 
-      <button className="study-btn" disabled={isSubmitting}>
-        {isSubmitting ? "Adding..." : "Add Session"}
-      </button>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button className="study-btn" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : initialData ? "Update Session" : "Add Session"}
+        </button>
+        {initialData && onCancel && (
+          <button type="button" onClick={onCancel} className="study-btn" style={{ background: '#6c757d' }}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

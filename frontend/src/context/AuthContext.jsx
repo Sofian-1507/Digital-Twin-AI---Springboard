@@ -36,8 +36,18 @@ export function AuthProvider({ children }) {
    * The token has already been written to localStorage by authService.
    * @param {object} userData - the UserResponse or TokenResponse from the backend
    */
-  const login = (userData) => {
-    setUser(userData);
+  const login = async (userData) => {
+    if (!userData.profile) {
+      try {
+        const fullUser = await getUser();
+        setUser(fullUser);
+      } catch (err) {
+        console.error("Failed to fetch full user on login:", err);
+        setUser(userData);
+      }
+    } else {
+      setUser(userData);
+    }
   };
 
   /**

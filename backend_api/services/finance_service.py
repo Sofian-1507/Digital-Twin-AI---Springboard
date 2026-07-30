@@ -16,11 +16,13 @@ from models.finance import FinancialRecord
 from models.enums import TransactionType
 from schemas.finance_schema import (
     FinanceCreateRequest,
+    FinanceUpdateRequest,
     FinanceRecordResponse,
     PaginatedFinanceResponse,
     MonthlyCashflowItem,
     CategoryBreakdownItem,
 )
+import services.activity_service as activity_service
 
 logger = logging.getLogger("digital_twin_ai.finance_service")
 
@@ -58,7 +60,75 @@ async def create_transaction(
     )
     await record.insert()
     logger.info("Transaction logged: %s %.2f for user %s", record.type, record.amount, user_id)
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="CREATED_FINANCE",
+        entity_type="FINANCE",
+        entity_id=str(record.id),
+        description=f"Logged {record.type} of {record.amount}"
+    )
     return _to_response(record)
+
+async def update_transaction(
+    user_id: str, transaction_id: str, payload: FinanceUpdateRequest
+) -> FinanceRecordResponse:
+    uid = PydanticObjectId(user_id)
+    try:
+        tid = PydanticObjectId(transaction_id)
+    except Exception:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        
+    record = await FinancialRecord.find_one({"_id": tid, "user_id": uid})
+    if not record:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        
+    update_data = payload.model_dump(exclude_unset=True)
+    if not update_data:
+        return _to_response(record)
+        
+    if "linked_goal_id" in update_data:
+        val = update_data["linked_goal_id"]
+        update_data["linked_goal_id"] = PydanticObjectId(val) if val else None
+
+    for key, value in update_data.items():
+        setattr(record, key, value)
+        
+    await record.save()
+    
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="UPDATED_FINANCE",
+        entity_type="FINANCE",
+        entity_id=str(record.id),
+        description=f"Updated financial record {record.id}"
+    )
+    
+    return _to_response(record)
+
+async def delete_transaction(user_id: str, transaction_id: str) -> None:
+    uid = PydanticObjectId(user_id)
+    try:
+        tid = PydanticObjectId(transaction_id)
+    except Exception:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        
+    record = await FinancialRecord.find_one({"_id": tid, "user_id": uid})
+    if not record:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        
+    await record.delete()
+    
+    await activity_service.log_activity(
+        user_id=user_id,
+        action_type="DELETED_FINANCE",
+        entity_type="FINANCE",
+        entity_id=str(record.id),
+        description=f"Deleted financial record {record.amount}"
+    )
 
 
 async def list_transactions(
