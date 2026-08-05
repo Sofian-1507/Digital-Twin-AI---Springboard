@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
-import "../styles/Profile.css";
+import { Input, Select } from "./ui/Field";
+import Button from "./ui/Button";
 
 /**
  * ProfileForm — edits the user's profile sub-document.
@@ -59,14 +60,11 @@ function ProfileForm({ user, onSave, onCancel }) {
   }
 
   return (
-    <form
-      className="profile-form"
-      onSubmit={submit}
-    >
+    <form className="rounded-2xl bg-white dark:bg-slate-800 p-7 shadow-sm" onSubmit={submit}>
 
-      <div className="form-grid">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
-        <input
+        <Input
           name="name"
           value={formData.name}
           onChange={handleChange}
@@ -74,7 +72,7 @@ function ProfileForm({ user, onSave, onCancel }) {
           required
         />
 
-        <input
+        <Input
           name="age"
           type="number"
           min="13"
@@ -85,26 +83,22 @@ function ProfileForm({ user, onSave, onCancel }) {
           required
         />
 
-        <select
-          name="gender"
-          value={formData.gender}
-          onChange={handleChange}
-        >
+        <Select name="gender" value={formData.gender} onChange={handleChange}>
           <option value="">Select Gender</option>
           <option value="MALE">Male</option>
           <option value="FEMALE">Female</option>
           <option value="NON_BINARY">Non-binary</option>
           <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
-        </select>
+        </Select>
 
-        <input
+        <Input
           name="occupation"
           value={formData.occupation}
           onChange={handleChange}
           placeholder="Occupation"
         />
 
-        <input
+        <Input
           name="monthly_income_baseline"
           type="number"
           min="0"
@@ -114,31 +108,23 @@ function ProfileForm({ user, onSave, onCancel }) {
           placeholder="Monthly Income (₹)"
         />
 
-        <select
-          name="risk_tolerance"
-          value={formData.risk_tolerance}
-          onChange={handleChange}
-        >
+        <Select name="risk_tolerance" value={formData.risk_tolerance} onChange={handleChange}>
           <option value="CONSERVATIVE">Conservative</option>
           <option value="MODERATE">Moderate</option>
           <option value="AGGRESSIVE">Aggressive</option>
-        </select>
+        </Select>
 
       </div>
 
-      <div className="button-group">
+      <div className="mt-7 flex gap-3.5">
 
-        <button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : "Save Profile"}
-        </button>
+        </Button>
 
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
           Cancel
-        </button>
+        </Button>
 
       </div>
 

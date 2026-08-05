@@ -1,11 +1,35 @@
 import { useState } from "react";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Input, Select } from "./ui/Field";
+import Badge from "./ui/Badge";
+import EmptyState from "./ui/EmptyState";
+
+const SORTERS = {
+  date: (s) => new Date(s.session_date || 0).getTime(),
+  hours: (s) => Number(s.study_hours ?? s.hours ?? 0),
+};
+
+function SortButton({ label, active, dir, onClick }) {
+  const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+    >
+      {label}
+      <Icon size={13} className={active ? "text-indigo-600" : "text-slate-300 dark:text-slate-600"} />
+    </button>
+  );
+}
 
 function StudyTable({ sessions, onEdit, onDelete }) {
 
   const [search, setSearch] = useState("");
 
   const [sessionType, setSessionType] = useState("All");
+  const [sortKey, setSortKey] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
 
   const filteredSessions = sessions.filter((item) => {
 
@@ -21,114 +45,112 @@ function StudyTable({ sessions, onEdit, onDelete }) {
     return subjectMatch && typeMatch;
   });
 
+  const sortedSessions = [...filteredSessions].sort((a, b) => {
+    const diff = SORTERS[sortKey](a) - SORTERS[sortKey](b);
+    return sortDir === "asc" ? diff : -diff;
+  });
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  }
+
   return (
-    <div className="study-table-card">
+    <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
 
-      <div className="study-table-header">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
 
-        <h3>Study History</h3>
+        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Study History</h3>
 
-        <div className="study-filter">
+        <div className="flex flex-wrap gap-3">
 
-          <input
+          <Input
             type="text"
             placeholder="Search Subject"
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-48"
           />
 
-          <select
-            value={sessionType}
-            onChange={(e) =>
-              setSessionType(e.target.value)
-            }
-          >
+          <Select value={sessionType} onChange={(e) => setSessionType(e.target.value)} className="w-auto">
             <option value="All">All Types</option>
             <option value="DEEP_WORK">Deep Work</option>
             <option value="REVISION">Revision</option>
             <option value="LECTURE">Lecture</option>
             <option value="GROUP_STUDY">Group Study</option>
             <option value="PRACTICE">Practice</option>
-          </select>
+          </Select>
 
         </div>
 
       </div>
 
-      <table>
+      {filteredSessions.length === 0 ? (
+        <EmptyState title="No study sessions found" message="Try a different search or log a new session." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-150 border-collapse text-sm">
 
-        <thead>
+            <thead>
+              <tr>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left">
+                  <SortButton label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
+                </th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Subject</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left">
+                  <SortButton label="Hours" active={sortKey === "hours"} dir={sortDir} onClick={() => toggleSort("hours")} />
+                </th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Session Type</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
+              </tr>
+            </thead>
 
-          <tr>
+            <tbody>
+              {sortedSessions.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                    {item.session_date ? new Date(item.session_date).toLocaleDateString() : "-"}
+                  </td>
 
-            <th>Date</th>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.subject}</td>
 
-            <th>Subject</th>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">{item.study_hours ?? item.hours ?? 0} hrs</td>
 
-            <th>Hours</th>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                    <Badge tone={item.session_type === "DEEP_WORK" || item.session_type === "REVISION" ? "success" : "warning"}>
+                      {item.session_type ? item.session_type.replace(/_/g, " ") : "-"}
+                    </Badge>
+                  </td>
 
-            <th>Session Type</th>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={() => onEdit && onEdit(item)}
+                        className="p-0 text-slate-400 hover:text-indigo-600"
+                        aria-label="Edit"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => onDelete && onDelete(item.id)}
+                        className="p-0 text-red-400 hover:text-red-600"
+                        aria-label="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
 
-            <th>Actions</th>
-
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          {filteredSessions.map((item) => (
-
-            <tr key={item.id}>
-
-              <td>{item.session_date ? new Date(item.session_date).toLocaleDateString() : "-"}</td>
-
-              <td>{item.subject}</td>
-
-              <td>{item.study_hours ?? item.hours ?? 0} hrs</td>
-
-              <td>
-
-                <span
-                  className={
-                    item.session_type === "DEEP_WORK" || item.session_type === "REVISION"
-                      ? "completed-tag"
-                      : "pending-tag"
-                  }
-                >
-                  {item.session_type ? item.session_type.replace(/_/g, " ") : "-"}
-                </span>
-
-              </td>
-
-              <td>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    onClick={() => onEdit && onEdit(item)} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    aria-label="Edit"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button 
-                    onClick={() => onDelete && onDelete(item.id)} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--danger-color, #ef4444)' }}
-                    aria-label="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </td>
-
-            </tr>
-
-          ))}
-
-        </tbody>
-
-      </table>
+          </table>
+        </div>
+      )}
 
     </div>
   );

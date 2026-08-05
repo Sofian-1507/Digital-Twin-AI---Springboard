@@ -7,12 +7,12 @@ import FutureChart from "../components/FutureChart";
 import SimulationForm from "../components/SimulationForm";
 import AIInsights from "../components/AIInsights";
 import PredictionHistory from "../components/PredictionHistory";
+import GoalTrendList from "../components/GoalTrendList";
+import { SkeletonStatGrid, SkeletonChart } from "../components/ui/Skeleton";
 
 import { getTrendSummary } from "../services/trendService";
 import { getProductivityScore, getWeeklyProductivityTrend } from "../services/productivityService";
 import { getConsistencyScore } from "../services/habitAnalyticsService";
-
-import "../styles/Prediction.css";
 
 // Short "Aug 3" style label for chart x-axes, from an ISO date/period string.
 function formatShortDate(value) {
@@ -21,7 +21,13 @@ function formatShortDate(value) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+const TABS = [
+  { id: "forecasts", label: "Forecasts" },
+  { id: "what-if", label: "What-If" },
+];
+
 function Prediction() {
+  const [activeTab, setActiveTab]         = useState("forecasts");
   const [trend, setTrend]                 = useState(null);
   const [productivityScore, setProductivityScore] = useState(null);
   const [consistencyScore, setConsistencyScore]   = useState(null);
@@ -76,13 +82,11 @@ function Prediction() {
           title: "Study",
           current: Math.round(productivityScore?.productivity_score ?? 0),
           future: Math.round(trend.study?.projected_productivity?.[0]?.value ?? 0),
-          color: "#4F46E5",
         },
         {
           title: "Fitness",
           current: Math.round(consistencyScore?.consistency_score ?? 0),
           future: Math.round(trend.fitness?.projected_fitness_score?.[0]?.value ?? 0),
-          color: "#10B981",
         },
       ]
     : [];
@@ -120,26 +124,53 @@ function Prediction() {
 
   return (
 
-    <div className="prediction-page">
+    <div>
 
-      <h2>AI Prediction Dashboard</h2>
+      <h2 className="mb-6 text-2xl font-semibold text-slate-800 dark:text-slate-100">AI Prediction Dashboard</h2>
+
+      <div role="tablist" aria-label="Prediction views" className="mb-6 flex gap-1 border-b border-slate-200 dark:border-slate-700">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            id={`tab-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            aria-controls={`panel-${tab.id}`}
+            onClick={() => setActiveTab(tab.id)}
+            className={`-mb-px border-b-2 px-1 py-2.5 text-sm font-semibold ${
+              activeTab === tab.id
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {isLoading ? (
-        <p>Loading predictions…</p>
-      ) : (
-        <>
+        <div className="flex flex-col gap-5">
+          <SkeletonStatGrid count={4} />
+          <SkeletonChart />
+        </div>
+      ) : activeTab === "forecasts" ? (
+        <div role="tabpanel" id="panel-forecasts" aria-labelledby="tab-forecasts" className="flex flex-col gap-6">
           <PredictionSummary history={derivedHistory} />
 
           <PredictionCards predictions={predictionCards} />
 
           <FutureChart data={futureChartData} />
 
-          <SimulationForm />
-
           <AIInsights insights={aiInsights} />
 
+          <GoalTrendList goals={trend?.goals} />
+
           <PredictionHistory history={derivedHistory} />
-        </>
+        </div>
+      ) : (
+        <div role="tabpanel" id="panel-what-if" aria-labelledby="tab-what-if">
+          <SimulationForm />
+        </div>
       )}
 
     </div>

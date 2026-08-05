@@ -8,11 +8,22 @@ import ExpenseChart from "../components/ExpenseChart";
 import CategoryChart from "../components/CategoryChart";
 import SavingsProgress from "../components/SavingsProgress";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Pagination from "../components/Pagination";
+import IncomeProjectionCard from "../components/IncomeProjectionCard";
+import { Select } from "../components/ui/Field";
+import Button from "../components/ui/Button";
+import Modal from "../components/ui/Modal";
+import Drawer from "../components/ui/Drawer";
+import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
 
 import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getCategoryBreakdown } from "../services/financeService";
-import { getExpenseProjection } from "../services/forecastService";
+import { getExpenseProjection, getIncomeProjection } from "../services/forecastService";
 
-import "../styles/Finance.css";
+const TRANSACTION_TYPES = ["INCOME", "EXPENSE", "SAVINGS_DEPOSIT", "INVESTMENT"];
+const FINANCIAL_CATEGORIES = [
+  "HOUSING", "FOOD", "UTILITIES", "SALARY", "ENTERTAINMENT",
+  "HEALTH", "EDUCATION", "INVESTMENT", "TRANSPORT", "SAVINGS", "OTHER",
+];
 
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -53,24 +64,37 @@ function Finance() {
   const [transactions, setTransactions] = useState([]);
   const [expenseChartData, setExpenseChartData] = useState([]);
   const [categoryChartData, setCategoryChartData] = useState([]);
+  const [incomeProjection, setIncomeProjection] = useState(null);
   const [isLoading, setIsLoading]       = useState(true);
   const [editingRecord, setEditingRecord] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [addDrawerOpen, setAddDrawerOpen] = useState(false);
+
+  // Filtered + paginated transaction table state (independent of the
+  // dashboard summary/charts above, which always reflect recent activity).
+  const [typeFilter, setTypeFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isTableLoading, setIsTableLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchTransactions() {
+    async function fetchDashboardData() {
       try {
-        const [result, forecast, categoryBreakdown] = await Promise.all([
+        const [result, forecast, categoryBreakdown, income] = await Promise.all([
           getTransactions({ limit: 50 }),
           getExpenseProjection(3),
           getCategoryBreakdown(1),
+          getIncomeProjection(3),
         ]);
         const txns = result.data || [];
         setTransactions(txns);
+        setTotalPages(result.total_pages || 1);
         setExpenseChartData(buildExpenseChartData(txns, forecast));
         setCategoryChartData(
           categoryBreakdown.map((c) => ({ name: c.category, value: Number(c.total_amount) }))
         );
+        setIncomeProjection(income);
       } catch (err) {
         console.error("Failed to fetch transactions:", err);
         toast.error("Could not load transactions. Please try again later.");
@@ -78,8 +102,50 @@ function Finance() {
         setIsLoading(false);
       }
     }
-    fetchTransactions();
+    fetchDashboardData();
   }, []);
+
+  // Re-fetch the table page whenever filters or page change (skips the
+  // very first render, which is covered by the dashboard fetch above).
+  useEffect(() => {
+    if (isLoading) return;
+    async function fetchTablePage() {
+      setIsTableLoading(true);
+      try {
+        const result = await getTransactions({
+          page,
+          limit: 20,
+          ...(typeFilter ? { type: typeFilter } : {}),
+          ...(categoryFilter ? { category: categoryFilter } : {}),
+        });
+        setTransactions(result.data || []);
+        setTotalPages(result.total_pages || 1);
+      } catch (err) {
+        console.error("Failed to fetch transactions:", err);
+        toast.error("Could not load transactions. Please try again later.");
+      } finally {
+        setIsTableLoading(false);
+      }
+    }
+    fetchTablePage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, typeFilter, categoryFilter]);
+
+  function handleTypeFilterChange(e) {
+    setTypeFilter(e.target.value);
+    setPage(1);
+  }
+
+  function handleCategoryFilterChange(e) {
+    setCategoryFilter(e.target.value);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setTypeFilter("");
+    setCategoryFilter("");
+    setPage(1);
+  }
 
   /**
    * Submits a new transaction to the backend and prepends it to the local list.
@@ -100,6 +166,7 @@ function Finance() {
       const newRecord = await createTransaction(payload);
       setTransactions((prev) => [newRecord, ...prev]);
       toast.success("Transaction added successfully.");
+      setAddDrawerOpen(false);
     } catch (err) {
       console.error("Failed to add transaction:", err);
       toast.error("Failed to add transaction. Please try again.");
@@ -159,43 +226,81 @@ function Finance() {
   };
 
   return (
-    <div className="finance-page">
-      <h2>Finance Dashboard</h2>
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">Finance Dashboard</h2>
+        <Button onClick={() => setAddDrawerOpen(true)}>+ Add Transaction</Button>
+      </div>
 
       {isLoading ? (
-        <p>Loading transactions…</p>
+        <div className="flex flex-col gap-5">
+          <SkeletonStatGrid count={3} />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+          <SkeletonTable rows={6} cols={5} />
+        </div>
       ) : (
-        <>
+        <div className="flex flex-col gap-6">
           <FinanceSummary transactions={transactions} />
 
-          <TransactionForm addTransaction={addTransaction} />
-
-          <div className="chart-section">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
             <ExpenseChart data={expenseChartData} />
             <CategoryChart data={categoryChartData} />
           </div>
 
+          <IncomeProjectionCard projection={incomeProjection} />
+
           <SavingsProgress transactions={transactions} />
 
-          <TransactionTable 
-            transactions={transactions} 
-            onEdit={startEdit} 
-            onDelete={handleDelete} 
-          />
-        </>
-      )}
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={typeFilter} onChange={handleTypeFilterChange} aria-label="Filter by type" className="w-auto">
+              <option value="">All types</option>
+              {TRANSACTION_TYPES.map((t) => (
+                <option key={t} value={t}>{t.replace("_", " ")}</option>
+              ))}
+            </Select>
 
-      {editingRecord && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'var(--bg-color, #fff)', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <TransactionForm 
-              initialData={editingRecord} 
-              onUpdate={handleUpdate} 
-              onCancel={() => setEditingRecord(null)} 
-            />
+            <Select value={categoryFilter} onChange={handleCategoryFilterChange} aria-label="Filter by category" className="w-auto">
+              <option value="">All categories</option>
+              {FINANCIAL_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </Select>
+
+            {(typeFilter || categoryFilter) && (
+              <Button type="button" variant="secondary" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            )}
           </div>
+
+          {isTableLoading ? (
+            <SkeletonTable rows={6} cols={5} />
+          ) : (
+            <TransactionTable
+              transactions={transactions}
+              onEdit={startEdit}
+              onDelete={handleDelete}
+            />
+          )}
+
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
         </div>
       )}
+
+      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} title="Add Transaction">
+        <TransactionForm addTransaction={addTransaction} />
+      </Drawer>
+
+      <Modal open={!!editingRecord} onClose={() => setEditingRecord(null)} title="Edit Transaction" maxWidth="max-w-xl">
+        <TransactionForm
+          initialData={editingRecord}
+          onUpdate={handleUpdate}
+          onCancel={() => setEditingRecord(null)}
+        />
+      </Modal>
 
       <ConfirmDialog
         open={confirmDeleteId !== null}

@@ -1,120 +1,121 @@
-# 🤖 Digital Twin AI — Personal Life Simulation & Decision Assistant
+# Digital Twin AI
 
-An end-to-end full-stack personal life simulation system powered by **FastAPI**, **MongoDB Atlas**, and **React (Vite)**. The platform tracks personal finance, academic telemetry, daily biometric habits, and generates actionable AI twin recommendations.
+A full-stack personal life dashboard that tracks finance, study, and daily habits, then layers analytics and forward-looking predictions on top of that data. Built with **FastAPI** + **MongoDB Atlas** on the backend and **React (Vite) + Tailwind CSS v4** on the frontend.
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 Digital-Twin-AI---Springboard/
-├── backend_api/        ← FastAPI Python Backend Application Layer
-│   ├── api/v1/         ← REST Endpoints (Auth, Profile, Finance, Study, Habits, Recommendations)
-│   ├── core/           ← Settings, Database (Motor/Beanie), JWT Security, Exceptions
-│   ├── models/         ← Beanie ODM Models (User, Finance, Study, Habit, etc.)
-│   ├── schemas/        ← Pydantic Validation Schemas & DTOs
-│   ├── services/       ← Business Logic & Analytical Aggregations
-│   ├── main.py         ← FastAPI App Entry Point
-│   └── requirements.txt
+├── backend_api/          FastAPI application (the live backend)
+│   ├── api/v1/            REST endpoints: auth, users, finance, study,
+│   │                       habits, habit-analytics, productivity, trends,
+│   │                       forecast, activity
+│   ├── core/               Settings, MongoDB (Motor/Beanie) connection, JWT
+│   │                       security, exception handlers
+│   ├── models/              Beanie ODM document models
+│   ├── schemas/             Pydantic request/response schemas
+│   ├── services/            Business logic and analytics aggregations
+│   ├── tests/ + test_regression.py
+│   └── main.py               App entry point
 │
-├── frontend/           ← React + Vite Single Page Application
-│   ├── src/
-│   │   ├── components/ ← Reusable UI Components (Navbar, Sidebar, Forms, Charts)
-│   │   ├── context/    ← Auth Context & Global State Management
-│   │   ├── pages/      ← Core Dashboard Pages (Home, Login, Signup, Profile, Finance, Study, Habits)
-│   │   ├── services/   ← API Service Connectors (Axios with Auth Interceptors)
-│   │   └── styles/     ← Modern Scoped CSS Stylesheets
-│   ├── package.json
-│   └── vite.config.js
+├── frontend/              React 19 + Vite single-page app
+│   └── src/
+│       ├── pages/           Dashboard, Finance, Study, Habits, Prediction,
+│       │                     Assistant, Activity, Profile, Settings,
+│       │                     Login/Signup/ForgotPassword
+│       ├── components/      Feature components (charts, forms, tables)
+│       ├── components/ui/   Shared design-system primitives (Button, Card,
+│       │                     Modal, Drawer, Badge, Skeleton, ProgressList, ...)
+│       ├── context/         Auth context / global state
+│       ├── services/        Axios API clients (one per backend resource)
+│       └── routes/          React Router route tree
 │
-└── backend/            ← Mongoose TypeScript Database Seeding & Maintenance Suite
-    ├── database/       ← Schema Validators, Index Registries, Seeder Scripts, E2E Test Suite
-    └── package.json
+└── backend/               Standalone Node/Mongoose reference package — not
+                             wired into the running app (see note below).
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start
 
 ### Prerequisites
-* **Node.js** v20.x or higher
-* **Python** v3.10 or higher
-* **MongoDB Atlas** Cluster (or local MongoDB v7.0+)
+- Node.js 20+
+- Python 3.10+
+- A MongoDB Atlas cluster (or local MongoDB 7.0+)
+
+### 1. Backend (FastAPI)
+
+```bash
+cd backend_api
+pip install -r requirements.txt
+```
+
+Create `backend_api/.env`:
+
+```env
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DB_NAME=digital_twin_ai_prod
+JWT_SECRET_KEY=<a-securely-generated-secret>
+```
+
+Run it:
+
+```bash
+export PYTHONPATH=$(pwd)
+python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+- API docs: `http://localhost:8000/api/docs`
+
+### 2. Frontend (React + Vite)
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env` (see `.env.example`):
+
+```env
+VITE_API_URL=http://127.0.0.1:8000/api/v1
+```
+
+Run it:
+
+```bash
+npm run dev
+```
+
+- App: `http://localhost:5173`
 
 ---
 
-### 1. Backend Setup (FastAPI)
+## Features
 
-1. Navigate to `backend_api/`:
-   ```bash
-   cd backend_api
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Create a `.env` file inside `backend_api/`:
-   ```env
-   MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-   MONGODB_DB_NAME=digital_twin_ai_prod
-   JWT_SECRET_KEY=your_secure_generated_key
-   ```
-4. Start the backend server:
-   ```bash
-   export PYTHONPATH=$(pwd)
-   python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-   * **Swagger API Documentation**: `http://localhost:8000/api/docs`
+- **Auth** — JWT bearer authentication with automatic token attachment and refresh-on-401 handling via Axios interceptors.
+- **Finance** — income/expense/savings tracking, category breakdowns, and savings-goal progress.
+- **Study** — session logging, weekly study-hours chart, subject performance breakdown.
+- **Habits** — daily sleep/water/exercise/screen-time logging with weekly habit-score trend.
+- **Analytics** — productivity score, focus score, consistency score, and completion-percentage engines that power the dashboards.
+- **Prediction** — trend-based forecasts for savings, study, and fitness scores, goal-completion estimates, and an illustrative what-if simulator.
+- **Assistant** — a canned-response preview of an in-app assistant (not yet backed by a real model).
+- **Activity** — a unified audit log of create/update/delete actions across the app.
+- **Dark mode** — a manual toggle (stored in user preferences), applied consistently across the whole UI via a `data-theme` attribute.
 
 ---
 
-### 2. Frontend Setup (React + Vite)
+## Tech Stack
 
-1. In a new terminal window, navigate to `frontend/`:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Launch the development server:
-   ```bash
-   npm run dev
-   ```
-   * **Web Application Interface**: `http://localhost:5173`
-
----
-
-## ✨ Features & Architecture
-
-* **🔐 Authentication & Security**: JWT-based bearer authentication with automatic token persistence and Axios request interceptors.
-* **💰 Financial Tracking**: Income, expense, and savings goal management with real-time balance aggregations.
-* **📚 Academic Analytics**: Study session logger, weekly hours visualization, and subject performance metrics.
-* **🏃 Habit & Health Telemetry**: 4D biometric tracking (`sleep`, `exercise`, `water`, `screen_time`).
-* **🤖 AI Twin Engine**: Unified user context aggregation and personalized decision recommendation feed.
-* **💅 UI & UX**: Toast feedback (`react-toastify`), dynamic icons (`lucide-react`), and clean responsive layouts.
-
----
-
-## 🧪 Database Maintenance Suite
-
-Inside `backend/`, CLI tools are available for indexing and test verification:
-
-| Command | Description |
+| Layer | Tools |
 | :--- | :--- |
-| `npm run typecheck` | Validates TypeScript type safety across database schemas. |
-| `npm run sync-indexes` | Synchronizes declarative ESR and unique indexes on Atlas. |
-| `npm run seed` | Resets and seeds development telemetry data. |
-| `npm run test:e2e` | Runs end-to-end database verification assertions. |
+| Frontend | React 19, Vite, React Router 7, Tailwind CSS v4, Recharts, Axios, lucide-react, react-toastify |
+| Backend | FastAPI, Motor + Beanie (async MongoDB ODM), Pydantic v2, python-jose (JWT), passlib (bcrypt) |
+| Database | MongoDB Atlas |
 
-> **Status: reference/future-scope only.** `backend/` is a standalone Node/Mongoose
-> package — it is never imported by, started by, or reachable from `backend_api`
-> (the actual running FastAPI server) or `frontend/`. Only `users`, `financial_records`,
-> `study_activities`, `habit_trackings`, and `user_activities` were ported to the
-> active Python backend (`backend_api/models/`). The remaining schemas defined here —
-> `simulations`, `recommendations`, `chat_history`, `reports`, `dashboard_cache`,
-> `goals_archive`, `analytics_logs` — describe planned-but-unbuilt features
-> (What-If simulation, RAG-based recommendations, AI chat, PDF reports, dashboard
-> caching, goal archival). Treat this directory as a schema/design reference for
-> that future work, not as live infrastructure.
+---
+
+## About `backend/`
+
+`backend/` is a standalone Node/TypeScript/Mongoose package (schema definitions, index sync, seeders, an E2E test suite). It is **not imported by, started by, or reachable from** `backend_api` or `frontend` — the FastAPI service is the only backend actually running the app. Only a subset of its schemas (`users`, `financial_records`, `study_activities`, `habit_trackings`, `user_activities`) were ported into the live Python models; the rest (`simulations`, `recommendations`, `chat_history`, `reports`, `dashboard_cache`, `goals_archive`, `analytics_logs`) describe planned-but-unbuilt features. Treat it as a design reference, not live infrastructure.

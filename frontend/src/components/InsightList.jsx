@@ -10,7 +10,7 @@ function InsightList({ title, items, defaultItems, cardClassName, listClassName,
   return (
     <div className={cardClassName}>
 
-      <h3>{title}</h3>
+      <h3 className="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
 
       {listClassName ? (
         <div className={listClassName}>

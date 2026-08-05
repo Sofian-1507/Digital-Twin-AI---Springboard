@@ -16,9 +16,14 @@ const COLORS = [
 ];
 
 function CategoryChart({ data }) {
+  const top = data?.length ? [...data].sort((a, b) => b.value - a.value)[0] : null;
+
   return (
-    <div className="chart-card">
-      <h3>Expense Categories</h3>
+    <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
+      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Expense Categories</h3>
+      <p className="sr-only">
+        Expense breakdown by category. {top ? `Top category: ${top.name}, $${Math.round(top.value).toLocaleString()}.` : "No data yet."}
+      </p>
 
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>

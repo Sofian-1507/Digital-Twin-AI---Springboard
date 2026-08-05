@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { Input, Select } from "./ui/Field";
+import Button from "./ui/Button";
 
 function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel = null }) {
   const [formData, setFormData] = useState(
@@ -51,22 +53,23 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
   };
 
   return (
-    <form
-      className="study-form"
-      onSubmit={submitHandler}
-    >
-      <h3>Add Study Session</h3>
+    <form className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm" onSubmit={submitHandler}>
+      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Add Study Session</h3>
 
-      <div className="study-form-grid">
+      {/* Capped at 2 columns (not 4) since this form renders both inline on
+          the Study page (viewport-width) and inside the Edit modal (fixed
+          ~576px) — 4 columns was fine on the page but crushed the 4 fields
+          into unreadable slivers inside the narrower modal. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-        <input
+        <Input
           type="date"
           name="date"
           value={formData.date}
           onChange={handleChange}
         />
 
-        <input
+        <Input
           type="text"
           name="subject"
           placeholder="Subject"
@@ -74,7 +77,7 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
           onChange={handleChange}
         />
 
-        <input
+        <Input
           type="number"
           name="hours"
           placeholder="Hours (0.1–24)"
@@ -85,25 +88,21 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
           onChange={handleChange}
         />
 
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-        >
+        <Select name="status" value={formData.status} onChange={handleChange}>
           <option>Completed</option>
           <option>Pending</option>
-        </select>
+        </Select>
 
       </div>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button className="study-btn" disabled={isSubmitting}>
+      <div className="mt-5 flex gap-2.5">
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : initialData ? "Update Session" : "Add Session"}
-        </button>
+        </Button>
         {initialData && onCancel && (
-          <button type="button" onClick={onCancel} className="study-btn" style={{ background: '#6c757d' }}>
+          <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>

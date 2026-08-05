@@ -14,8 +14,8 @@ function AIInsights({ insights }) {
       title="🤖 AI Recommendations"
       items={insights}
       defaultItems={DEFAULT_INSIGHTS}
-      cardClassName="insight-card"
-      itemClassName="insight-item"
+      cardClassName="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+      itemClassName="rounded-lg border-l-4 border-violet-500 bg-slate-50 p-3.5 my-2.5 text-sm text-slate-700 dark:bg-slate-700/40 dark:text-slate-300"
     />
   );
 }

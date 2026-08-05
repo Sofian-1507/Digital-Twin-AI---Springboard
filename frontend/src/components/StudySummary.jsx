@@ -1,52 +1,38 @@
-function StudySummary({ sessions }) {
-  const totalHours = sessions.reduce(
-    (sum, session) => sum + Number(session.hours),
-    0
-  );
+import { StatGrid, StatTile } from "./ui/StatTile";
+
+function StudySummary({ sessions, productivitySummary }) {
+  const totalHours = Math.round(
+    sessions.reduce((sum, session) => sum + Number(session.study_hours || 0), 0) * 10
+  ) / 10;
 
   const totalSubjects = new Set(
     sessions.map((session) => session.subject)
   ).size;
 
-  const completedSessions = sessions.filter(
-    (session) => session.status === "Completed"
-  ).length;
-
+  // Goal Completion and Productivity come from the backend's productivity
+  // analytics (days studied / productivity score) rather than being derived
+  // from session fields that don't exist on the real record shape.
   const goalPercentage = Math.round(
-    (completedSessions / sessions.length) * 100
+    productivitySummary?.completion_percentage?.completion_percentage ?? 0
   );
 
+  const productivityScore = productivitySummary?.productivity_score?.productivity_score;
   const productivity =
-    totalHours >= 20
+    productivityScore == null
+      ? "—"
+      : productivityScore >= 80
       ? "Excellent"
-      : totalHours >= 12
+      : productivityScore >= 50
       ? "Good"
       : "Average";
 
   return (
-    <div className="study-summary">
-
-      <div className="study-card">
-        <h4>Total Study Hours</h4>
-        <h2>{totalHours} hrs</h2>
-      </div>
-
-      <div className="study-card">
-        <h4>Subjects</h4>
-        <h2>{totalSubjects}</h2>
-      </div>
-
-      <div className="study-card">
-        <h4>Goal Completion</h4>
-        <h2>{goalPercentage}%</h2>
-      </div>
-
-      <div className="study-card">
-        <h4>Productivity</h4>
-        <h2>{productivity}</h2>
-      </div>
-
-    </div>
+    <StatGrid>
+      <StatTile label="Total Study Hours" value={`${totalHours} hrs`} />
+      <StatTile label="Subjects" value={totalSubjects} />
+      <StatTile label="Goal Completion" value={`${goalPercentage}%`} />
+      <StatTile label="Productivity" value={productivity} />
+    </StatGrid>
   );
 }
 

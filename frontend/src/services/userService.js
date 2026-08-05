@@ -32,6 +32,17 @@ export const updateUser = async (payload) => {
  * @param {{ title, category, target_value, unit, target_date? }} payload
  * @returns {Promise<UserResponse>}
  */
+/**
+ * Partially update the user's notification/display preferences.
+ * PATCH /api/v1/users/me/preferences
+ * @param {{ currency?, language?, dark_mode?, email_notifications?, weekly_report_enabled? }} payload
+ * @returns {Promise<UserResponse>}
+ */
+export const updatePreferences = async (payload) => {
+  const response = await api.patch("/users/me/preferences", payload);
+  return response.data;
+};
+
 export const addGoal = async (payload) => {
   const response = await api.post("/users/me/goals", payload);
   return response.data;

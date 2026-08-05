@@ -1,96 +1,19 @@
+import ProgressList from "./ui/ProgressList";
+
 function HabitProgress({ habits }) {
-    if (habits.length === 0) {
-    return (
-      <div className="habit-progress-card">
-        <h3>No Habit Data Available</h3>
-      </div>
-    );
+  if (habits.length === 0) {
+    return <ProgressList title="Today's Progress" items={[]} emptyMessage="No habit data available yet." />;
   }
 
   const latestHabit = habits[0];
 
-  const waterProgress = Math.min(
-    (Number(latestHabit.water) / 3) * 100,
-    100
-  );
+  const items = [
+    { key: "water", label: "💧 Water Intake", value: (Number(latestHabit.water) / 3) * 100, color: "bg-sky-500" },
+    { key: "sleep", label: "😴 Sleep", value: (Number(latestHabit.sleep) / 8) * 100, color: "bg-indigo-600" },
+    { key: "exercise", label: "🏃 Exercise", value: (Number(latestHabit.exercise) / 60) * 100, color: "bg-emerald-500" },
+  ];
 
-  const sleepProgress = Math.min(
-    (Number(latestHabit.sleep) / 8) * 100,
-    100
-  );
-
-  const exerciseProgress = Math.min(
-    (Number(latestHabit.exercise) / 60) * 100,
-    100
-  );
-  
-  return (
-    <div className="habit-progress-card">
-
-      <h3>Today's Progress</h3>
-
-      {/* Water */}
-
-      <div className="progress-item">
-
-        <div className="progress-header">
-          <span>💧 Water Intake</span>
-          <span>{Math.round(waterProgress)}%</span>
-        </div>
-
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{
-              width: `${waterProgress}%`,
-            }}
-          ></div>
-        </div>
-
-      </div>
-
-      {/* Sleep */}
-
-      <div className="progress-item">
-
-        <div className="progress-header">
-          <span>😴 Sleep</span>
-          <span>{Math.round(sleepProgress)}%</span>
-        </div>
-
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{
-              width: `${sleepProgress}%`,
-            }}
-          ></div>
-        </div>
-
-      </div>
-
-      {/* Exercise */}
-
-      <div className="progress-item">
-
-        <div className="progress-header">
-          <span>🏃 Exercise</span>
-          <span>{Math.round(exerciseProgress)}%</span>
-        </div>
-
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{
-              width: `${exerciseProgress}%`,
-            }}
-          ></div>
-        </div>
-
-      </div>
-
-    </div>
-  );
+  return <ProgressList title="Today's Progress" items={items} />;
 }
 
 export default HabitProgress;

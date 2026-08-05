@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { Input, Select } from "./ui/Field";
+import Button from "./ui/Button";
 
 /**
  * TransactionForm — creates a new financial record.
@@ -64,14 +66,17 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
   };
 
   return (
-    <form
-      className="transaction-form"
-      onSubmit={submitHandler}
-    >
-      <h3>{initialData ? "Edit Transaction" : "Add Transaction"}</h3>
+    <form className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm" onSubmit={submitHandler}>
+      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">{initialData ? "Edit Transaction" : "Add Transaction"}</h3>
 
-      <div className="form-grid">
-        <input
+      {/* Bug fix: this form only ever renders inside Drawer/Modal, both fixed-
+          width containers — sm:/lg: are VIEWPORT breakpoints, so at a wide
+          browser window they forced a 5-column grid into a ~450px-wide
+          drawer regardless of the drawer's actual size, crushing every field
+          into an unreadable sliver. @container queries respond to the
+          drawer/modal's own width instead. */}
+      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-5">
+        <Input
           type="date"
           name="date"
           value={formData.date}
@@ -79,22 +84,14 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
           required
         />
 
-        <select
-          name="type"
-          value={formData.type}
-          onChange={handleChange}
-        >
+        <Select name="type" value={formData.type} onChange={handleChange}>
           <option value="INCOME">Income</option>
           <option value="EXPENSE">Expense</option>
           <option value="SAVINGS_DEPOSIT">Savings Deposit</option>
           <option value="INVESTMENT">Investment</option>
-        </select>
+        </Select>
 
-        <select
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
-        >
+        <Select name="category" value={formData.category} onChange={handleChange}>
           <option value="SALARY">Salary</option>
           <option value="FOOD">Food</option>
           <option value="HOUSING">Housing</option>
@@ -106,9 +103,9 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
           <option value="TRANSPORT">Transport</option>
           <option value="SAVINGS">Savings</option>
           <option value="OTHER">Other</option>
-        </select>
+        </Select>
 
-        <input
+        <Input
           type="number"
           name="amount"
           placeholder="Amount"
@@ -119,7 +116,7 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
           required
         />
 
-        <input
+        <Input
           type="text"
           name="description"
           placeholder="Description (optional)"
@@ -128,14 +125,14 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
         />
       </div>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button className="save-btn" disabled={isSubmitting}>
+      <div className="mt-5 flex gap-2.5">
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : initialData ? "Update Transaction" : "Add Transaction"}
-        </button>
+        </Button>
         {initialData && onCancel && (
-          <button type="button" onClick={onCancel} className="save-btn" style={{ background: '#6c757d' }}>
+          <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
-import "../styles/Profile.css";
+import { Input, Select } from "./ui/Field";
+import Button from "./ui/Button";
 
 /**
  * GoalForm — creates a new active goal, or edits an existing one when
@@ -71,14 +72,11 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
   }
 
   return (
-    <form
-      className="profile-form"
-      onSubmit={submit}
-    >
+    <form className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm" onSubmit={submit}>
 
-      <div className="form-grid">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-        <input
+        <Input
           name="title"
           value={formData.title}
           onChange={handleChange}
@@ -86,19 +84,15 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
           required
         />
 
-        <select
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
-        >
+        <Select name="category" value={formData.category} onChange={handleChange}>
           <option value="FINANCE">Finance</option>
           <option value="STUDY">Study</option>
           <option value="HABIT">Habit</option>
           <option value="FITNESS">Fitness</option>
           <option value="CAREER">Career</option>
-        </select>
+        </Select>
 
-        <input
+        <Input
           name="target_value"
           type="number"
           min="0.01"
@@ -110,7 +104,7 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
         />
 
         {initialData && (
-          <input
+          <Input
             name="current_value"
             type="number"
             min="0"
@@ -121,7 +115,7 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
           />
         )}
 
-        <input
+        <Input
           name="unit"
           value={formData.unit}
           onChange={handleChange}
@@ -129,7 +123,7 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
           required
         />
 
-        <input
+        <Input
           name="target_date"
           type="date"
           value={formData.target_date}
@@ -139,20 +133,16 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
 
       </div>
 
-      <div className="button-group">
+      <div className="mt-6 flex gap-3">
 
-        <button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : initialData ? "Update Goal" : "Add Goal"}
-        </button>
+        </Button>
 
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
             Cancel
-          </button>
+          </Button>
         )}
 
       </div>

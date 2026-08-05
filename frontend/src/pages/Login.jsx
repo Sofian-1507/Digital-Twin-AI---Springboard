@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Eye, EyeOff } from "lucide-react";
-import "../styles/Auth.css";
 
 import { loginUser } from "../services/authService";
 import { useAuth } from "../context/useAuth";
+import { Input } from "../components/ui/Field";
+import Button from "../components/ui/Button";
 
 function Login() {
   const navigate = useNavigate();
@@ -45,27 +46,18 @@ function Login() {
   };
 
   return (
-    <div className="auth-container">
-
-      <div className="auth-card">
-
-        <div className="auth-header">
-
-          <h1>Digital Twin AI</h1>
-
-          <h2>Welcome Back 👋</h2>
-
-          <p>Login to continue</p>
-
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900 p-6">
+      <div className="w-full max-w-md rounded-2xl border-t-4 border-t-indigo-600 bg-white p-8 shadow-xl sm:p-9 dark:bg-slate-800">
+        <div className="mb-6">
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Digital Twin AI</p>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-800 dark:text-slate-100">Welcome Back 👋</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Login to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-
-          <div className="form-group">
-
-            <label>Email</label>
-
-            <input
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email</label>
+            <Input
               type="email"
               name="email"
               placeholder="Enter Email"
@@ -73,71 +65,54 @@ function Login() {
               onChange={handleChange}
               required
             />
-
           </div>
 
-          <div className="form-group">
-
-            <label>Password</label>
-
-            <div className="password-box">
-
-              <input
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
+            <div className="relative">
+              <Input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Enter Password"
                 value={formData.password}
                 onChange={handleChange}
                 required
+                className="pr-11"
               />
-
               <button
                 type="button"
-                className="eye-btn"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-
             </div>
-
           </div>
 
-          <div className="remember-row">
-
-            <label title="Not available yet">
-
-              <input type="checkbox" disabled />
-
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-slate-500 opacity-50 dark:text-slate-400" title="Not available yet">
+              <input type="checkbox" disabled className="h-4 w-4 cursor-not-allowed" />
               Remember Me
-
             </label>
 
-            <Link to="/forgot-password">
+            <Link to="/forgot-password" className="font-medium text-indigo-600 hover:underline">
               Forgot Password?
             </Link>
-
           </div>
 
-          <button className="auth-btn" type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? "Logging in..." : "Login"}
-          </button>
-
+          </Button>
         </form>
 
-        <p className="switch-auth">
-
-          Don't have an account?
-
-          <Link to="/signup">
+        <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          Don't have an account?{" "}
+          <Link to="/signup" className="font-semibold text-indigo-600 hover:underline">
             Sign Up
           </Link>
-
         </p>
-
       </div>
-
     </div>
   );
 }

@@ -1,43 +1,35 @@
+/**
+ * Current Score is real (from the productivity/consistency engines);
+ * Future Prediction is model output — per the design system, only the
+ * predicted half of each card carries the violet accent, so the two
+ * don't read as equally-certain numbers.
+ */
 function PredictionCards({ predictions = [] }) {
 
   return (
-    <div className="prediction-cards">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
       {predictions.map((item) => (
 
-        <div
-          key={item.title}
-          className="prediction-info-card"
-        >
+        <div key={item.title} className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
 
-          <h3
-            style={{
-              color: item.color,
-            }}
-          >
+          <h3 className="mb-3 text-lg font-semibold text-slate-800 dark:text-slate-100">
             {item.title}
           </h3>
 
-          <p>
-            Current Score :
-            <strong> {item.current}%</strong>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Current Score : <strong className="font-mono tabular-nums text-slate-800 dark:text-slate-100">{item.current}%</strong>
           </p>
 
-          <p>
-            Future Prediction :
-            <strong> {item.future}%</strong>
+          <p className="mt-1 text-sm text-violet-600">
+            ✦ Future Prediction : <strong className="font-mono tabular-nums">{item.future}%</strong>
           </p>
 
-          <div className="prediction-progress">
-
+          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
             <div
-              className="prediction-fill"
-              style={{
-                width: `${item.future}%`,
-                background: item.color,
-              }}
+              className="h-full rounded-full bg-violet-500"
+              style={{ width: `${item.future}%` }}
             ></div>
-
           </div>
 
         </div>

@@ -14,6 +14,13 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true); // true while validating session
 
+  // ── Apply the user's saved dark-mode preference to the document root ───────
+  // This is a per-account preference (preferences.dark_mode via Settings),
+  // not the OS color-scheme — see the `dark` custom variant in index.css.
+  useEffect(() => {
+    document.documentElement.dataset.theme = user?.preferences?.dark_mode ? "dark" : "light";
+  }, [user?.preferences?.dark_mode]);
+
   // ── Restore session on initial app load ────────────────────────────────────
   useEffect(() => {
     async function restoreSession() {

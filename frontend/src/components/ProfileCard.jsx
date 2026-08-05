@@ -1,3 +1,5 @@
+import Button from "./ui/Button";
+
 function ProfileCard({ user, onEdit }) {
   const name       = user?.profile?.name       ?? "—";
   const occupation = user?.profile?.occupation ?? "Digital Twin User";
@@ -12,22 +14,22 @@ function ProfileCard({ user, onEdit }) {
 
   return (
 
-    <div className="profile-card">
+    <div className="rounded-2xl border border-slate-100 bg-white dark:border-slate-700 dark:bg-slate-800 p-8 text-center shadow-sm">
 
       <div
-        className="profile-avatar-placeholder"
+        className="mx-auto mb-5 flex h-35 w-35 items-center justify-center rounded-full bg-indigo-100 text-4xl font-semibold text-indigo-600"
         aria-label={`Avatar for ${name}`}
       >
         {initials}
       </div>
 
-      <h2>{name}</h2>
+      <h2 className="mb-2.5 text-xl font-semibold text-slate-800 dark:text-slate-100">{name}</h2>
 
-      <p>{occupation}</p>
+      <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">{occupation}</p>
 
-      <button onClick={onEdit}>
+      <Button onClick={onEdit}>
         Edit Profile
-      </button>
+      </Button>
 
     </div>
 

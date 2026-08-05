@@ -8,16 +8,26 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+import EmptyState from "./ui/EmptyState";
 
 /**
  * StudyChart — renders a weekly study hours bar chart.
  * @param {{ data: Array<{ day: string, hours: number }> }} props
  */
 function StudyChart({ data = [] }) {
-  return (
-    <div className="study-chart-card">
+  const totalHours = data.reduce((sum, d) => sum + Number(d.hours || 0), 0);
+  const hasData = data.some((d) => Number(d.hours) > 0);
 
-      <h3>Weekly Study Progress</h3>
+  return (
+    <div>
+
+      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Weekly Study Progress</h3>
+
+      {!hasData ? (
+        <EmptyState title="No study data yet" message="Log a study session to see your weekly progress here." />
+      ) : (
+        <>
+      <p className="sr-only">Weekly study hours chart. Total this week: {totalHours} hours.</p>
 
       <ResponsiveContainer
         width="100%"
@@ -29,7 +39,7 @@ function StudyChart({ data = [] }) {
             strokeDasharray="3 3"
           />
 
-          <XAxis dataKey="day" />
+          <XAxis dataKey="day" interval={0} tick={{ fontSize: 10 }} />
 
           <YAxis />
 
@@ -43,6 +53,8 @@ function StudyChart({ data = [] }) {
 
         </BarChart>
       </ResponsiveContainer>
+        </>
+      )}
 
     </div>
   );

@@ -1,11 +1,16 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, Circle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import { CheckCircle2, Circle, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
-import "../styles/Dashboard.css";
 
-import StatCard from "../components/StatCard";
 import FinanceChart from "../components/FinanceChart";
 import StudyChart from "../components/StudyChart";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import EmptyState from "../components/ui/EmptyState";
+import { StatGrid, StatTile } from "../components/ui/StatTile";
+import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
 
 import { getUser } from "../services/userService";
 import { getCashflow } from "../services/financeService";
@@ -13,7 +18,45 @@ import { getSessions } from "../services/studyService";
 import { getTrendSummary } from "../services/trendService";
 import { getProductivityScore } from "../services/productivityService";
 import { getConsistencyScore } from "../services/habitAnalyticsService";
+import { getActivityHistory } from "../services/activityService";
 import { buildChartData, computeSavingsRate, buildStudyChartData } from "../utils/dashboardHelpers";
+import { activityBadgeTone } from "../utils/activityBadge";
+
+/** Quick-add: each option deep-links to the page that already owns that record's form. */
+function AddRecordMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <Button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open}>
+        + Add Record <ChevronDown size={15} strokeWidth={2} />
+      </Button>
+      {open && (
+        <div role="menu" className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-md">
+          <Link role="menuitem" to="/finance" className="block px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40">Add Transaction</Link>
+          <Link role="menuitem" to="/study" className="block px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40">Add Study Session</Link>
+          <Link role="menuitem" to="/habits" className="block px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40">Add Habit Log</Link>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Dashboard() {
   const [userData, setUserData]         = useState(null);
@@ -23,18 +66,20 @@ function Dashboard() {
   const [productivityScore, setProductivityScore] = useState(null);
   const [consistencyScore, setConsistencyScore]   = useState(null);
   const [trend, setTrend]               = useState(null);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading]       = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
       try {
-        const [user, cashflow, studySessions, trendSummary, productivity, consistency] = await Promise.all([
+        const [user, cashflow, studySessions, trendSummary, productivity, consistency, activity] = await Promise.all([
           getUser(),
           getCashflow(6),
           getSessions({ limit: 50 }),
           getTrendSummary(),
           getProductivityScore(),
           getConsistencyScore(),
+          getActivityHistory({ limit: 5 }),
         ]);
 
         setUserData(user);
@@ -44,6 +89,7 @@ function Dashboard() {
         setTrend(trendSummary);
         setProductivityScore(productivity);
         setConsistencyScore(consistency);
+        setRecentActivity(activity.items || []);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
         toast.error("Could not load your dashboard. Please try again later.");
@@ -66,276 +112,228 @@ function Dashboard() {
   const goalsCompleted = goals.length ? `${goals.filter(g => Number(g.current_value) >= Number(g.target_value)).length}/${goals.length}` : "—";
 
   return (
-    <div className="dashboard">
+    <div>
 
       {/* Header */}
 
-      <div className="dashboard-header">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
 
         <div>
-          <h2>Dashboard</h2>
+          <h2 className="text-3xl font-semibold text-slate-800 dark:text-slate-100">Dashboard</h2>
 
-          <p>
+          <p className="mt-1.5 text-slate-500 dark:text-slate-400">
             {isLoading
               ? "Loading your Digital Twin overview..."
               : `Welcome back${profile?.name ? ", " + profile.name : ""}! Here's your Digital Twin overview.`}
           </p>
         </div>
 
-        <button className="add-btn">
-          + Add Record
-        </button>
+        <AddRecordMenu />
 
       </div>
 
-      {/* Summary Cards */}
-
-      <div className="summary-grid">
-
-        <StatCard
-          title="Savings Rate"
-          value={savingsRate}
-          subtitle={
-            trend?.savings?.projected_savings?.length
-              ? `Predicted next month: $${Math.round(trend.savings.projected_savings[0].value).toLocaleString()}`
-              : "No transactions logged yet"
-          }
-          color="linear-gradient(135deg,#667EEA,#764BA2)"
-        />
-
-        <StatCard
-          title="Study Consistency"
-          value={studyScore}
-          subtitle={
-            trend?.study?.predicted_exam_score != null
-              ? `Predicted Exam: ${Math.round(trend.study.predicted_exam_score)}%`
-              : "No study sessions logged yet"
-          }
-          color="linear-gradient(135deg,#36D1DC,#5B86E5)"
-        />
-
-        <StatCard
-          title="Habit Score"
-          value={habitRate}
-          subtitle={
-            trend?.fitness?.projected_fitness_score?.length
-              ? `Predicted next week: ${Math.round(trend.fitness.projected_fitness_score[0].value)}%`
-              : "No habit logs yet"
-          }
-          color="linear-gradient(135deg,#11998E,#38EF7D)"
-        />
-
-        <StatCard
-          title="Goals Completed"
-          value={goalsCompleted}
-          subtitle="Keep Going"
-          color="linear-gradient(135deg,#F7971E,#FFD200)"
-        />
-
-      </div>
-
-      {/* Charts */}
-
-      <div className="chart-grid">
-
-        <div className="chart-card">
-
-          <h3>Financial Overview</h3>
-
-          <FinanceChart data={financeChart} />
-
+      {isLoading ? (
+        <div className="flex flex-col gap-5">
+          <SkeletonStatGrid count={4} />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            <div className="lg:col-span-2"><SkeletonChart /></div>
+            <SkeletonChart />
+          </div>
+          <SkeletonTable rows={5} cols={3} />
         </div>
+      ) : (
+        <>
+          {/* Summary Cards */}
 
-        <div className="chart-card">
+          <StatGrid>
+            <Link to="/finance" className="block rounded-2xl transition-transform duration-150 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+              <StatTile
+                accent="indigo"
+                label="Savings Rate"
+                value={savingsRate}
+                sublabel={
+                  trend?.savings?.projected_savings?.length
+                    ? `Predicted next month: $${Math.round(trend.savings.projected_savings[0].value).toLocaleString()}`
+                    : "No transactions logged yet"
+                }
+              />
+            </Link>
 
-          <h3>Study Performance</h3>
+            <Link to="/study" className="block rounded-2xl transition-transform duration-150 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+              <StatTile
+                accent="emerald"
+                label="Study Consistency"
+                value={studyScore}
+                sublabel={
+                  trend?.study?.predicted_exam_score != null
+                    ? `Predicted exam: ${Math.round(trend.study.predicted_exam_score)}%`
+                    : "No study sessions logged yet"
+                }
+              />
+            </Link>
 
-          <StudyChart data={studyChart} />
+            <Link to="/habits" className="block rounded-2xl transition-transform duration-150 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+              <StatTile
+                accent="amber"
+                label="Habit Score"
+                value={habitRate}
+                sublabel={
+                  trend?.fitness?.projected_fitness_score?.length
+                    ? `Predicted next week: ${Math.round(trend.fitness.projected_fitness_score[0].value)}%`
+                    : "No habit logs yet"
+                }
+              />
+            </Link>
 
-        </div>
+            <Link to="/profile" className="block rounded-2xl transition-transform duration-150 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+              <StatTile accent="neutral" label="Goals Completed" value={goalsCompleted} sublabel="Keep going" />
+            </Link>
+          </StatGrid>
 
-      </div>
+          {/* Charts */}
 
-      {/* Progress Cards */}
+          <div className="mb-8 mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-      <div className="progress-grid">
+            <Card className="lg:col-span-2">
+              <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Financial Overview</h3>
+              <FinanceChart data={financeChart} />
+            </Card>
 
-        <div className="progress-card">
+            <Card>
+              <StudyChart data={studyChart} />
+            </Card>
 
-          <h3>Financial Goal</h3>
+          </div>
 
-          <progress
-            value={savingsRatePct != null ? Math.min(100, savingsRatePct) : 0}
-            max="100"
-          ></progress>
+          {/* Progress Cards */}
 
-          <p>{savingsRatePct != null ? `${savingsRatePct.toFixed(0)}% Savings Rate` : "No data yet"}</p>
+          <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-3">
 
-        </div>
+            <Card>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Financial Goal</h3>
+              <progress
+                className="my-5 h-3 w-full accent-indigo-600"
+                aria-label="Savings rate progress"
+                value={savingsRatePct != null ? Math.min(100, savingsRatePct) : 0}
+                max="100"
+              ></progress>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{savingsRatePct != null ? `${savingsRatePct.toFixed(0)}% Savings Rate` : "No data yet"}</p>
+            </Card>
 
-        <div className="progress-card">
+            <Card>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Study Goal</h3>
+              <progress
+                className="my-5 h-3 w-full accent-indigo-600"
+                aria-label="Study consistency progress"
+                value={productivityScore ? Math.min(100, productivityScore.productivity_score) : 0}
+                max="100"
+              ></progress>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{productivityScore ? `${Math.round(productivityScore.productivity_score)}% Consistency` : "No data yet"}</p>
+            </Card>
 
-          <h3>Study Goal</h3>
+            <Card>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Lifestyle Goal</h3>
+              <progress
+                className="my-5 h-3 w-full accent-indigo-600"
+                aria-label="Lifestyle score progress"
+                value={consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0}
+                max="100"
+              ></progress>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{consistencyScore ? `${Math.round(consistencyScore.consistency_score)}/100 Lifestyle Score` : "No data yet"}</p>
+            </Card>
 
-          <progress
-            value={productivityScore ? Math.min(100, productivityScore.productivity_score) : 0}
-            max="100"
-          ></progress>
+          </div>
 
-          <p>{productivityScore ? `${Math.round(productivityScore.productivity_score)}% Consistency` : "No data yet"}</p>
+          {/* Bottom Cards */}
 
-        </div>
+          <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-        <div className="progress-card">
+            <Card className="border-t-4 border-t-violet-500 lg:col-span-2">
+              <h3 className="text-lg font-semibold text-violet-600">✦ AI Recommendation</h3>
 
-          <h3>Lifestyle Goal</h3>
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+                {trend
+                  ? `💰 Predicted savings next month: $${Math.round(
+                      trend.savings?.projected_savings?.[0]?.value ?? 0
+                    ).toLocaleString()} (confidence ${Math.round((trend.savings?.confidence_score ?? 0) * 100)}%).`
+                  : "Log a few transactions on the Finance page to get a personalized savings prediction."}
+              </p>
 
-          <progress
-            value={consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0}
-            max="100"
-          ></progress>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                {trend
+                  ? `📚 Predicted study score next week: ${Math.round(
+                      trend.study?.projected_productivity?.[0]?.value ?? 0
+                    )}% (confidence ${Math.round((trend.study?.productivity_confidence_score ?? 0) * 100)}%).`
+                  : "Log a few study sessions to get a personalized study prediction."}
+              </p>
+            </Card>
 
-          <p>{consistencyScore ? `${Math.round(consistencyScore.consistency_score)}/100 Lifestyle Score` : "No data yet"}</p>
+            <Card>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Active Goals</h3>
 
-        </div>
-
-      </div>
-
-      {/* Bottom Cards */}
-
-      <div className="bottom-grid">
-
-        <div className="recommendation-card">
-
-          <h3>AI Recommendation</h3>
-
-          <p>
-            {trend
-              ? `💰 Predicted savings next month: $${Math.round(
-                  trend.savings?.projected_savings?.[0]?.value ?? 0
-                ).toLocaleString()} (confidence ${Math.round((trend.savings?.confidence_score ?? 0) * 100)}%).`
-              : "Log a few transactions on the Finance page to get a personalized savings prediction."}
-          </p>
-
-          <br />
-
-          <p>
-            {trend
-              ? `📚 Predicted study score next week: ${Math.round(
-                  trend.study?.projected_productivity?.[0]?.value ?? 0
-                )}% (confidence ${Math.round((trend.study?.productivity_confidence_score ?? 0) * 100)}%).`
-              : "Log a few study sessions to get a personalized study prediction."}
-          </p>
-
-        </div>
-
-        <div className="goal-card">
-
-          <h3>Active Goals</h3>
-
-          <ul>
-            {goals.length > 0
-              ? goals.slice(0, 5).map((g) => {
-                  const done = Number(g.current_value) >= Number(g.target_value);
-                  return (
-                    <li key={g.goal_id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      {done
-                        ? <CheckCircle2 size={15} strokeWidth={2} style={{ color: "#38EF7D", flexShrink: 0 }} />
-                        : <Circle       size={15} strokeWidth={2} style={{ color: "#888",     flexShrink: 0 }} />}
-                      {g.title}
+              <ul className="mt-4 space-y-3">
+                {goals.length > 0
+                  ? goals.slice(0, 5).map((g) => {
+                      const done = Number(g.current_value) >= Number(g.target_value);
+                      return (
+                        <li key={g.goal_id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          {done
+                            ? <CheckCircle2 size={15} strokeWidth={2} className="shrink-0 text-emerald-500" />
+                            : <Circle       size={15} strokeWidth={2} className="shrink-0 text-slate-300" />}
+                          {g.title}
+                        </li>
+                      );
+                    })
+                  : (
+                    <li className="text-sm italic text-slate-400">
+                      No active goals yet. Add one from your Profile page.
                     </li>
-                  );
-                })
-              : (
-                <li style={{ color: "#888", fontStyle: "italic" }}>
-                  No active goals yet. Add one from your Profile page.
-                </li>
-              )}
-          </ul>
+                  )}
+              </ul>
+            </Card>
 
-        </div>
+          </div>
 
-      </div>
+          {/* Recent Activity — live feed from the /activity endpoint, replacing
+              the previous 5 hardcoded rows */}
 
-      {/* Recent Activity */}
+          <Card className="overflow-x-auto">
 
-      <div className="activity-card">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Recent Activity</h3>
+              <Link to="/activity" className="text-sm font-medium text-indigo-600 hover:underline">View all</Link>
+            </div>
 
-        <h3>Recent Activities</h3>
+            {recentActivity.length === 0 ? (
+              <EmptyState title="No activity yet" message="Actions you take across Digital Twin will show up here." />
+            ) : (
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr>
+                    <th className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 p-4 text-left font-semibold text-slate-600 dark:text-slate-400">Time</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 p-4 text-left font-semibold text-slate-600 dark:text-slate-400">Action</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 p-4 text-left font-semibold text-slate-600 dark:text-slate-400">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentActivity.map((act) => (
+                    <tr key={act.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                      <td className="border-b border-slate-100 dark:border-slate-700 p-4 font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                        {new Date(act.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </td>
+                      <td className="border-b border-slate-100 dark:border-slate-700 p-4">
+                        <Badge tone={activityBadgeTone(act.action_type)}>{(act.action_type || "").replace(/_/g, " ")}</Badge>
+                      </td>
+                      <td className="border-b border-slate-100 dark:border-slate-700 p-4 text-slate-600 dark:text-slate-400">{act.description || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
 
-        <table>
-
-          <thead>
-
-            <tr>
-
-              <th>Date</th>
-
-              <th>Activity</th>
-
-              <th>Status</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            <tr>
-
-              <td>28 Jul</td>
-
-              <td>Added Expense Record</td>
-
-              <td>Completed</td>
-
-            </tr>
-
-            <tr>
-
-              <td>27 Jul</td>
-
-              <td>Updated Study Hours</td>
-
-              <td>Completed</td>
-
-            </tr>
-
-            <tr>
-
-              <td>26 Jul</td>
-
-              <td>Completed Workout</td>
-
-              <td>Completed</td>
-
-            </tr>
-
-            <tr>
-
-              <td>25 Jul</td>
-
-              <td>Generated AI Prediction</td>
-
-              <td>Completed</td>
-
-            </tr>
-
-            <tr>
-
-              <td>24 Jul</td>
-
-              <td>Updated Financial Goal</td>
-
-              <td>Completed</td>
-
-            </tr>
-
-          </tbody>
-
-        </table>
-
-      </div>
+          </Card>
+        </>
+      )}
 
     </div>
   );

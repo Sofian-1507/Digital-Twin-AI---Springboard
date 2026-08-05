@@ -1,3 +1,5 @@
+import { StatGrid, StatTile } from "./ui/StatTile";
+
 function HabitSummary({ habits }) {
   const totalWater = habits.reduce(
     (sum, item) => sum + Number(item.water),
@@ -24,29 +26,12 @@ function HabitSummary({ habits }) {
     ).length;
 
   return (
-    <div className="habit-summary">
-
-      <div className="habit-card">
-        <h4>Water Intake</h4>
-        <h2>{totalWater} L</h2>
-      </div>
-
-      <div className="habit-card">
-        <h4>Average Sleep</h4>
-        <h2>{averageSleep} hrs</h2>
-      </div>
-
-      <div className="habit-card">
-        <h4>Total Exercise</h4>
-        <h2>{totalExercise} min</h2>
-      </div>
-
-      <div className="habit-card">
-        <h4>Positive Mood</h4>
-        <h2>{moodScore}/{habits.length}</h2>
-      </div>
-
-    </div>
+    <StatGrid>
+      <StatTile label="Water Intake" value={`${totalWater} L`} />
+      <StatTile label="Average Sleep" value={`${averageSleep} hrs`} />
+      <StatTile label="Total Exercise" value={`${totalExercise} min`} />
+      <StatTile label="Positive Mood" value={`${moodScore}/${habits.length}`} />
+    </StatGrid>
   );
 }
 

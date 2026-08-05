@@ -4,10 +4,12 @@
  * All requests are authenticated via the Axios interceptor in api.js.
  *
  * Deliberately kept 1:1 with every backend route for API-surface completeness,
- * matching the convention of every other service file. getSavingsForecast,
- * getIncomeProjection, getGoalForecasts, and getForecastSummary aren't currently
- * called by any page (their data is surfaced via getTrendSummary()/Prediction.jsx
- * instead) — kept as ready-to-use bindings rather than removed.
+ * matching the convention of every other service file. getSavingsForecast and
+ * getGoalForecasts aren't currently called by any page (their data is surfaced
+ * via getTrendSummary()/Prediction.jsx instead, which wraps the same underlying
+ * forecast_service calls) — kept as ready-to-use bindings rather than removed.
+ * getIncomeProjection is used by Finance.jsx, since income has no equivalent
+ * anywhere in the trend-prediction summary.
  */
 import api from "./api";
 

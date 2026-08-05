@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { Input, Select } from "./ui/Field";
+import Button from "./ui/Button";
 
 function HabitForm({ addHabit }) {
 
@@ -50,23 +52,20 @@ function HabitForm({ addHabit }) {
   };
 
   return (
-    <form
-      className="habit-form"
-      onSubmit={submitHandler}
-    >
+    <form className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm" onSubmit={submitHandler}>
 
-      <h3>Add Today's Habit</h3>
+      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Add Today's Habit</h3>
 
-      <div className="habit-form-grid">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
 
-        <input
+        <Input
           type="date"
           name="date"
           value={formData.date}
           onChange={handleChange}
         />
 
-        <input
+        <Input
           type="number"
           step="0.1"
           min="0"
@@ -77,7 +76,7 @@ function HabitForm({ addHabit }) {
           onChange={handleChange}
         />
 
-        <input
+        <Input
           type="number"
           step="0.5"
           min="0"
@@ -88,7 +87,7 @@ function HabitForm({ addHabit }) {
           onChange={handleChange}
         />
 
-        <input
+        <Input
           type="number"
           min="0"
           max="1440"
@@ -98,7 +97,7 @@ function HabitForm({ addHabit }) {
           onChange={handleChange}
         />
 
-        <input
+        <Input
           type="number"
           step="0.5"
           min="0"
@@ -109,22 +108,18 @@ function HabitForm({ addHabit }) {
           onChange={handleChange}
         />
 
-        <select
-          name="mood"
-          value={formData.mood}
-          onChange={handleChange}
-        >
+        <Select name="mood" value={formData.mood} onChange={handleChange}>
           <option>Excellent</option>
           <option>Happy</option>
           <option>Normal</option>
           <option>Sad</option>
-        </select>
+        </Select>
 
       </div>
 
-      <button className="habit-btn" disabled={isSubmitting}>
+      <Button className="mt-5" disabled={isSubmitting}>
         {isSubmitting ? "Saving..." : "Save Habit"}
-      </button>
+      </Button>
 
     </form>
   );

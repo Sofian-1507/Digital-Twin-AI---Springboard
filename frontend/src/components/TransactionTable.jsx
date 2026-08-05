@@ -1,8 +1,32 @@
 import { useState } from "react";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Input } from "./ui/Field";
+import Badge from "./ui/Badge";
+import EmptyState from "./ui/EmptyState";
+
+const SORTERS = {
+  date: (t) => new Date(t.transaction_date || 0).getTime(),
+  amount: (t) => Number(t.amount || 0),
+};
+
+function SortButton({ label, active, dir, onClick }) {
+  const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+    >
+      {label}
+      <Icon size={13} className={active ? "text-indigo-600" : "text-slate-300 dark:text-slate-600"} />
+    </button>
+  );
+}
 
 function TransactionTable({ transactions, onEdit, onDelete }) {
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
 
   const filteredTransactions = transactions.filter((item) =>
     item.category
@@ -10,78 +34,100 @@ function TransactionTable({ transactions, onEdit, onDelete }) {
       .includes(search.toLowerCase())
   );
 
-  return (
-    <div className="table-card">
-      <div className="table-header">
-        <h3>Transaction History</h3>
+  // Sorts the currently-loaded page only — the backend already orders by
+  // date via idx_finance_user_date, so this just lets the user flip that
+  // order (or sort by amount) without a new API contract.
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    const diff = SORTERS[sortKey](a) - SORTERS[sortKey](b);
+    return sortDir === "asc" ? diff : -diff;
+  });
 
-        <input
+  function toggleSort(key) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Transaction History</h3>
+
+        <Input
           type="text"
           placeholder="Search category..."
           value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-56"
         />
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Description</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      {filteredTransactions.length === 0 ? (
+        <EmptyState title="No transactions found" message="Try a different search or add a new transaction." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-150 border-collapse text-sm">
+            <thead>
+              <tr>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left">
+                  <SortButton label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
+                </th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Type</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Category</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-right">
+                  <div className="flex justify-end">
+                    <SortButton label="Amount" active={sortKey === "amount"} dir={sortDir} onClick={() => toggleSort("amount")} />
+                  </div>
+                </th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          {filteredTransactions.map((item) => (
-            <tr key={item.id}>
-              <td>{item.transaction_date ? new Date(item.transaction_date).toLocaleDateString() : "-"}</td>
+            <tbody>
+              {sortedTransactions.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                    {item.transaction_date ? new Date(item.transaction_date).toLocaleDateString() : "-"}
+                  </td>
 
-              <td>
-                <span
-                  className={
-                    item.type === "Income"
-                      ? "income-tag"
-                      : "expense-tag"
-                  }
-                >
-                  {item.type}
-                </span>
-              </td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                    <Badge tone={String(item.type).toUpperCase() === "INCOME" ? "success" : "danger"}>{item.type}</Badge>
+                  </td>
 
-              <td>{item.category}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.category}</td>
 
-              <td>${item.amount}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-400">${item.amount}</td>
 
-              <td>{item.description}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.description}</td>
 
-              <td>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    onClick={() => onEdit && onEdit(item)} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    aria-label="Edit"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button 
-                    onClick={() => onDelete && onDelete(item.id)} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--danger-color, #ef4444)' }}
-                    aria-label="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={() => onEdit && onEdit(item)}
+                        className="p-0 text-slate-400 hover:text-indigo-600"
+                        aria-label="Edit"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => onDelete && onDelete(item.id)}
+                        className="p-0 text-red-400 hover:text-red-600"
+                        aria-label="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

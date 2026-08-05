@@ -8,14 +8,35 @@ import HabitProgress from "../components/HabitProgress";
 import HabitTable from "../components/HabitTable";
 import LifestyleRecommendation from "../components/LifestyleRecommendation";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Pagination from "../components/Pagination";
+import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
 
 import { getHabitLogs, logDailyHabit, deleteHabitLog } from "../services/habitService";
 import { getHabitTrend, getHabitAnalyticsSummary } from "../services/habitAnalyticsService";
 
-import "../styles/Habits.css";
-
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const MOOD_LABELS = { 5: "Excellent", 4: "Happy", 3: "Normal", 2: "Sad", 1: "Sad" };
+
+/**
+ * Bug fix: HabitSummary/HabitProgress/HabitTable read display fields
+ * (date/water/sleep/exercise/mood) that don't exist on the raw
+ * HabitRecordResponse (log_date/water_intake_liters/sleep_hours/
+ * exercise_minutes/mood_rating) — they were rendering blank/undefined.
+ * This maps the real API shape onto the fields those components expect,
+ * without changing what those components (or the backend) look like.
+ */
+function toDisplayHabit(record) {
+  return {
+    ...record,
+    date: new Date(record.log_date).toLocaleDateString(),
+    water: record.water_intake_liters,
+    sleep: record.sleep_hours,
+    exercise: record.exercise_minutes,
+    mood: MOOD_LABELS[record.mood_rating] ?? "Normal",
+  };
 }
 
 /** Builds HabitChart's [{ day, score }] series from the last 7 daily trend points. */
@@ -42,7 +63,11 @@ function buildLifestyleInsights(summary) {
     (h) => `✅ ${capitalize(h.habit.replace("_", " "))} is on track — avg ${h.average_value} ${h.unit}.`
   );
 
-  return [streakInsight, ...negativeInsights, ...positiveInsights].slice(0, 5);
+  const missedInsight = summary.missed_habits.missed_days > 0
+    ? [`📅 Missed logging on ${summary.missed_habits.missed_days} of the last ${summary.missed_habits.window_days} days.`]
+    : [];
+
+  return [streakInsight, ...missedInsight, ...negativeInsights, ...positiveInsights].slice(0, 6);
 }
 
 function Habits() {
@@ -52,6 +77,10 @@ function Habits() {
   const [isLoading, setIsLoading] = useState(true);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isTableLoading, setIsTableLoading] = useState(false);
+
   useEffect(() => {
     async function fetchHabits() {
       try {
@@ -60,7 +89,8 @@ function Habits() {
           getHabitTrend({ dailyDays: 7 }),
           getHabitAnalyticsSummary(),
         ]);
-        setHabitList(result.data || []);
+        setHabitList((result.data || []).map(toDisplayHabit));
+        setTotalPages(result.total_pages || 1);
         setHabitChartData(buildHabitChartData(trend.daily || []));
         setHabitAnalyticsSummary(summary);
       } catch (err) {
@@ -72,6 +102,27 @@ function Habits() {
     }
     fetchHabits();
   }, []);
+
+  // Re-fetch the table page whenever the page changes (skips first render,
+  // which is already covered by the initial fetch above).
+  useEffect(() => {
+    if (isLoading) return;
+    async function fetchTablePage() {
+      setIsTableLoading(true);
+      try {
+        const result = await getHabitLogs({ page, limit: 30 });
+        setHabitList((result.data || []).map(toDisplayHabit));
+        setTotalPages(result.total_pages || 1);
+      } catch (err) {
+        console.error("Failed to fetch habit logs:", err);
+        toast.error("Could not load habit logs. Please try again later.");
+      } finally {
+        setIsTableLoading(false);
+      }
+    }
+    fetchTablePage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   /**
    * Posts today's habit log to the backend (upsert) and updates local state.
@@ -90,7 +141,7 @@ function Habits() {
           ? new Date(formData.date).toISOString()
           : undefined,
       };
-      const newRecord = await logDailyHabit(payload);
+      const newRecord = toDisplayHabit(await logDailyHabit(payload));
       // Upsert: replace if same date, else prepend
       setHabitList((prev) => {
         const sameDay = (h) =>
@@ -127,9 +178,13 @@ function Habits() {
   return (
     <>
       {isLoading ? (
-        <p>Loading habits…</p>
+        <div className="flex flex-col gap-5">
+          <SkeletonStatGrid count={4} />
+          <SkeletonChart />
+          <SkeletonTable rows={6} cols={5} />
+        </div>
       ) : (
-        <>
+        <div className="flex flex-col gap-6">
           <HabitSummary habits={habitList} />
 
           <HabitForm addHabit={addHabit} />
@@ -140,8 +195,14 @@ function Habits() {
 
           <LifestyleRecommendation insights={buildLifestyleInsights(habitAnalyticsSummary)} />
 
-          <HabitTable habits={habitList} onDelete={handleDelete} />
-        </>
+          {isTableLoading ? (
+            <SkeletonTable rows={6} cols={5} />
+          ) : (
+            <HabitTable habits={habitList} onDelete={handleDelete} />
+          )}
+
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
+        </div>
       )}
 
       <ConfirmDialog

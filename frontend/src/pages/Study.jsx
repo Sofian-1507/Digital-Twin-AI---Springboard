@@ -8,11 +8,14 @@ import SubjectProgress from "../components/SubjectProgress";
 import RecommendationCard from "../components/RecommendationCard";
 import StudyTable from "../components/StudyTable";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Pagination from "../components/Pagination";
+import { Input } from "../components/ui/Field";
+import Button from "../components/ui/Button";
+import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
+import Modal from "../components/ui/Modal";
 
 import { getSessions, createSession, updateSession, deleteSession, getSubjectPerformance } from "../services/studyService";
 import { getProductivitySummary } from "../services/productivityService";
-
-import "../styles/Study.css";
 
 /** Builds RecommendationCard's insight strings from a ProductivitySummaryResponse. */
 function buildStudyInsights(summary) {
@@ -73,6 +76,12 @@ function Study() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [subjectInput, setSubjectInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isTableLoading, setIsTableLoading] = useState(false);
+
   useEffect(() => {
     async function fetchSessions() {
       try {
@@ -83,6 +92,7 @@ function Study() {
         ]);
         const data = result.data || [];
         setSessions(data);
+        setTotalPages(result.total_pages || 1);
         setChartData(buildWeeklyChart(data));
         setProductivitySummary(summary);
         setSubjectProgress(buildSubjectProgress(subjectPerformance));
@@ -95,6 +105,44 @@ function Study() {
     }
     fetchSessions();
   }, []);
+
+  // Re-fetch the table page whenever the subject filter or page changes.
+  useEffect(() => {
+    if (isLoading) return;
+    async function fetchTablePage() {
+      setIsTableLoading(true);
+      try {
+        const result = await getSessions({
+          page,
+          limit: 20,
+          ...(subjectFilter ? { subject: subjectFilter } : {}),
+        });
+        const data = result.data || [];
+        setSessions(data);
+        setTotalPages(result.total_pages || 1);
+        setChartData(buildWeeklyChart(data));
+      } catch (err) {
+        console.error("Failed to fetch study sessions:", err);
+        toast.error("Could not load study sessions. Please try again later.");
+      } finally {
+        setIsTableLoading(false);
+      }
+    }
+    fetchTablePage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, subjectFilter]);
+
+  function applySubjectFilter(e) {
+    e.preventDefault();
+    setSubjectFilter(subjectInput.trim());
+    setPage(1);
+  }
+
+  function clearSubjectFilter() {
+    setSubjectInput("");
+    setSubjectFilter("");
+    setPage(1);
+  }
 
   /**
    * Posts a new session to the backend and prepends it to the local list.
@@ -182,43 +230,70 @@ function Study() {
   };
 
   return (
-    <div className="study-page">
+    <div>
 
-      <h2>Study Dashboard</h2>
+      <h2 className="mb-6 text-2xl font-semibold text-slate-800 dark:text-slate-100">Study Dashboard</h2>
 
       {isLoading ? (
-        <p>Loading sessions…</p>
+        <div className="flex flex-col gap-5">
+          <SkeletonStatGrid count={4} />
+          <SkeletonChart />
+          <SkeletonTable rows={6} cols={4} />
+        </div>
       ) : (
-        <>
-          <StudySummary sessions={sessions} />
+        <div className="flex flex-col gap-6">
+          <StudySummary sessions={sessions} productivitySummary={productivitySummary} />
 
           <StudyForm addSession={addSession} />
 
-          <StudyChart data={chartData} />
+          <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
+            <StudyChart data={chartData} />
+          </div>
 
           <SubjectProgress subjects={subjectProgress} />
 
           <RecommendationCard insights={buildStudyInsights(productivitySummary)} />
 
-          <StudyTable 
-            sessions={sessions} 
-            onEdit={startEdit} 
-            onDelete={handleDelete} 
-          />
-        </>
-      )}
-
-      {editingRecord && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'var(--bg-color, #fff)', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <StudyForm 
-              initialData={editingRecord} 
-              onUpdate={handleUpdate} 
-              onCancel={() => setEditingRecord(null)} 
+          <form className="flex flex-wrap items-center gap-3" onSubmit={applySubjectFilter}>
+            <Input
+              type="text"
+              placeholder="Filter by subject…"
+              value={subjectInput}
+              onChange={(e) => setSubjectInput(e.target.value)}
+              aria-label="Filter by subject"
+              className="w-auto"
             />
-          </div>
+            <Button type="submit">
+              Apply
+            </Button>
+            {subjectFilter && (
+              <Button type="button" variant="secondary" onClick={clearSubjectFilter}>
+                Clear
+              </Button>
+            )}
+          </form>
+
+          {isTableLoading ? (
+            <SkeletonTable rows={6} cols={4} />
+          ) : (
+            <StudyTable
+              sessions={sessions}
+              onEdit={startEdit}
+              onDelete={handleDelete}
+            />
+          )}
+
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
         </div>
       )}
+
+      <Modal open={!!editingRecord} onClose={() => setEditingRecord(null)} title="Edit Study Session" maxWidth="max-w-xl">
+        <StudyForm
+          initialData={editingRecord}
+          onUpdate={handleUpdate}
+          onCancel={() => setEditingRecord(null)}
+        />
+      </Modal>
 
       <ConfirmDialog
         open={confirmDeleteId !== null}

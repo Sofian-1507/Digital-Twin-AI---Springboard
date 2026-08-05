@@ -1,39 +1,28 @@
+import Button from "./ui/Button";
+import Modal from "./ui/Modal";
+
 /**
  * ConfirmDialog — reusable in-app replacement for window.confirm().
- * Reuses the exact modal-overlay pattern already established for edit forms
- * in Finance.jsx/Study.jsx (fixed, full-screen, semi-transparent backdrop).
+ * Built on the shared Modal base, which supplies the focus trap, Escape-to-close,
+ * and focus-return behavior every overlay in the app needs.
  */
 function ConfirmDialog({ open, title, message, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false, onConfirm, onCancel }) {
-  if (!open) return null;
-
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-      <div style={{ backgroundColor: 'var(--bg-color, #fff)', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px' }}>
+    <Modal open={open} onClose={onCancel} title={title} maxWidth="max-w-sm">
+      {title && <h3 className="mb-2.5 text-lg font-semibold text-slate-800 dark:text-slate-100">{title}</h3>}
 
-        {title && <h3 style={{ marginBottom: '10px' }}>{title}</h3>}
+      <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">{message}</p>
 
-        <p style={{ color: 'var(--text-secondary, #64748b)', marginBottom: '20px' }}>{message}</p>
+      <div className="flex justify-end gap-2.5">
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          {cancelLabel}
+        </Button>
 
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            style={{ background: '#6c757d', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-          >
-            {cancelLabel}
-          </button>
-
-          <button
-            type="button"
-            onClick={onConfirm}
-            style={{ background: danger ? 'var(--danger-color, #ef4444)' : 'var(--primary-color, #4F46E5)', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            {confirmLabel}
-          </button>
-        </div>
-
+        <Button type="button" variant={danger ? "danger" : "primary"} onClick={onConfirm}>
+          {confirmLabel}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }
 

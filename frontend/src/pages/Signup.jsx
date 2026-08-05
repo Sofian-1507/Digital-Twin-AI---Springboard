@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Eye, EyeOff } from "lucide-react";
-import "../styles/Auth.css";
 
 import { registerUser } from "../services/authService";
 import { useAuth } from "../context/useAuth";
+import { Input, Select } from "../components/ui/Field";
+import Button from "../components/ui/Button";
 
 function Signup() {
   const navigate = useNavigate();
@@ -66,18 +67,18 @@ function Signup() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Digital Twin AI</h1>
-          <h2>Create Account</h2>
-          <p>Create your new account</p>
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900 p-6">
+      <div className="w-full max-w-md rounded-2xl border-t-4 border-t-indigo-600 bg-white p-8 shadow-xl sm:p-9 dark:bg-slate-800">
+        <div className="mb-6">
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Digital Twin AI</p>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-800 dark:text-slate-100">Create Account</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Create your new account</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Full Name</label>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
+            <Input
               type="text"
               name="name"
               placeholder="Enter Full Name"
@@ -87,9 +88,9 @@ function Signup() {
             />
           </div>
 
-          <div className="form-group">
-            <label>Email</label>
-            <input
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email</label>
+            <Input
               type="email"
               name="email"
               placeholder="Enter Email"
@@ -99,22 +100,21 @@ function Signup() {
             />
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
-
-            <div className="password-box">
-              <input
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
+            <div className="relative">
+              <Input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Enter Password"
                 value={formData.password}
                 onChange={handleChange}
                 required
+                className="pr-11"
               />
-
               <button
                 type="button"
-                className="eye-btn"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -123,41 +123,48 @@ function Signup() {
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Confirm Password</label>
-
-            <input
-              type={showPassword ? "text" : "password"}
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-            />
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Confirm Password</label>
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="pr-11"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Profession</label>
-
-            <select
-              name="profession"
-              value={formData.profession}
-              onChange={handleChange}
-            >
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Profession</label>
+            <Select name="profession" value={formData.profession} onChange={handleChange}>
               <option value="Student">Student</option>
               <option value="Employee">Employee</option>
               <option value="Freelancer">Freelancer</option>
-            </select>
+            </Select>
           </div>
 
-          <button type="submit" className="auth-btn" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? "Creating Account..." : "Create Account"}
-          </button>
+          </Button>
         </form>
 
-        <p className="switch-auth">
+        <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
           Already have an account?{" "}
-          <Link to="/login">Login</Link>
+          <Link to="/login" className="font-semibold text-indigo-600 hover:underline">
+            Login
+          </Link>
         </p>
       </div>
     </div>

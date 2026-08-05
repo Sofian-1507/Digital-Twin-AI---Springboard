@@ -1,3 +1,5 @@
+import { StatGrid, StatTile } from "./ui/StatTile";
+
 function PredictionSummary({ history }) {
 
   const latest =
@@ -11,28 +13,13 @@ function PredictionSummary({ history }) {
         };
 
   return (
-    <div className="prediction-summary">
-
-      <div className="prediction-card overall">
-        <h4>Overall AI Score</h4>
-        <h2>{latest.overall}%</h2>
-      </div>
-
-      <div className="prediction-card finance">
-        <h4>Finance Prediction</h4>
-        <h2>{latest.finance}%</h2>
-      </div>
-
-      <div className="prediction-card study">
-        <h4>Study Prediction</h4>
-        <h2>{latest.study}%</h2>
-      </div>
-
-      <div className="prediction-card health">
-        <h4>Health Prediction</h4>
-        <h2>{latest.health}%</h2>
-      </div>
-
+    <div className="">
+      <StatGrid>
+        <StatTile predicted label="Overall AI Score" value={`${latest.overall}%`} />
+        <StatTile predicted label="Finance Prediction" value={`${latest.finance}%`} />
+        <StatTile predicted label="Study Prediction" value={`${latest.study}%`} />
+        <StatTile predicted label="Health Prediction" value={`${latest.health}%`} />
+      </StatGrid>
     </div>
   );
 }

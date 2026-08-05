@@ -10,10 +10,15 @@ import {
 } from "recharts";
 
 function HabitChart({ data }) {
-  return (
-    <div className="habit-chart-card">
+  const latest = data?.[data.length - 1];
 
-      <h3>Weekly Habit Score</h3>
+  return (
+    <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
+
+      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Weekly Habit Score</h3>
+      <p className="sr-only">
+        Weekly habit score chart. {latest ? `Most recent day: ${latest.day}, score ${Math.round(latest.score)}.` : "No data yet."}
+      </p>
 
       <ResponsiveContainer
         width="100%"
@@ -26,7 +31,7 @@ function HabitChart({ data }) {
             strokeDasharray="3 3"
           />
 
-          <XAxis dataKey="day" />
+          <XAxis dataKey="day" interval={0} tick={{ fontSize: 10 }} />
 
           <YAxis />
 

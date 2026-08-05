@@ -5,8 +5,6 @@ import ChatInput from "../components/ChatInput";
 import QuickActions from "../components/QuickActions";
 import SuggestionCard from "../components/SuggestionCard";
 
-import "../styles/Assistant.css";
-
 function Assistant() {
 
   const [messages, setMessages] = useState([
@@ -73,21 +71,23 @@ function Assistant() {
   };
 
   return (
-    <div className="assistant-page">
+    <div>
 
-      <h2>🤖 Digital Twin AI Assistant (Preview)</h2>
+      <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">🤖 Digital Twin AI Assistant (Preview)</h2>
 
-      <p style={{ color: 'var(--text-secondary, #64748b)', marginBottom: '10px' }}>
+      <p className="mb-6 mt-1.5 text-sm text-slate-500 dark:text-slate-400">
         This is an early preview — replies are canned examples, not real AI analysis of your data yet.
       </p>
 
-      <QuickActions sendMessage={sendMessage} />
+      <div className="flex flex-col gap-6">
+        <QuickActions sendMessage={sendMessage} />
 
-      <SuggestionCard sendMessage={sendMessage} />
+        <SuggestionCard sendMessage={sendMessage} />
 
-      <ChatBox messages={messages} />
+        <ChatBox messages={messages} />
 
-      <ChatInput sendMessage={sendMessage} />
+        <ChatInput sendMessage={sendMessage} />
+      </div>
 
     </div>
   );

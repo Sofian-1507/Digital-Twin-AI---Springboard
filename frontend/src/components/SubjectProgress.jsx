@@ -1,43 +1,15 @@
 import { memo } from "react";
+import ProgressList from "./ui/ProgressList";
 
 function SubjectProgress({ subjects = [] }) {
+  const items = subjects.map((s) => ({ key: s.name, label: s.name, value: s.progress }));
 
   return (
-    <div className="subject-card">
-
-      <h3>Subject Progress</h3>
-
-      {subjects.map((subject) => (
-
-        <div
-          key={subject.name}
-          className="subject-item"
-        >
-
-          <div className="subject-header">
-
-            <span>{subject.name}</span>
-
-            <span>{subject.progress}%</span>
-
-          </div>
-
-          <div className="subject-progress">
-
-            <div
-              className="subject-fill"
-              style={{
-                width: `${subject.progress}%`,
-              }}
-            ></div>
-
-          </div>
-
-        </div>
-
-      ))}
-
-    </div>
+    <ProgressList
+      title="Subject Progress"
+      items={items}
+      emptyMessage="No subject data yet — log a study session to see progress here."
+    />
   );
 }
 

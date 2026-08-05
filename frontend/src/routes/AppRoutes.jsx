@@ -17,10 +17,11 @@ import ProtectedRoute from "../utils/ProtectedRoute";
 // so there's no reason to bundle them into the initial (public) page load.
 const Dashboard  = lazy(() => import("../pages/Dashboard"));
 const Profile    = lazy(() => import("../pages/Profile"));
+const Settings   = lazy(() => import("../pages/Settings"));
 const Finance    = lazy(() => import("../pages/Finance"));
 const Study      = lazy(() => import("../pages/Study"));
 const Habits     = lazy(() => import("../pages/Habits"));
-const Simulation = lazy(() => import("../pages/Simulation"));
+const Prediction = lazy(() => import("../pages/Prediction"));
 const Assistant  = lazy(() => import("../pages/Assistant"));
 const Activity   = lazy(() => import("../pages/Activity"));
 
@@ -79,6 +80,15 @@ function AppRoutes() {
         />
 
         <Route
+          path="/settings"
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Settings />
+            </Suspense>
+          }
+        />
+
+        <Route
           path="/finance"
           element={
             <Suspense fallback={<h2>Loading...</h2>}>
@@ -106,13 +116,17 @@ function AppRoutes() {
         />
 
         <Route
-          path="/simulation"
+          path="/prediction"
           element={
             <Suspense fallback={<h2>Loading...</h2>}>
-              <Simulation />
+              <Prediction />
             </Suspense>
           }
         />
+
+        {/* "Simulation" was the old nav label for this same page — kept as a
+            redirect so any existing bookmarks/links keep working. */}
+        <Route path="/simulation" element={<Navigate to="/prediction" replace />} />
 
         <Route
           path="/assistant"
