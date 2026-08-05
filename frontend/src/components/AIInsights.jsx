@@ -1,28 +1,24 @@
-function AIInsights() {
+const DEFAULT_INSIGHTS = [
+  "💰 Increase monthly savings by $200.",
+  "📚 Study at least 2 additional hours weekly.",
+  "🏃 Exercise for 45 minutes every day.",
+  "😴 Maintain 8 hours of sleep consistently.",
+  "📈 Expected improvement next month: +12%.",
+];
+
+function AIInsights({ insights }) {
+  const items = insights && insights.length > 0 ? insights : DEFAULT_INSIGHTS;
+
   return (
     <div className="insight-card">
 
       <h3>🤖 AI Recommendations</h3>
 
-      <div className="insight-item">
-        💰 Increase monthly savings by $200.
-      </div>
-
-      <div className="insight-item">
-        📚 Study at least 2 additional hours weekly.
-      </div>
-
-      <div className="insight-item">
-        🏃 Exercise for 45 minutes every day.
-      </div>
-
-      <div className="insight-item">
-        😴 Maintain 8 hours of sleep consistently.
-      </div>
-
-      <div className="insight-item">
-        📈 Expected improvement next month: +12%.
-      </div>
+      {items.map((text, i) => (
+        <div className="insight-item" key={i}>
+          {text}
+        </div>
+      ))}
 
     </div>
   );

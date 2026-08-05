@@ -9,6 +9,7 @@ import StudyChart from "../components/StudyChart";
 import { getUser } from "../services/userService";
 import { getCashflow } from "../services/financeService";
 import { getSessions } from "../services/studyService";
+import { getTrendSummary } from "../services/trendService";
 
 // Month abbreviations for chart labels
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -57,20 +58,23 @@ function Dashboard() {
   const [userData, setUserData]         = useState(null);
   const [financeChart, setFinanceChart] = useState([]);
   const [studyChart, setStudyChart]     = useState([]);
+  const [trend, setTrend]               = useState(null);
   const [isLoading, setIsLoading]       = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
       try {
-        const [user, cashflow, studySessions] = await Promise.all([
+        const [user, cashflow, studySessions, trendSummary] = await Promise.all([
           getUser(),
           getCashflow(6),
           getSessions({ limit: 50 }),
+          getTrendSummary(),
         ]);
 
         setUserData(user);
         setFinanceChart(buildChartData(cashflow));
         setStudyChart(buildStudyChartData(studySessions.data || []));
+        setTrend(trendSummary);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -223,7 +227,11 @@ function Dashboard() {
           <h3>AI Recommendation</h3>
 
           <p>
-            {twin && Number(twin.savings_rate_pct) < 20
+            {trend
+              ? `💰 Predicted savings next month: $${Math.round(
+                  trend.savings?.projected_savings?.[0]?.value ?? 0
+                ).toLocaleString()} (confidence ${Math.round((trend.savings?.confidence_score ?? 0) * 100)}%).`
+              : twin && Number(twin.savings_rate_pct) < 20
               ? "Increase your monthly savings rate to build a stronger financial buffer."
               : "Save an additional $300 this month to achieve your yearly savings goal nearly two months earlier."}
           </p>
@@ -231,7 +239,11 @@ function Dashboard() {
           <br />
 
           <p>
-            {twin && Number(twin.study_consistency_score) < 70
+            {trend
+              ? `📚 Predicted study score next week: ${Math.round(
+                  trend.study?.projected_productivity?.[0]?.value ?? 0
+                )}% (confidence ${Math.round((trend.study?.productivity_confidence_score ?? 0) * 100)}%).`
+              : twin && Number(twin.study_consistency_score) < 70
               ? "Boost your study consistency to improve your predicted exam score."
               : "Increase your daily study time by one hour to improve your academic prediction score."}
           </p>

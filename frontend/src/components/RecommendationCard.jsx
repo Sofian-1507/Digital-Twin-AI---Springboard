@@ -1,4 +1,13 @@
-function RecommendationCard() {
+const DEFAULT_INSIGHTS = [
+  "📘 Spend 1 extra hour on DSA this week.",
+  "☕ Take a 10-minute break after every 90 minutes of study.",
+  "📚 React progress is excellent. Continue practicing projects.",
+  "🚀 Estimated productivity next week: 91%",
+];
+
+function RecommendationCard({ insights }) {
+  const items = insights && insights.length > 0 ? insights : DEFAULT_INSIGHTS;
+
   return (
     <div className="recommendation-card">
 
@@ -6,21 +15,11 @@ function RecommendationCard() {
 
       <div className="recommendation-list">
 
-        <div className="recommendation-item">
-          📘 Spend 1 extra hour on DSA this week.
-        </div>
-
-        <div className="recommendation-item">
-          ☕ Take a 10-minute break after every 90 minutes of study.
-        </div>
-
-        <div className="recommendation-item">
-          📚 React progress is excellent. Continue practicing projects.
-        </div>
-
-        <div className="recommendation-item">
-          🚀 Estimated productivity next week: 91%
-        </div>
+        {items.map((text, i) => (
+          <div className="recommendation-item" key={i}>
+            {text}
+          </div>
+        ))}
 
       </div>
 

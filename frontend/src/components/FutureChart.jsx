@@ -13,7 +13,7 @@ import {
   predictionChart,
 } from "../data/predictionData";
 
-function FutureChart() {
+function FutureChart({ data }) {
   return (
     <div className="future-chart-card">
 
@@ -24,7 +24,7 @@ function FutureChart() {
         height={350}
       >
 
-        <LineChart data={predictionChart}>
+        <LineChart data={data && data.length > 0 ? data : predictionChart}>
 
           <CartesianGrid
             strokeDasharray="3 3"

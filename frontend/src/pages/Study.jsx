@@ -9,8 +9,36 @@ import RecommendationCard from "../components/RecommendationCard";
 import StudyTable from "../components/StudyTable";
 
 import { getSessions, createSession, updateSession, deleteSession } from "../services/studyService";
+import { getProductivitySummary } from "../services/productivityService";
 
 import "../styles/Study.css";
+
+/** Builds RecommendationCard's insight strings from a ProductivitySummaryResponse. */
+function buildStudyInsights(summary) {
+  if (!summary) return [];
+
+  const insights = [
+    `📊 Current productivity score: ${Math.round(summary.productivity_score.productivity_score)}%`,
+    `🎯 Focus score: ${Math.round(summary.focus_score.focus_score)}% (${
+      summary.focus_score.method_used === "recorded_average"
+        ? "based on logged focus ratings"
+        : "estimated from attendance"
+    })`,
+    `✅ Studied ${Math.round(summary.completion_percentage.completion_percentage)}% of days in the last ${
+      summary.completion_percentage.window_days
+    } days`,
+  ];
+
+  const predicted = summary.performance_prediction?.predicted_productivity?.[0]?.projected_score;
+  if (predicted != null) {
+    insights.push(`🚀 Predicted productivity next week: ${Math.round(predicted)}%`);
+  }
+  if (summary.performance_prediction?.predicted_exam_score != null) {
+    insights.push(`🎓 Predicted exam score: ${Math.round(summary.performance_prediction.predicted_exam_score)}%`);
+  }
+
+  return insights;
+}
 
 const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
@@ -30,16 +58,21 @@ function buildWeeklyChart(sessions) {
 function Study() {
   const [sessions, setSessions]   = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [productivitySummary, setProductivitySummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState(null);
 
   useEffect(() => {
     async function fetchSessions() {
       try {
-        const result = await getSessions({ limit: 50 });
+        const [result, summary] = await Promise.all([
+          getSessions({ limit: 50 }),
+          getProductivitySummary(),
+        ]);
         const data = result.data || [];
         setSessions(data);
         setChartData(buildWeeklyChart(data));
+        setProductivitySummary(summary);
       } catch (err) {
         console.error("Failed to fetch study sessions:", err);
         toast.error("Could not load study sessions. Please try again later.");
@@ -149,7 +182,7 @@ function Study() {
 
           <SubjectProgress />
 
-          <RecommendationCard />
+          <RecommendationCard insights={buildStudyInsights(productivitySummary)} />
 
           <StudyTable 
             sessions={sessions} 

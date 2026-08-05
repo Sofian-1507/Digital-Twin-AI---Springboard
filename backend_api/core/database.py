@@ -30,6 +30,8 @@ async def connect_to_mongo() -> None:
         minPoolSize=settings.MONGODB_MIN_POOL_SIZE,
         serverSelectionTimeoutMS=10_000,
         socketTimeoutMS=45_000,
+        tz_aware=True,  # Decode BSON datetimes as UTC-aware, not naive — naive datetimes
+                        # read back from Mongo can't be compared against datetime.now(timezone.utc).
     )
 
     await init_beanie(

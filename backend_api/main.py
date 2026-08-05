@@ -10,7 +10,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import get_settings
 from core.database import lifespan
 from core.exceptions import register_exception_handlers
-from api.v1 import auth, users, finance, study, habits, activity
+from api.v1 import (
+    auth,
+    users,
+    finance,
+    study,
+    habits,
+    activity,
+    forecast,
+    productivity,
+    habit_analytics,
+    trend_prediction,
+)
 
 # ─── Logging Configuration ────────────────────────────────────────────────────
 logging.basicConfig(
@@ -57,6 +68,10 @@ app.include_router(finance.router, prefix=API_PREFIX)
 app.include_router(study.router,   prefix=API_PREFIX)
 app.include_router(habits.router,  prefix=API_PREFIX)
 app.include_router(activity.router, prefix=API_PREFIX)
+app.include_router(forecast.router, prefix=API_PREFIX)
+app.include_router(productivity.router, prefix=API_PREFIX)
+app.include_router(habit_analytics.router, prefix=API_PREFIX)
+app.include_router(trend_prediction.router, prefix=API_PREFIX)
 
 
 # ─── Health Check ─────────────────────────────────────────────────────────────

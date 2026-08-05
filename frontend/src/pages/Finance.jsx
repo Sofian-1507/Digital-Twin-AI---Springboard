@@ -9,19 +9,61 @@ import CategoryChart from "../components/CategoryChart";
 import SavingsProgress from "../components/SavingsProgress";
 
 import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from "../services/financeService";
+import { getExpenseProjection } from "../services/forecastService";
 
 import "../styles/Finance.css";
 
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function monthLabel(year, month) {
+  return `${MONTH_NAMES[month - 1]} ${String(year).slice(-2)}`;
+}
+
+/**
+ * Builds ExpenseChart's [{ month, expense }] series: last 6 months of actual
+ * expenses (derived from already-loaded transactions) followed by the
+ * Financial Forecasting Service's projected future months.
+ */
+function buildExpenseChartData(transactions, forecast) {
+  const historicalMap = {};
+  for (const t of transactions) {
+    if (String(t.type).toUpperCase() !== "EXPENSE") continue;
+    const d = new Date(t.transaction_date || t.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    historicalMap[key] = (historicalMap[key] || 0) + Number(t.amount || 0);
+  }
+  const historical = Object.entries(historicalMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6)
+    .map(([key, expense]) => {
+      const [year, month] = key.split("-").map(Number);
+      return { month: monthLabel(year, month), expense: Math.round(expense) };
+    });
+
+  const projected = (forecast?.projections || []).map((p) => ({
+    month: monthLabel(p.year, p.month),
+    expense: Math.round(Number(p.projected_amount)),
+  }));
+
+  return [...historical, ...projected];
+}
+
 function Finance() {
   const [transactions, setTransactions] = useState([]);
+  const [expenseChartData, setExpenseChartData] = useState([]);
   const [isLoading, setIsLoading]       = useState(true);
   const [editingRecord, setEditingRecord] = useState(null);
 
   useEffect(() => {
     async function fetchTransactions() {
       try {
-        const result = await getTransactions({ limit: 50 });
-        setTransactions(result.data || []);
+        const [result, forecast] = await Promise.all([
+          getTransactions({ limit: 50 }),
+          getExpenseProjection(3),
+        ]);
+        const txns = result.data || [];
+        setTransactions(txns);
+        setExpenseChartData(buildExpenseChartData(txns, forecast));
       } catch (err) {
         console.error("Failed to fetch transactions:", err);
         toast.error("Could not load transactions. Please try again later.");
@@ -119,7 +161,7 @@ function Finance() {
           <TransactionForm addTransaction={addTransaction} />
 
           <div className="chart-section">
-            <ExpenseChart />
+            <ExpenseChart data={expenseChartData} />
             <CategoryChart />
           </div>
 

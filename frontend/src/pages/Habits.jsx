@@ -9,18 +9,58 @@ import HabitTable from "../components/HabitTable";
 import LifestyleRecommendation from "../components/LifestyleRecommendation";
 
 import { getHabitLogs, logDailyHabit, deleteHabitLog } from "../services/habitService";
+import { getHabitTrend, getHabitAnalyticsSummary } from "../services/habitAnalyticsService";
 
 import "../styles/Habits.css";
 
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Builds HabitChart's [{ day, score }] series from the last 7 daily trend points. */
+function buildHabitChartData(dailyTrend) {
+  return dailyTrend.map((point) => ({
+    day: new Date(point.date).toLocaleDateString(undefined, { weekday: "short" }),
+    score: Math.round(point.habit_score),
+  }));
+}
+
+/** Builds LifestyleRecommendation's insight strings from a HabitAnalyticsSummaryResponse. */
+function buildLifestyleInsights(summary) {
+  if (!summary) return [];
+
+  const streakInsight = `🔥 Current streak: ${summary.habit_streak.current_streak} day${
+    summary.habit_streak.current_streak === 1 ? "" : "s"
+  } (longest: ${summary.habit_streak.longest_streak})`;
+
+  const negativeInsights = summary.negative_habits.habits.map(
+    (h) => `⚠️ ${capitalize(h.habit.replace("_", " "))}: avg ${h.average_value} ${h.unit}. ${h.detail}`
+  );
+
+  const positiveInsights = summary.positive_habits.habits.map(
+    (h) => `✅ ${capitalize(h.habit.replace("_", " "))} is on track — avg ${h.average_value} ${h.unit}.`
+  );
+
+  return [streakInsight, ...negativeInsights, ...positiveInsights].slice(0, 5);
+}
+
 function Habits() {
   const [habitList, setHabitList] = useState([]);
+  const [habitChartData, setHabitChartData] = useState([]);
+  const [habitAnalyticsSummary, setHabitAnalyticsSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchHabits() {
       try {
-        const result = await getHabitLogs({ limit: 30 });
+        const [result, trend, summary] = await Promise.all([
+          getHabitLogs({ limit: 30 }),
+          getHabitTrend({ dailyDays: 7 }),
+          getHabitAnalyticsSummary(),
+        ]);
         setHabitList(result.data || []);
+        setHabitChartData(buildHabitChartData(trend.daily || []));
+        setHabitAnalyticsSummary(summary);
       } catch (err) {
         console.error("Failed to fetch habit logs:", err);
         toast.error("Could not load habit logs. Please try again later.");
@@ -89,11 +129,11 @@ function Habits() {
 
           <HabitForm addHabit={addHabit} />
 
-          <HabitChart />
+          <HabitChart data={habitChartData} />
 
           <HabitProgress habits={habitList} />
 
-          <LifestyleRecommendation />
+          <LifestyleRecommendation insights={buildLifestyleInsights(habitAnalyticsSummary)} />
 
           <HabitTable habits={habitList} onDelete={handleDelete} />
         </>

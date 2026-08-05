@@ -1,4 +1,13 @@
-function LifestyleRecommendation() {
+const DEFAULT_INSIGHTS = [
+  "💧 Increase your daily water intake by 0.5 L.",
+  "😴 Maintain at least 8 hours of sleep every night.",
+  "🏃 Exercise for 45–60 minutes to improve fitness.",
+  "😊 Your wellness score is improving. Keep following your routine.",
+];
+
+function LifestyleRecommendation({ insights }) {
+  const items = insights && insights.length > 0 ? insights : DEFAULT_INSIGHTS;
+
   return (
     <div className="recommendation-card">
 
@@ -6,21 +15,11 @@ function LifestyleRecommendation() {
 
       <div className="recommendation-list">
 
-        <div className="recommendation-item">
-          💧 Increase your daily water intake by 0.5 L.
-        </div>
-
-        <div className="recommendation-item">
-          😴 Maintain at least 8 hours of sleep every night.
-        </div>
-
-        <div className="recommendation-item">
-          🏃 Exercise for 45–60 minutes to improve fitness.
-        </div>
-
-        <div className="recommendation-item">
-          😊 Your wellness score is improving. Keep following your routine.
-        </div>
+        {items.map((text, i) => (
+          <div className="recommendation-item" key={i}>
+            {text}
+          </div>
+        ))}
 
       </div>
 

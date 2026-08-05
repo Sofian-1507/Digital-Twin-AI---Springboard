@@ -1,6 +1,8 @@
 """
 schemas/auth_schema.py — Pydantic request/response schemas for authentication endpoints.
 """
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -10,6 +12,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
     name: str = Field(..., min_length=2, max_length=100)
     age: int = Field(..., ge=13, le=120)
+    occupation: Optional[str] = Field(default=None, max_length=100)
     monthly_income_baseline: float = Field(default=0.0, ge=0)
 
 
