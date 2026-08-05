@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import "../styles/Auth.css";
 
 import { loginUser } from "../services/authService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function Login() {
   const navigate = useNavigate();
@@ -106,9 +106,9 @@ function Login() {
 
           <div className="remember-row">
 
-            <label>
+            <label title="Not available yet">
 
-              <input type="checkbox" />
+              <input type="checkbox" disabled />
 
               Remember Me
 

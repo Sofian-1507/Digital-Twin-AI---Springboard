@@ -5,10 +5,10 @@
  * On mount, checks for an existing JWT in localStorage and fetches the
  * user profile from the backend to rehydrate the session automatically.
  */
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getUser } from "../services/userService";
-
-const AuthContext = createContext();
+import { logoutUser } from "../services/authService";
+import { AuthContext } from "./authContextInstance";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -16,19 +16,20 @@ export function AuthProvider({ children }) {
 
   // ── Restore session on initial app load ────────────────────────────────────
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    async function restoreSession() {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const userData = await getUser();
+          setUser(userData);
+        } catch {
+          // Token is invalid or expired; clean it up
+          logoutUser();
+        }
+      }
       setIsLoading(false);
-      return;
     }
-    // Token exists — validate it by fetching the user profile
-    getUser()
-      .then((userData) => setUser(userData))
-      .catch(() => {
-        // Token is invalid or expired; clean it up
-        localStorage.removeItem("token");
-      })
-      .finally(() => setIsLoading(false));
+    restoreSession();
   }, []);
 
   /**
@@ -54,7 +55,7 @@ export function AuthProvider({ children }) {
    * Clears the session on the client side.
    */
   const logout = () => {
-    localStorage.removeItem("token");
+    logoutUser();
     setUser(null);
   };
 
@@ -63,8 +64,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

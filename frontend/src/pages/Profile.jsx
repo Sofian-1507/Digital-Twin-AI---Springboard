@@ -5,15 +5,18 @@ import ProfileCard from "../components/ProfileCard";
 import InfoCard from "../components/InfoCard";
 import GoalCard from "../components/GoalCard";
 import ProfileForm from "../components/ProfileForm";
+import GoalForm from "../components/GoalForm";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 import {
   getUser,
   updateUser,
+  addGoal,
   updateGoal,
   deleteGoal,
   deleteUser
 } from "../services/userService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { useNavigate } from "react-router-dom";
 
 import "../styles/Profile.css";
@@ -23,6 +26,10 @@ function Profile() {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [addingGoal, setAddingGoal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [confirmDeleteGoalId, setConfirmDeleteGoalId] = useState(null);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -51,37 +58,58 @@ function Profile() {
     toast.success("Profile updated successfully.");
   }
 
-  const handleEditGoal = async (goal) => {
-    const newTarget = prompt(`Enter new target for ${goal.title} (${goal.unit}):`, goal.target_value);
-    if (!newTarget) return;
-    try {
-      const updatedUser = await updateGoal(goal.goal_id, { target_value: Number(newTarget) });
-      setUser(updatedUser);
-      toast.success("Goal updated.");
-    } catch (err) {
-      toast.error("Failed to update goal.");
-    }
+  const handleAddGoal = async (goalPayload) => {
+    const updatedUser = await addGoal(goalPayload);
+    setUser(updatedUser);
+    setAddingGoal(false);
+    toast.success("Goal added successfully.");
   };
 
-  const handleDeleteGoal = async (goalId) => {
-    if (!window.confirm("Delete this goal?")) return;
+  const startEditGoal = (goal) => {
+    setEditingGoal({
+      goal_id: goal.goal_id,
+      title: goal.title,
+      category: goal.category,
+      target_value: goal.target_value,
+      current_value: goal.current_value,
+      unit: goal.unit,
+      target_date: goal.target_date ? goal.target_date.substring(0, 10) : "",
+    });
+  };
+
+  const handleUpdateGoal = async (goalId, payload) => {
+    const updatedUser = await updateGoal(goalId, payload);
+    setUser(updatedUser);
+    setEditingGoal(null);
+    toast.success("Goal updated.");
+  };
+
+  const handleDeleteGoal = (goalId) => setConfirmDeleteGoalId(goalId);
+
+  const confirmDeleteGoal = async () => {
+    const goalId = confirmDeleteGoalId;
+    setConfirmDeleteGoalId(null);
     try {
       const updatedUser = await deleteGoal(goalId);
       setUser(updatedUser);
       toast.success("Goal deleted.");
     } catch (err) {
+      console.error("Failed to delete goal:", err);
       toast.error("Failed to delete goal.");
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("DANGER: Are you sure you want to permanently delete your account? This action cannot be undone.")) return;
+  const handleDeleteAccount = () => setConfirmDeleteAccount(true);
+
+  const confirmDeleteAccountAction = async () => {
+    setConfirmDeleteAccount(false);
     try {
       await deleteUser();
       toast.success("Account deleted successfully.");
       logout();
       navigate("/login");
     } catch (err) {
+      console.error("Failed to delete account:", err);
       toast.error("Failed to delete account.");
     }
   };
@@ -121,6 +149,20 @@ function Profile() {
 
               <InfoCard user={user} />
 
+              {addingGoal ? (
+                <GoalForm
+                  onSave={handleAddGoal}
+                  onCancel={() => setAddingGoal(false)}
+                />
+              ) : (
+                <button
+                  onClick={() => setAddingGoal(true)}
+                  style={{ marginBottom: '15px', padding: '10px 15px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', background: 'var(--primary-color, #4F46E5)', color: 'white' }}
+                >
+                  + New Goal
+                </button>
+              )}
+
               <div className="goal-grid">
                 {goals.length > 0
                   ? goals.slice(0, 3).map((g) => (
@@ -128,7 +170,7 @@ function Profile() {
                         key={g.goal_id}
                         title={g.title}
                         value={`${Number(g.current_value).toLocaleString()} / ${Number(g.target_value).toLocaleString()} ${g.unit}`}
-                        onEdit={() => handleEditGoal(g)}
+                        onEdit={() => startEditGoal(g)}
                         onDelete={() => handleDeleteGoal(g.goal_id)}
                       />
                     ))
@@ -161,6 +203,38 @@ function Profile() {
         </>
 
       )}
+
+      {editingGoal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'var(--bg-color, #fff)', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <GoalForm
+              initialData={editingGoal}
+              onUpdate={handleUpdateGoal}
+              onCancel={() => setEditingGoal(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmDeleteGoalId !== null}
+        title="Delete Goal"
+        message="Are you sure you want to delete this goal? This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDeleteGoal}
+        onCancel={() => setConfirmDeleteGoalId(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteAccount}
+        title="Delete Account"
+        message="DANGER: Are you sure you want to permanently delete your account? This action cannot be undone."
+        confirmLabel="Delete Account"
+        danger
+        onConfirm={confirmDeleteAccountAction}
+        onCancel={() => setConfirmDeleteAccount(false)}
+      />
 
     </div>
 

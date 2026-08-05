@@ -41,7 +41,11 @@ function SimulationForm() {
   return (
     <div className="simulation-card">
 
-      <h3>What-If Simulation</h3>
+      <h3>What-If Simulation (Illustrative)</h3>
+
+      <p style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.85rem', marginBottom: '10px' }}>
+        This is a simple illustrative estimate, not a model backed by your real data.
+      </p>
 
       <form onSubmit={runSimulation}>
 
@@ -91,7 +95,7 @@ function SimulationForm() {
 
         <div className="simulation-result">
 
-          <h2>Future Success Score</h2>
+          <h2>Illustrative Estimate</h2>
 
           <h1>{score}%</h1>
 

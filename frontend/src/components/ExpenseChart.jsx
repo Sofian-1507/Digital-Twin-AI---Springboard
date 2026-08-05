@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -35,4 +36,4 @@ function ExpenseChart({ data }) {
   );
 }
 
-export default ExpenseChart;
+export default memo(ExpenseChart);

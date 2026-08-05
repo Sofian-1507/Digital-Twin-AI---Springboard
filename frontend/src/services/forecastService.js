@@ -2,6 +2,12 @@
  * src/services/forecastService.js
  * Financial Forecasting service layer — wraps /api/v1/forecast/* endpoints.
  * All requests are authenticated via the Axios interceptor in api.js.
+ *
+ * Deliberately kept 1:1 with every backend route for API-surface completeness,
+ * matching the convention of every other service file. getSavingsForecast,
+ * getIncomeProjection, getGoalForecasts, and getForecastSummary aren't currently
+ * called by any page (their data is surfaced via getTrendSummary()/Prediction.jsx
+ * instead) — kept as ready-to-use bindings rather than removed.
  */
 import api from "./api";
 

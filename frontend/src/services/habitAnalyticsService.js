@@ -3,6 +3,11 @@
  * Habit Analytics service layer — wraps /api/v1/habit-analytics/* endpoints.
  * Distinct from habitService.js, which wraps /api/v1/habits/* (daily-log CRUD).
  * All requests are authenticated via the Axios interceptor in api.js.
+ *
+ * Deliberately kept 1:1 with every backend route for API-surface completeness.
+ * getPositiveHabits, getNegativeHabits, getMissedHabits, and getHabitStreak aren't
+ * currently called by any page (their data is surfaced via
+ * getHabitAnalyticsSummary() instead) — kept as ready-to-use bindings.
  */
 import api from "./api";
 

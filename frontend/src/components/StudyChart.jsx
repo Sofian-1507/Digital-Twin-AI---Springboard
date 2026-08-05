@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -47,4 +48,4 @@ function StudyChart({ data = [] }) {
   );
 }
 
-export default StudyChart;
+export default memo(StudyChart);

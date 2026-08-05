@@ -6,7 +6,6 @@ import "../styles/Auth.css";
 function ForgotPassword() {
 
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -14,13 +13,9 @@ function ForgotPassword() {
       toast.error("Please enter your email address.");
       return;
     }
-    // No backend endpoint yet — show informational toast
-    setIsLoading(true);
-    setTimeout(() => {
-      toast.info("If that email exists, a reset link has been sent.");
-      setEmail("");
-      setIsLoading(false);
-    }, 800);
+    // No password-reset endpoint exists in the backend yet — be honest about
+    // that instead of pretending an email was sent.
+    toast.info("Password reset isn't available yet. Please contact support to regain access to your account.");
   };
 
   return (
@@ -55,8 +50,8 @@ function ForgotPassword() {
 
           </div>
 
-          <button className="auth-btn" disabled={isLoading}>
-            {isLoading ? "Sending..." : "Send Reset Link"}
+          <button className="auth-btn">
+            Send Reset Link
           </button>
 
         </form>

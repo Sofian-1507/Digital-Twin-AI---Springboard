@@ -1,3 +1,5 @@
+import InsightList from "./InsightList";
+
 const DEFAULT_INSIGHTS = [
   "💰 Increase monthly savings by $200.",
   "📚 Study at least 2 additional hours weekly.",
@@ -7,20 +9,14 @@ const DEFAULT_INSIGHTS = [
 ];
 
 function AIInsights({ insights }) {
-  const items = insights && insights.length > 0 ? insights : DEFAULT_INSIGHTS;
-
   return (
-    <div className="insight-card">
-
-      <h3>🤖 AI Recommendations</h3>
-
-      {items.map((text, i) => (
-        <div className="insight-item" key={i}>
-          {text}
-        </div>
-      ))}
-
-    </div>
+    <InsightList
+      title="🤖 AI Recommendations"
+      items={insights}
+      defaultItems={DEFAULT_INSIGHTS}
+      cardClassName="insight-card"
+      itemClassName="insight-item"
+    />
   );
 }
 

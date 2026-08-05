@@ -28,18 +28,47 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 500;
+
+/** Only retry idempotent GETs that failed due to a transient network/server issue —
+ * never retry POST/PATCH/DELETE, which could double-submit a mutation. */
+function isRetryable(error) {
+  const method = error.config?.method?.toLowerCase();
+  if (method !== "get") return false;
+  const isNetworkError = !error.response;
+  const isServerError = error.response?.status >= 500;
+  return isNetworkError || isServerError;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // ── Response interceptor ─────────────────────────────────────────────────────
 // On 401 Unauthorized, clear the stale session and redirect to login.
+// On a transient network/5xx failure for a GET, retry a couple of times before failing.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       // Redirect to login only if not already there
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }
+      return Promise.reject(error);
     }
+
+    if (isRetryable(error)) {
+      const config = error.config;
+      config.__retryCount = (config.__retryCount || 0) + 1;
+      if (config.__retryCount <= MAX_RETRIES) {
+        await delay(RETRY_DELAY_MS * config.__retryCount);
+        return api(config);
+      }
+    }
+
     return Promise.reject(error);
   }
 );

@@ -7,8 +7,9 @@ import TransactionTable from "../components/TransactionTable";
 import ExpenseChart from "../components/ExpenseChart";
 import CategoryChart from "../components/CategoryChart";
 import SavingsProgress from "../components/SavingsProgress";
+import ConfirmDialog from "../components/ConfirmDialog";
 
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from "../services/financeService";
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getCategoryBreakdown } from "../services/financeService";
 import { getExpenseProjection } from "../services/forecastService";
 
 import "../styles/Finance.css";
@@ -51,19 +52,25 @@ function buildExpenseChartData(transactions, forecast) {
 function Finance() {
   const [transactions, setTransactions] = useState([]);
   const [expenseChartData, setExpenseChartData] = useState([]);
+  const [categoryChartData, setCategoryChartData] = useState([]);
   const [isLoading, setIsLoading]       = useState(true);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     async function fetchTransactions() {
       try {
-        const [result, forecast] = await Promise.all([
+        const [result, forecast, categoryBreakdown] = await Promise.all([
           getTransactions({ limit: 50 }),
           getExpenseProjection(3),
+          getCategoryBreakdown(1),
         ]);
         const txns = result.data || [];
         setTransactions(txns);
         setExpenseChartData(buildExpenseChartData(txns, forecast));
+        setCategoryChartData(
+          categoryBreakdown.map((c) => ({ name: c.category, value: Number(c.total_amount) }))
+        );
       } catch (err) {
         console.error("Failed to fetch transactions:", err);
         toast.error("Could not load transactions. Please try again later.");
@@ -122,8 +129,11 @@ function Finance() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this transaction?")) return;
+  const handleDelete = (id) => setConfirmDeleteId(id);
+
+  const confirmDelete = async () => {
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await deleteTransaction(id);
       setTransactions((prev) => prev.filter(t => t.id !== id));
@@ -162,7 +172,7 @@ function Finance() {
 
           <div className="chart-section">
             <ExpenseChart data={expenseChartData} />
-            <CategoryChart />
+            <CategoryChart data={categoryChartData} />
           </div>
 
           <SavingsProgress transactions={transactions} />
@@ -186,6 +196,16 @@ function Finance() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

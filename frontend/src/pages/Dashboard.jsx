@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, Circle } from "lucide-react";
+import { toast } from "react-toastify";
 import "../styles/Dashboard.css";
 
 import StatCard from "../components/StatCard";
@@ -10,73 +11,42 @@ import { getUser } from "../services/userService";
 import { getCashflow } from "../services/financeService";
 import { getSessions } from "../services/studyService";
 import { getTrendSummary } from "../services/trendService";
-
-// Month abbreviations for chart labels
-const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-/**
- * Transform the backend's MonthlyCashflowItem[] into the shape
- * FinanceChart expects: [{ month: "Jan", savings: 4000 }, ...]
- * "savings" = Income total minus Expense total for that month.
- */
-function buildChartData(cashflowItems) {
-  // Group by year-month
-  const map = {};
-  for (const item of cashflowItems) {
-    const key = `${item.year}-${String(item.month).padStart(2, "0")}`;
-    if (!map[key]) map[key] = { key, year: item.year, month: item.month, income: 0, expense: 0 };
-    if (item.type === "Income")  map[key].income  += Number(item.total_amount);
-    if (item.type === "Expense") map[key].expense += Number(item.total_amount);
-  }
-  return Object.values(map)
-    .sort((a, b) => a.key.localeCompare(b.key))
-    .map((row) => ({
-      month: MONTH_NAMES[row.month - 1],
-      savings: Math.max(0, row.income - row.expense),
-    }));
-}
-
-/**
- * Derive weekly study hours from the paginated sessions list.
- * Groups sessions by day-of-week label.
- */
-function buildStudyChartData(sessions) {
-  const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const totals = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
-  for (const s of sessions) {
-    const d = new Date(s.session_date || s.created_at);
-    const label = days[d.getDay()];
-    totals[label] += Number(s.study_hours || 0);
-  }
-  return ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((day) => ({
-    day,
-    hours: Math.round(totals[day] * 10) / 10,
-  }));
-}
+import { getProductivityScore } from "../services/productivityService";
+import { getConsistencyScore } from "../services/habitAnalyticsService";
+import { buildChartData, computeSavingsRate, buildStudyChartData } from "../utils/dashboardHelpers";
 
 function Dashboard() {
   const [userData, setUserData]         = useState(null);
   const [financeChart, setFinanceChart] = useState([]);
   const [studyChart, setStudyChart]     = useState([]);
+  const [savingsRatePct, setSavingsRatePct] = useState(null);
+  const [productivityScore, setProductivityScore] = useState(null);
+  const [consistencyScore, setConsistencyScore]   = useState(null);
   const [trend, setTrend]               = useState(null);
   const [isLoading, setIsLoading]       = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
       try {
-        const [user, cashflow, studySessions, trendSummary] = await Promise.all([
+        const [user, cashflow, studySessions, trendSummary, productivity, consistency] = await Promise.all([
           getUser(),
           getCashflow(6),
           getSessions({ limit: 50 }),
           getTrendSummary(),
+          getProductivityScore(),
+          getConsistencyScore(),
         ]);
 
         setUserData(user);
         setFinanceChart(buildChartData(cashflow));
+        setSavingsRatePct(computeSavingsRate(cashflow));
         setStudyChart(buildStudyChartData(studySessions.data || []));
         setTrend(trendSummary);
+        setProductivityScore(productivity);
+        setConsistencyScore(consistency);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
+        toast.error("Could not load your dashboard. Please try again later.");
       } finally {
         setIsLoading(false);
       }
@@ -84,14 +54,15 @@ function Dashboard() {
     fetchAll();
   }, []);
 
-  // Derive stat card values from the Digital Twin State
-  const twin    = userData?.digital_twin_state;
+  // Stat cards are driven by the Milestone 2 analytics engines (Financial
+  // Forecasting, Productivity Analytics, Habit Analytics) rather than
+  // User.digital_twin_state, which nothing in the backend ever computes/writes.
   const profile = userData?.profile;
   const goals   = userData?.active_goals ?? [];
 
-  const savingsRate    = twin ? `${Number(twin.savings_rate_pct).toFixed(1)}%` : "$—";
-  const studyScore     = twin ? `${Number(twin.study_consistency_score).toFixed(0)}%` : "—";
-  const habitRate      = twin ? `${Number(twin.habit_completion_rate * 100).toFixed(0)}%` : "—";
+  const savingsRate    = savingsRatePct != null ? `${savingsRatePct.toFixed(1)}%` : "—";
+  const studyScore     = productivityScore ? `${Math.round(productivityScore.productivity_score)}%` : "—";
+  const habitRate      = consistencyScore ? `${Math.round(consistencyScore.consistency_score)}%` : "—";
   const goalsCompleted = goals.length ? `${goals.filter(g => Number(g.current_value) >= Number(g.target_value)).length}/${goals.length}` : "—";
 
   return (
@@ -124,21 +95,33 @@ function Dashboard() {
         <StatCard
           title="Savings Rate"
           value={savingsRate}
-          subtitle={twin ? `Emergency Fund: ${Number(twin.emergency_fund_months).toFixed(1)} mo` : "+8% This Month"}
+          subtitle={
+            trend?.savings?.projected_savings?.length
+              ? `Predicted next month: $${Math.round(trend.savings.projected_savings[0].value).toLocaleString()}`
+              : "No transactions logged yet"
+          }
           color="linear-gradient(135deg,#667EEA,#764BA2)"
         />
 
         <StatCard
           title="Study Consistency"
           value={studyScore}
-          subtitle={twin ? `Predicted Exam: ${Number(twin.predicted_exam_score).toFixed(0)}%` : "Weekly Progress"}
+          subtitle={
+            trend?.study?.predicted_exam_score != null
+              ? `Predicted Exam: ${Math.round(trend.study.predicted_exam_score)}%`
+              : "No study sessions logged yet"
+          }
           color="linear-gradient(135deg,#36D1DC,#5B86E5)"
         />
 
         <StatCard
           title="Habit Score"
           value={habitRate}
-          subtitle={twin ? `Lifestyle: ${Number(twin.lifestyle_score).toFixed(0)}/100` : "Excellent"}
+          subtitle={
+            trend?.fitness?.projected_fitness_score?.length
+              ? `Predicted next week: ${Math.round(trend.fitness.projected_fitness_score[0].value)}%`
+              : "No habit logs yet"
+          }
           color="linear-gradient(135deg,#11998E,#38EF7D)"
         />
 
@@ -182,11 +165,11 @@ function Dashboard() {
           <h3>Financial Goal</h3>
 
           <progress
-            value={twin ? Math.min(100, Number(twin.savings_rate_pct)) : 75}
+            value={savingsRatePct != null ? Math.min(100, savingsRatePct) : 0}
             max="100"
           ></progress>
 
-          <p>{twin ? `${Number(twin.savings_rate_pct).toFixed(0)}% Savings Rate` : "75% Completed"}</p>
+          <p>{savingsRatePct != null ? `${savingsRatePct.toFixed(0)}% Savings Rate` : "No data yet"}</p>
 
         </div>
 
@@ -195,11 +178,11 @@ function Dashboard() {
           <h3>Study Goal</h3>
 
           <progress
-            value={twin ? Math.min(100, Number(twin.study_consistency_score)) : 90}
+            value={productivityScore ? Math.min(100, productivityScore.productivity_score) : 0}
             max="100"
           ></progress>
 
-          <p>{twin ? `${Number(twin.study_consistency_score).toFixed(0)}% Consistency` : "90% Completed"}</p>
+          <p>{productivityScore ? `${Math.round(productivityScore.productivity_score)}% Consistency` : "No data yet"}</p>
 
         </div>
 
@@ -208,11 +191,11 @@ function Dashboard() {
           <h3>Lifestyle Goal</h3>
 
           <progress
-            value={twin ? Math.min(100, Number(twin.lifestyle_score)) : 62}
+            value={consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0}
             max="100"
           ></progress>
 
-          <p>{twin ? `${Number(twin.lifestyle_score).toFixed(0)}/100 Lifestyle Score` : "62% Completed"}</p>
+          <p>{consistencyScore ? `${Math.round(consistencyScore.consistency_score)}/100 Lifestyle Score` : "No data yet"}</p>
 
         </div>
 
@@ -231,9 +214,7 @@ function Dashboard() {
               ? `💰 Predicted savings next month: $${Math.round(
                   trend.savings?.projected_savings?.[0]?.value ?? 0
                 ).toLocaleString()} (confidence ${Math.round((trend.savings?.confidence_score ?? 0) * 100)}%).`
-              : twin && Number(twin.savings_rate_pct) < 20
-              ? "Increase your monthly savings rate to build a stronger financial buffer."
-              : "Save an additional $300 this month to achieve your yearly savings goal nearly two months earlier."}
+              : "Log a few transactions on the Finance page to get a personalized savings prediction."}
           </p>
 
           <br />
@@ -243,9 +224,7 @@ function Dashboard() {
               ? `📚 Predicted study score next week: ${Math.round(
                   trend.study?.projected_productivity?.[0]?.value ?? 0
                 )}% (confidence ${Math.round((trend.study?.productivity_confidence_score ?? 0) * 100)}%).`
-              : twin && Number(twin.study_consistency_score) < 70
-              ? "Boost your study consistency to improve your predicted exam score."
-              : "Increase your daily study time by one hour to improve your academic prediction score."}
+              : "Log a few study sessions to get a personalized study prediction."}
           </p>
 
         </div>

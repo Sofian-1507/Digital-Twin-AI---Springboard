@@ -2,6 +2,11 @@
  * src/services/trendService.js
  * Trend Prediction service layer — wraps /api/v1/trends/* endpoints.
  * All requests are authenticated via the Axios interceptor in api.js.
+ *
+ * Deliberately kept 1:1 with every backend route for API-surface completeness.
+ * getSavingsTrend, getStudyTrend, getFitnessTrend, and getGoalTrends aren't
+ * currently called by any page (their data is surfaced via getTrendSummary()
+ * instead) — kept as ready-to-use bindings.
  */
 import api from "./api";
 

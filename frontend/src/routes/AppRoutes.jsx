@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import {
   Routes,
   Route,
@@ -8,18 +9,20 @@ import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import ForgotPassword from "../pages/ForgotPassword";
 
-import Dashboard from "../pages/Dashboard";
-import Profile from "../pages/Profile";
-import Finance from "../pages/Finance";
-import Study from "../pages/Study";
-import Habits from "../pages/Habits";
-import Simulation from "../pages/Simulation";
-import Assistant from "../pages/Assistant";
-import Activity from "../pages/Activity";
-
 import MainLayout from "../layouts/MainLayout";
 
 import ProtectedRoute from "../utils/ProtectedRoute";
+
+// Protected pages are code-split — they're only ever needed after login,
+// so there's no reason to bundle them into the initial (public) page load.
+const Dashboard  = lazy(() => import("../pages/Dashboard"));
+const Profile    = lazy(() => import("../pages/Profile"));
+const Finance    = lazy(() => import("../pages/Finance"));
+const Study      = lazy(() => import("../pages/Study"));
+const Habits     = lazy(() => import("../pages/Habits"));
+const Simulation = lazy(() => import("../pages/Simulation"));
+const Assistant  = lazy(() => import("../pages/Assistant"));
+const Activity   = lazy(() => import("../pages/Activity"));
 
 function AppRoutes() {
   return (
@@ -59,42 +62,74 @@ function AppRoutes() {
 
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Dashboard />
+            </Suspense>
+          }
         />
 
         <Route
           path="/profile"
-          element={<Profile />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Profile />
+            </Suspense>
+          }
         />
 
         <Route
           path="/finance"
-          element={<Finance />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Finance />
+            </Suspense>
+          }
         />
 
         <Route
           path="/study"
-          element={<Study />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Study />
+            </Suspense>
+          }
         />
 
         <Route
           path="/habits"
-          element={<Habits />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Habits />
+            </Suspense>
+          }
         />
 
         <Route
           path="/simulation"
-          element={<Simulation />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Simulation />
+            </Suspense>
+          }
         />
 
         <Route
           path="/assistant"
-          element={<Assistant />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Assistant />
+            </Suspense>
+          }
         />
 
         <Route
           path="/activity"
-          element={<Activity />}
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Activity />
+            </Suspense>
+          }
         />
 
       </Route>

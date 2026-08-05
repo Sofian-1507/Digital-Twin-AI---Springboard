@@ -2,6 +2,11 @@
  * src/services/productivityService.js
  * Productivity Analytics service layer — wraps /api/v1/productivity/* endpoints.
  * All requests are authenticated via the Axios interceptor in api.js.
+ *
+ * Deliberately kept 1:1 with every backend route for API-surface completeness.
+ * getFocusScore, getMonthlyProductivityTrend, getCompletionPercentage, and
+ * getPerformancePrediction aren't currently called by any page (their data is
+ * surfaced via getProductivitySummary() instead) — kept as ready-to-use bindings.
  */
 import api from "./api";
 

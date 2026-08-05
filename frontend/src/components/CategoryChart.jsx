@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -51,4 +52,4 @@ function CategoryChart({ data }) {
   );
 }
 
-export default CategoryChart;
+export default memo(CategoryChart);

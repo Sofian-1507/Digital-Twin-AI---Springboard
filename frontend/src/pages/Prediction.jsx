@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 
 import PredictionSummary from "../components/PredictionSummary";
 import PredictionCards from "../components/PredictionCards";
@@ -42,6 +43,7 @@ function Prediction() {
         setWeeklyTrend(weekly.trend || []);
       } catch (err) {
         console.error("Failed to fetch prediction data:", err);
+        toast.error("Could not load your predictions. Please try again later.");
       } finally {
         setIsLoading(false);
       }

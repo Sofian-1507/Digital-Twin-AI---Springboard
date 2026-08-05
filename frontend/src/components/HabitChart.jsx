@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -45,4 +46,4 @@ function HabitChart({ data }) {
   );
 }
 
-export default HabitChart;
+export default memo(HabitChart);

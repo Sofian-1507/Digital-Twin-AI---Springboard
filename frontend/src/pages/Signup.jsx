@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import "../styles/Auth.css";
 
 import { registerUser } from "../services/authService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function Signup() {
   const navigate = useNavigate();

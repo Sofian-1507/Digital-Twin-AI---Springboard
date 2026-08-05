@@ -26,8 +26,11 @@ async def log_activity(
             entity_id=entity_id
         )
         await activity.insert()
-    except Exception as e:
-        logger.error(f"Failed to log activity for user {user_id}: {e}")
+    except Exception:
+        # Never let activity logging interrupt the core flow it's attached to,
+        # but log with a full traceback (exc_info) so failures are actually
+        # diagnosable instead of a one-line message with no stack context.
+        logger.error("Failed to log activity for user %s (action_type=%s)", user_id, action_type, exc_info=True)
 
 async def list_activities(
     user_id: str,

@@ -7,6 +7,7 @@ import HabitChart from "../components/HabitChart";
 import HabitProgress from "../components/HabitProgress";
 import HabitTable from "../components/HabitTable";
 import LifestyleRecommendation from "../components/LifestyleRecommendation";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 import { getHabitLogs, logDailyHabit, deleteHabitLog } from "../services/habitService";
 import { getHabitTrend, getHabitAnalyticsSummary } from "../services/habitAnalyticsService";
@@ -49,6 +50,7 @@ function Habits() {
   const [habitChartData, setHabitChartData] = useState([]);
   const [habitAnalyticsSummary, setHabitAnalyticsSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     async function fetchHabits() {
@@ -107,8 +109,11 @@ function Habits() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this habit log?")) return;
+  const handleDelete = (id) => setConfirmDeleteId(id);
+
+  const confirmDelete = async () => {
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await deleteHabitLog(id);
       setHabitList((prev) => prev.filter(h => h.id !== id));
@@ -138,6 +143,16 @@ function Habits() {
           <HabitTable habits={habitList} onDelete={handleDelete} />
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Delete Habit Log"
+        message="Are you sure you want to delete this habit log? This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 }

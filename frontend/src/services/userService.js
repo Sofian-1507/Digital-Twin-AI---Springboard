@@ -21,18 +21,8 @@ export const getUser = async () => {
  * @param {{ name?, age?, gender?, occupation?, monthly_income_baseline?, risk_tolerance? }} payload
  * @returns {Promise<UserResponse>}
  */
-export const updateProfile = async (payload) => {
+export const updateUser = async (payload) => {
   const response = await api.patch("/users/me/profile", payload);
-  return response.data;
-};
-
-/**
- * Fetch the user's active goals list.
- * GET /api/v1/users/me/goals
- * @returns {Promise<ActiveGoalResponse[]>}
- */
-export const getGoals = async () => {
-  const response = await api.get("/users/me/goals");
   return response.data;
 };
 
@@ -62,8 +52,3 @@ export const deleteUser = async () => {
   const response = await api.delete("/users/me");
   return response.data;
 };
-
-/**
- * Alias for updateProfile — kept for backward compatibility with Profile.jsx.
- */
-export const updateUser = updateProfile;

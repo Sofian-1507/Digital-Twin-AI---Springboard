@@ -7,8 +7,9 @@ import StudyChart from "../components/StudyChart";
 import SubjectProgress from "../components/SubjectProgress";
 import RecommendationCard from "../components/RecommendationCard";
 import StudyTable from "../components/StudyTable";
+import ConfirmDialog from "../components/ConfirmDialog";
 
-import { getSessions, createSession, updateSession, deleteSession } from "../services/studyService";
+import { getSessions, createSession, updateSession, deleteSession, getSubjectPerformance } from "../services/studyService";
 import { getProductivitySummary } from "../services/productivityService";
 
 import "../styles/Study.css";
@@ -40,6 +41,14 @@ function buildStudyInsights(summary) {
   return insights;
 }
 
+/** Builds SubjectProgress's [{ name, progress }] list from SubjectPerformanceSummary[]. */
+function buildSubjectProgress(subjectPerformance) {
+  return subjectPerformance.map((s) => ({
+    name: s.subject,
+    progress: Math.round(s.average_exam_pct || s.average_quiz_pct || s.average_attendance_pct || 0),
+  }));
+}
+
 const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function buildWeeklyChart(sessions) {
@@ -58,21 +67,25 @@ function buildWeeklyChart(sessions) {
 function Study() {
   const [sessions, setSessions]   = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [subjectProgress, setSubjectProgress] = useState([]);
   const [productivitySummary, setProductivitySummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     async function fetchSessions() {
       try {
-        const [result, summary] = await Promise.all([
+        const [result, summary, subjectPerformance] = await Promise.all([
           getSessions({ limit: 50 }),
           getProductivitySummary(),
+          getSubjectPerformance(),
         ]);
         const data = result.data || [];
         setSessions(data);
         setChartData(buildWeeklyChart(data));
         setProductivitySummary(summary);
+        setSubjectProgress(buildSubjectProgress(subjectPerformance));
       } catch (err) {
         console.error("Failed to fetch study sessions:", err);
         toast.error("Could not load study sessions. Please try again later.");
@@ -138,8 +151,11 @@ function Study() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this session?")) return;
+  const handleDelete = (id) => setConfirmDeleteId(id);
+
+  const confirmDelete = async () => {
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await deleteSession(id);
       setSessions((prev) => {
@@ -180,7 +196,7 @@ function Study() {
 
           <StudyChart data={chartData} />
 
-          <SubjectProgress />
+          <SubjectProgress subjects={subjectProgress} />
 
           <RecommendationCard insights={buildStudyInsights(productivitySummary)} />
 
@@ -203,6 +219,16 @@ function Study() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Delete Study Session"
+        message="Are you sure you want to delete this session? This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

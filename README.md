@@ -107,3 +107,14 @@ Inside `backend/`, CLI tools are available for indexing and test verification:
 | `npm run sync-indexes` | Synchronizes declarative ESR and unique indexes on Atlas. |
 | `npm run seed` | Resets and seeds development telemetry data. |
 | `npm run test:e2e` | Runs end-to-end database verification assertions. |
+
+> **Status: reference/future-scope only.** `backend/` is a standalone Node/Mongoose
+> package — it is never imported by, started by, or reachable from `backend_api`
+> (the actual running FastAPI server) or `frontend/`. Only `users`, `financial_records`,
+> `study_activities`, `habit_trackings`, and `user_activities` were ported to the
+> active Python backend (`backend_api/models/`). The remaining schemas defined here —
+> `simulations`, `recommendations`, `chat_history`, `reports`, `dashboard_cache`,
+> `goals_archive`, `analytics_logs` — describe planned-but-unbuilt features
+> (What-If simulation, RAG-based recommendations, AI chat, PDF reports, dashboard
+> caching, goal archival). Treat this directory as a schema/design reference for
+> that future work, not as live infrastructure.

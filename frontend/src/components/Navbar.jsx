@@ -1,9 +1,16 @@
-import { Bell } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { Bell, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
 import "../styles/Navbar.css";
 
 function Navbar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const name     = user?.profile?.name ?? "Digital Twin User";
   const initials = name
@@ -24,8 +31,17 @@ function Navbar() {
       </div>
 
       <div className="navbar-right">
-        <button className="notification-button" aria-label="Notifications">
+        <button
+          className="notification-button"
+          aria-label="Notifications (coming soon)"
+          title="Notifications aren't available yet"
+          disabled
+        >
           <Bell size={20} strokeWidth={1.8} />
+        </button>
+
+        <button className="notification-button" aria-label="Log out" onClick={handleLogout}>
+          <LogOut size={20} strokeWidth={1.8} />
         </button>
 
         <div className="profile-info">

@@ -1,3 +1,5 @@
+import InsightList from "./InsightList";
+
 const DEFAULT_INSIGHTS = [
   "📘 Spend 1 extra hour on DSA this week.",
   "☕ Take a 10-minute break after every 90 minutes of study.",
@@ -6,24 +8,15 @@ const DEFAULT_INSIGHTS = [
 ];
 
 function RecommendationCard({ insights }) {
-  const items = insights && insights.length > 0 ? insights : DEFAULT_INSIGHTS;
-
   return (
-    <div className="recommendation-card">
-
-      <h3>AI Study Recommendation</h3>
-
-      <div className="recommendation-list">
-
-        {items.map((text, i) => (
-          <div className="recommendation-item" key={i}>
-            {text}
-          </div>
-        ))}
-
-      </div>
-
-    </div>
+    <InsightList
+      title="AI Study Recommendation"
+      items={insights}
+      defaultItems={DEFAULT_INSIGHTS}
+      cardClassName="recommendation-card"
+      listClassName="recommendation-list"
+      itemClassName="recommendation-item"
+    />
   );
 }
 

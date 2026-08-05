@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 function SubjectProgress({ subjects = [] }) {
 
   return (
@@ -39,4 +41,4 @@ function SubjectProgress({ subjects = [] }) {
   );
 }
 
-export default SubjectProgress;
+export default memo(SubjectProgress);

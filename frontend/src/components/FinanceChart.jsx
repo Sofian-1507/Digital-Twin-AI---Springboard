@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   LineChart,
   Line,
@@ -46,4 +47,4 @@ function FinanceChart({ data = [] }) {
 
 }
 
-export default FinanceChart;
+export default memo(FinanceChart);

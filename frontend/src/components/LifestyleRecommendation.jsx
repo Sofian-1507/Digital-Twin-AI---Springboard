@@ -1,3 +1,5 @@
+import InsightList from "./InsightList";
+
 const DEFAULT_INSIGHTS = [
   "💧 Increase your daily water intake by 0.5 L.",
   "😴 Maintain at least 8 hours of sleep every night.",
@@ -6,24 +8,15 @@ const DEFAULT_INSIGHTS = [
 ];
 
 function LifestyleRecommendation({ insights }) {
-  const items = insights && insights.length > 0 ? insights : DEFAULT_INSIGHTS;
-
   return (
-    <div className="recommendation-card">
-
-      <h3>🤖 AI Lifestyle Recommendation</h3>
-
-      <div className="recommendation-list">
-
-        {items.map((text, i) => (
-          <div className="recommendation-item" key={i}>
-            {text}
-          </div>
-        ))}
-
-      </div>
-
-    </div>
+    <InsightList
+      title="🤖 AI Lifestyle Recommendation"
+      items={insights}
+      defaultItems={DEFAULT_INSIGHTS}
+      cardClassName="recommendation-card"
+      listClassName="recommendation-list"
+      itemClassName="recommendation-item"
+    />
   );
 }
 

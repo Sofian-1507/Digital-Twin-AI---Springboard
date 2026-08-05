@@ -13,7 +13,7 @@ function Assistant() {
     {
       sender: "ai",
       text:
-        "Hello 👋 I'm your Digital Twin AI Assistant. Ask me anything about your finance, study, habits, or future predictions.",
+        "Hello 👋 I'm a preview of the Digital Twin AI Assistant. I can only reply with a few canned tips for now — real AI-powered answers aren't connected yet.",
     },
   ]);
 
@@ -75,7 +75,11 @@ function Assistant() {
   return (
     <div className="assistant-page">
 
-      <h2>🤖 Digital Twin AI Assistant</h2>
+      <h2>🤖 Digital Twin AI Assistant (Preview)</h2>
+
+      <p style={{ color: 'var(--text-secondary, #64748b)', marginBottom: '10px' }}>
+        This is an early preview — replies are canned examples, not real AI analysis of your data yet.
+      </p>
 
       <QuickActions sendMessage={sendMessage} />
 

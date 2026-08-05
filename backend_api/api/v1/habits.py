@@ -77,15 +77,21 @@ async def list_logs(
 @router.get(
     "/analytics/kmeans-features",
     response_model=list[KMeansFeatureRow],
-    summary="Extract 4D biometric feature matrix for K-Means burnout clustering",
+    summary="Extract 4D biometric feature matrix (raw, unclustered)",
 )
 async def kmeans_feature_space(
     current_user: CurrentUser,
     days: int = Query(default=30, ge=7, le=365, description="Lookback window in days"),
 ) -> list[KMeansFeatureRow]:
     """
-    Returns the 4D biometric feature vectors (sleep, exercise, water, screen_time)
-    over the specified time window.
-    Python port of extractKMeansFeatureSpace() from habit_repository.ts.
+    Returns the raw 4D biometric feature vectors (sleep, exercise, water, screen_time)
+    over the specified time window. Python port of extractKMeansFeatureSpace() from
+    habit_repository.ts.
+
+    NOTE: this is feature *extraction* only — no K-Means clustering algorithm is
+    implemented anywhere in this codebase yet, and no frontend page currently calls
+    this endpoint. `HabitTracking.burnout_risk_cluster` is written by nothing and
+    stays at its default (UNKNOWN) for every user. Kept as a documented building
+    block for a future clustering feature rather than removed.
     """
     return await habit_service.extract_kmeans_feature_space(str(current_user.id), days)
