@@ -31,9 +31,6 @@ Digital-Twin-AI---Springboard/
 │       ├── context/         Auth context / global state
 │       ├── services/        Axios API clients (one per backend resource)
 │       └── routes/          React Router route tree
-│
-└── backend/               Standalone Node/Mongoose reference package — not
-                             wired into the running app (see note below).
 ```
 
 ---
@@ -113,9 +110,3 @@ npm run dev
 | Frontend | React 19, Vite, React Router 7, Tailwind CSS v4, Recharts, Axios, lucide-react, react-toastify |
 | Backend | FastAPI, Motor + Beanie (async MongoDB ODM), Pydantic v2, python-jose (JWT), passlib (bcrypt) |
 | Database | MongoDB Atlas |
-
----
-
-## About `backend/`
-
-`backend/` is a standalone Node/TypeScript/Mongoose package (schema definitions, index sync, seeders, an E2E test suite). It is **not imported by, started by, or reachable from** `backend_api` or `frontend` — the FastAPI service is the only backend actually running the app. Only a subset of its schemas (`users`, `financial_records`, `study_activities`, `habit_trackings`, `user_activities`) were ported into the live Python models; the rest (`simulations`, `recommendations`, `chat_history`, `reports`, `dashboard_cache`, `goals_archive`, `analytics_logs`) describe planned-but-unbuilt features. Treat it as a design reference, not live infrastructure.
