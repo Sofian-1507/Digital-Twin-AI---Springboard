@@ -99,18 +99,7 @@ function Sidebar() {
         </div>
       </nav>
 
-      <div className="border-t border-white/10 p-3 md:p-4.5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10.5 w-10.5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[13px] font-bold text-slate-900">
-            DT
-          </div>
-
-          <div className="hidden md:block">
-            <h4 className="text-[13px] font-medium">My Digital Twin</h4>
-            <p className="mt-1 text-[11px] text-slate-400">Personal Account</p>
-          </div>
-        </div>
-      </div>
+      
     </aside>
   );
 }
