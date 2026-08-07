@@ -1,4 +1,4 @@
-function SavingsProgress({ transactions }) {
+function SavingsProgress({ transactions, goal: activeGoal }) {
 
   // Bug fix: comparing against "Income"/"Expense" never matched the backend's
   // actual uppercase enum values ("INCOME"/"EXPENSE"), so this always computed
@@ -21,7 +21,18 @@ function SavingsProgress({ transactions }) {
 
   const savings = income - expense;
 
-  const goal = 3000;
+  if (!activeGoal) {
+    return (
+      <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Savings Goal</h3>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          You haven't set a finance goal yet — add one from your Profile to track progress here.
+        </p>
+      </div>
+    );
+  }
+
+  const goal = Number(activeGoal.target_value);
 
   // Bug fix: Math.min alone let a negative `savings` value (more spent than
   // earned) produce a negative percentage, which the browser renders as an
@@ -36,7 +47,7 @@ function SavingsProgress({ transactions }) {
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
 
-      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Savings Goal</h3>
+      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{activeGoal.title}</h3>
 
       <h2 className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${isNegative ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`}>
         ${savings.toLocaleString()} / ${goal.toLocaleString()}

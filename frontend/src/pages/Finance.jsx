@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 
+import { useAuth } from "../context/useAuth";
+
 import FinanceSummary from "../components/FinanceSummary";
 import TransactionForm from "../components/TransactionForm";
 import TransactionTable from "../components/TransactionTable";
@@ -61,6 +63,11 @@ function buildExpenseChartData(transactions, forecast) {
 }
 
 function Finance() {
+  const { user } = useAuth();
+  // First FINANCE-category goal the user has set — used as the real savings
+  // target instead of a hardcoded placeholder. null if they haven't set one.
+  const savingsGoal = user?.active_goals?.find((g) => g.category === "FINANCE") ?? null;
+
   const [transactions, setTransactions] = useState([]);
   const [expenseChartData, setExpenseChartData] = useState([]);
   const [categoryChartData, setCategoryChartData] = useState([]);
@@ -252,7 +259,7 @@ function Finance() {
 
           <IncomeProjectionCard projection={incomeProjection} />
 
-          <SavingsProgress transactions={transactions} />
+          <SavingsProgress transactions={transactions} goal={savingsGoal} />
 
           <div className="flex flex-wrap items-center gap-3">
             <Select value={typeFilter} onChange={handleTypeFilterChange} aria-label="Filter by type" className="w-auto">
