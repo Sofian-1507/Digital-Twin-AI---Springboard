@@ -1,111 +1,246 @@
 import { useState } from "react";
-import { Input } from "./ui/Field";
-import Button from "./ui/Button";
 
+import {
+  runFinanceScenarios
+} from "../services/simulationService";
+
+import ScenarioComparison
+  from "./ScenarioComparison";
+
+import ScenarioChart
+  from "./ScenarioChart";
+import SimulationResult from "./SimulationResult";
+import RecommendationCard
+  from "./RecommendationCard";
 function SimulationForm() {
+
   const [formData, setFormData] = useState({
-    income: "",
-    studyHours: "",
-    sleepHours: "",
-    exerciseMinutes: "",
+    monthly_income: "",
+    monthly_expense: "",
+    additional_saving: "",
+    months: 6,
   });
 
-  const [score, setScore] = useState(null);
+  const [result, setResult] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
 
   const handleChange = (e) => {
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+
+      [e.target.name]:
+        e.target.value,
     });
+
   };
 
-  const runSimulation = (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
 
-    const income = Number(formData.income);
-    const study = Number(formData.studyHours);
-    const sleep = Number(formData.sleepHours);
-    const exercise = Number(formData.exerciseMinutes);
+  e.preventDefault();
 
-    const predictedScore = Math.min(
-      Math.round(
-        income / 100 +
-        study * 5 +
-        sleep * 3 +
-        exercise * 0.2
-      ),
-      100
+  setLoading(true);
+  setError("");
+  setResult(null);
+
+  try {
+
+    const data =
+      await runFinanceScenarios({
+
+        monthly_income:
+          Number(
+            formData.monthly_income
+          ),
+
+        monthly_expense:
+          Number(
+            formData.monthly_expense
+          ),
+
+        months:
+          Number(formData.months),
+
+      });
+
+    setResult(data);
+
+  } catch (err) {
+
+    setError(
+      err.message ||
+      "Unable to run simulation."
     );
 
-    setScore(predictedScore);
-  };
+  } finally {
+
+    setLoading(false);
+
+  }
+};
+
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
 
-      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">What-If Simulation (Illustrative)</h3>
+    <div className="simulation-card">
 
-      <p className="mb-4 mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-        This is a simple illustrative estimate, not a model backed by your real data.
+      <h3>
+        Finance What-If Simulation
+      </h3>
+
+      <p>
+        Change your financial decision
+        and see the possible future outcome.
       </p>
 
-      <form onSubmit={runSimulation}>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <form
+        onSubmit={handleSubmit}
+        className="simulation-form"
+      >
 
-          <Input
+        <div className="form-group">
+
+          <label>
+            Monthly Income
+          </label>
+
+          <input
             type="number"
-            name="income"
-            placeholder="Monthly Income"
-            value={formData.income}
+            name="monthly_income"
+            value={
+              formData.monthly_income
+            }
             onChange={handleChange}
-          />
-
-          <Input
-            type="number"
-            name="studyHours"
-            placeholder="Study Hours / Day"
-            value={formData.studyHours}
-            onChange={handleChange}
-          />
-
-          <Input
-            type="number"
-            name="sleepHours"
-            placeholder="Sleep Hours"
-            value={formData.sleepHours}
-            onChange={handleChange}
-          />
-
-          <Input
-            type="number"
-            name="exerciseMinutes"
-            placeholder="Exercise Minutes"
-            value={formData.exerciseMinutes}
-            onChange={handleChange}
+            placeholder="40000"
+            min="1"
+            required
           />
 
         </div>
 
-        <Button className="mt-5">
-          Run Simulation
-        </Button>
+
+        <div className="form-group">
+
+          <label>
+            Monthly Expense
+          </label>
+
+          <input
+            type="number"
+            name="monthly_expense"
+            value={
+              formData.monthly_expense
+            }
+            onChange={handleChange}
+            placeholder="25000"
+            min="0"
+            required
+          />
+
+        </div>
+
+
+        <div className="form-group">
+
+          <label>
+            Additional Monthly Saving
+          </label>
+
+          <input
+            type="number"
+            name="additional_saving"
+            value={
+              formData.additional_saving
+            }
+            onChange={handleChange}
+            placeholder="3000"
+            min="0"
+            required
+          />
+
+        </div>
+
+
+        <div className="form-group">
+
+          <label>
+            Simulation Period
+          </label>
+
+          <select
+            name="months"
+            value={formData.months}
+            onChange={handleChange}
+          >
+
+            <option value="3">
+              3 Months
+            </option>
+
+            <option value="6">
+              6 Months
+            </option>
+
+            <option value="12">
+              12 Months
+            </option>
+
+          </select>
+
+        </div>
+
+
+        {error && (
+
+          <div className="simulation-error">
+            {error}
+          </div>
+
+        )}
+
+
+        <button
+          type="submit"
+          className="simulation-btn"
+          disabled={loading}
+        >
+
+          {loading
+            ? "Running Simulation..."
+            : "Run Simulation"}
+
+        </button>
 
       </form>
+      {result && (
+  <>
+    <ScenarioComparison
+      scenarios={result.scenarios}
+    />
 
-      {score !== null && (
+    <ScenarioChart
+      scenarios={result.scenarios}
+    />
+    <RecommendationCard
+    recommendation={result.recommendation}
+    />
+  </>
+)}
 
-        <div className="mt-6 rounded-xl bg-indigo-50 dark:bg-slate-700/40 p-5 text-center">
 
-          <h2 className="text-sm font-medium text-slate-600 dark:text-slate-400">Illustrative Estimate</h2>
-
-          <h1 className="mt-2 text-4xl font-bold text-indigo-600">{score}%</h1>
-
-        </div>
-
-      )}
+      <SimulationResult
+        result={result}
+      />
 
     </div>
+
   );
 }
 

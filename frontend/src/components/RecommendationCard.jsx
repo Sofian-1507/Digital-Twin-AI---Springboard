@@ -1,22 +1,75 @@
-import InsightList from "./InsightList";
 
-const DEFAULT_INSIGHTS = [
-  "📘 Spend 1 extra hour on DSA this week.",
-  "☕ Take a 10-minute break after every 90 minutes of study.",
-  "📚 React progress is excellent. Continue practicing projects.",
-  "🚀 Estimated productivity next week: 91%",
-];
+function RecommendationCard({ recommendation }) {
 
-function RecommendationCard({ insights }) {
+  if (!recommendation) {
+    return null;
+  }
+
   return (
-    <InsightList
-      title="AI Study Recommendation"
-      items={insights}
-      defaultItems={DEFAULT_INSIGHTS}
-      cardClassName="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
-      listClassName="flex flex-col gap-2.5"
-      itemClassName="rounded-lg border-l-4 border-violet-500 bg-slate-50 p-3.5 text-sm text-slate-700 dark:bg-slate-700/40 dark:text-slate-300"
-    />
+    <div className="recommendation-card">
+
+      <div className="recommendation-header">
+
+        <span className="recommendation-icon">
+          🤖
+        </span>
+
+        <div>
+          <h3>AI Recommendation</h3>
+
+          <p>
+            Based on your simulated future outcomes
+          </p>
+        </div>
+
+      </div>
+
+
+      <div className="recommendation-content">
+
+        <h4>
+          {recommendation.recommendation}
+        </h4>
+
+        <p>
+          {recommendation.reason}
+        </p>
+
+
+        <div className="recommendation-stats">
+
+          <div>
+
+            <span>
+              Expected Future Saving
+            </span>
+
+            <strong>
+              ₹
+              {recommendation.expected_future_saving?.toLocaleString()}
+            </strong>
+
+          </div>
+
+
+          <div>
+
+            <span>
+              Expected Improvement
+            </span>
+
+            <strong>
+              +₹
+              {recommendation.expected_improvement?.toLocaleString()}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
   );
 }
 

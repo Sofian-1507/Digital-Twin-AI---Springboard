@@ -13,7 +13,7 @@ import { SkeletonStatGrid, SkeletonChart } from "../components/ui/Skeleton";
 import { getTrendSummary } from "../services/trendService";
 import { getProductivityScore, getWeeklyProductivityTrend } from "../services/productivityService";
 import { getConsistencyScore } from "../services/habitAnalyticsService";
-
+import SimulationForm from "../components/SimulationForm";
 // Short "Aug 3" style label for chart x-axes, from an ISO date/period string.
 function formatShortDate(value) {
   const d = new Date(value);
@@ -160,7 +160,7 @@ function Prediction() {
           <PredictionCards predictions={predictionCards} />
 
           <FutureChart data={futureChartData} />
-
+          <SimulationForm />
           <AIInsights insights={aiInsights} />
 
           <GoalTrendList goals={trend?.goals} />
