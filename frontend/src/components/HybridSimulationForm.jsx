@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-import { runFinanceScenarios, submitRecommendationFeedback } from "../services/simulationService";
+import { runHybridScenarios, submitRecommendationFeedback } from "../services/simulationService";
 import { getApiErrorMessage } from "../utils/apiError";
 import ScenarioComparison from "./ScenarioComparison";
 import ScenarioChart from "./ScenarioChart";
 import RecommendationCard from "./RecommendationCard";
 
-function SimulationForm() {
+function HybridSimulationForm() {
   const [formData, setFormData] = useState({
     additional_monthly_saving: "",
-    expense_reduction_pct: "",
+    additional_weekly_study_hours: "",
+    additional_exercise_minutes: "",
+    sleep_adjustment_hours: "",
     months_ahead: 6,
   });
   const [result, setResult] = useState(null);
@@ -28,14 +30,16 @@ function SimulationForm() {
     setResult(null);
 
     try {
-      const data = await runFinanceScenarios({
+      const data = await runHybridScenarios({
         additional_monthly_saving: Number(formData.additional_monthly_saving) || 0,
-        expense_reduction_pct: Number(formData.expense_reduction_pct) || 0,
+        additional_weekly_study_hours: Number(formData.additional_weekly_study_hours) || 0,
+        additional_exercise_minutes: Number(formData.additional_exercise_minutes) || 0,
+        sleep_adjustment_hours: Number(formData.sleep_adjustment_hours) || 0,
         months_ahead: Number(formData.months_ahead),
       });
       setResult(data);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Unable to run simulation."));
+      setError(getApiErrorMessage(err, "Unable to run simulation. Enter at least one non-zero change."));
     } finally {
       setLoading(false);
     }
@@ -52,15 +56,16 @@ function SimulationForm() {
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Finance What-If Simulation</h3>
+      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Combined Lifestyle What-If</h3>
       <p className="mb-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
-        See how saving more or cutting expenses changes your future savings — projected off your real transaction history.
+        Blend savings, study, and fitness changes into named lifestyle scenarios (e.g. Balanced Growth, Aggressive
+        Savings Focus) and see which one scores best overall.
       </p>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Additional Monthly Saving (₹)
+            Extra Monthly Saving (₹)
           </label>
           <input
             type="number"
@@ -75,42 +80,59 @@ function SimulationForm() {
 
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Expense Reduction (%)
+            Extra Weekly Study Hours
           </label>
           <input
             type="number"
-            name="expense_reduction_pct"
-            value={formData.expense_reduction_pct}
+            name="additional_weekly_study_hours"
+            value={formData.additional_weekly_study_hours}
             onChange={handleChange}
-            placeholder="10"
+            placeholder="3"
             min="0"
-            max="100"
+            max="80"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
           />
         </div>
 
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Simulation Period
+            Extra Daily Exercise (min)
           </label>
-          <select
-            name="months_ahead"
-            value={formData.months_ahead}
+          <input
+            type="number"
+            name="additional_exercise_minutes"
+            value={formData.additional_exercise_minutes}
             onChange={handleChange}
+            placeholder="30"
+            min="0"
+            max="600"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
-          >
-            <option value="3">3 Months</option>
-            <option value="6">6 Months</option>
-            <option value="12">12 Months</option>
-          </select>
+          />
         </div>
 
-        {error && <div className="sm:col-span-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Sleep Adjustment (hrs)
+          </label>
+          <input
+            type="number"
+            name="sleep_adjustment_hours"
+            value={formData.sleep_adjustment_hours}
+            onChange={handleChange}
+            placeholder="1"
+            min="-6"
+            max="6"
+            step="0.5"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+          />
+        </div>
+
+        {error && <div className="lg:col-span-4 sm:col-span-2 text-sm text-red-600 dark:text-red-400">{error}</div>}
 
         <button
           type="submit"
           disabled={loading}
-          className="sm:col-span-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="lg:col-span-4 sm:col-span-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
         >
           {loading ? "Running Simulation..." : "Run Simulation"}
         </button>
@@ -127,4 +149,4 @@ function SimulationForm() {
   );
 }
 
-export default SimulationForm;
+export default HybridSimulationForm;

@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-import { runFinanceScenarios, submitRecommendationFeedback } from "../services/simulationService";
+import { runFitnessScenarios, submitRecommendationFeedback } from "../services/simulationService";
 import { getApiErrorMessage } from "../utils/apiError";
 import ScenarioComparison from "./ScenarioComparison";
 import ScenarioChart from "./ScenarioChart";
 import RecommendationCard from "./RecommendationCard";
 
-function SimulationForm() {
+function FitnessSimulationForm() {
   const [formData, setFormData] = useState({
-    additional_monthly_saving: "",
-    expense_reduction_pct: "",
-    months_ahead: 6,
+    additional_exercise_minutes: "",
+    sleep_adjustment_hours: "",
+    weeks_ahead: 4,
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -28,10 +28,10 @@ function SimulationForm() {
     setResult(null);
 
     try {
-      const data = await runFinanceScenarios({
-        additional_monthly_saving: Number(formData.additional_monthly_saving) || 0,
-        expense_reduction_pct: Number(formData.expense_reduction_pct) || 0,
-        months_ahead: Number(formData.months_ahead),
+      const data = await runFitnessScenarios({
+        additional_exercise_minutes: Number(formData.additional_exercise_minutes) || 0,
+        sleep_adjustment_hours: Number(formData.sleep_adjustment_hours) || 0,
+        weeks_ahead: Number(formData.weeks_ahead),
       });
       setResult(data);
     } catch (err) {
@@ -52,39 +52,41 @@ function SimulationForm() {
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Finance What-If Simulation</h3>
+      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Fitness What-If Simulation</h3>
       <p className="mb-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
-        See how saving more or cutting expenses changes your future savings — projected off your real transaction history.
+        See how more exercise or better sleep changes your projected habit score — based on your real habit logs.
       </p>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Additional Monthly Saving (₹)
+            Additional Daily Exercise (min)
           </label>
           <input
             type="number"
-            name="additional_monthly_saving"
-            value={formData.additional_monthly_saving}
+            name="additional_exercise_minutes"
+            value={formData.additional_exercise_minutes}
             onChange={handleChange}
-            placeholder="2000"
+            placeholder="30"
             min="0"
+            max="600"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
           />
         </div>
 
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Expense Reduction (%)
+            Sleep Adjustment (hrs)
           </label>
           <input
             type="number"
-            name="expense_reduction_pct"
-            value={formData.expense_reduction_pct}
+            name="sleep_adjustment_hours"
+            value={formData.sleep_adjustment_hours}
             onChange={handleChange}
-            placeholder="10"
-            min="0"
-            max="100"
+            placeholder="1"
+            min="-6"
+            max="6"
+            step="0.5"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
           />
         </div>
@@ -94,14 +96,14 @@ function SimulationForm() {
             Simulation Period
           </label>
           <select
-            name="months_ahead"
-            value={formData.months_ahead}
+            name="weeks_ahead"
+            value={formData.weeks_ahead}
             onChange={handleChange}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
           >
-            <option value="3">3 Months</option>
-            <option value="6">6 Months</option>
-            <option value="12">12 Months</option>
+            <option value="2">2 Weeks</option>
+            <option value="4">4 Weeks</option>
+            <option value="8">8 Weeks</option>
           </select>
         </div>
 
@@ -127,4 +129,4 @@ function SimulationForm() {
   );
 }
 
-export default SimulationForm;
+export default FitnessSimulationForm;

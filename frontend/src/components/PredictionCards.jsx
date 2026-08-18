@@ -25,10 +25,17 @@ function PredictionCards({ predictions = [] }) {
             ✦ Future Prediction : <strong className="font-mono tabular-nums">{item.future}%</strong>
           </p>
 
-          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+          <div
+            className="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+            role="progressbar"
+            aria-valuenow={Math.min(100, Math.max(0, item.future))}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`${item.title} future prediction`}
+          >
             <div
               className="h-full rounded-full bg-violet-500"
-              style={{ width: `${item.future}%` }}
+              style={{ width: `${Math.min(100, Math.max(0, item.future))}%` }}
             ></div>
           </div>
 

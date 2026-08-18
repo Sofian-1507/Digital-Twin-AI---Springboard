@@ -9,18 +9,24 @@ import {
   Legend,
 } from "recharts";
 
-import {
-  predictionChart,
-} from "../data/predictionData";
+import EmptyState from "./ui/EmptyState";
 
 function FutureChart({ data }) {
-  const chartData = data && data.length > 0 ? data : predictionChart;
+  const chartData = data || [];
   const latest = chartData[chartData.length - 1];
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
 
       <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Future Growth Prediction</h3>
+
+      {chartData.length === 0 ? (
+        <EmptyState
+          title="No growth data yet"
+          message="Log some study or habit activity, or check back once your predictions finish loading, to see your trend here."
+        />
+      ) : (
+      <>
       <p className="sr-only">
         Future growth prediction chart. {latest ? `Latest point: ${latest.month}, score ${Math.round(latest.score)}.` : "No data yet."}
       </p>
@@ -54,6 +60,8 @@ function FutureChart({ data }) {
         </LineChart>
 
       </ResponsiveContainer>
+      </>
+      )}
 
     </div>
   );

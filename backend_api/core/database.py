@@ -12,6 +12,7 @@ from models.finance import FinancialRecord
 from models.study import StudyActivity
 from models.habit import HabitTracking
 from models.activity import UserActivity
+from models.simulation import Simulation, Recommendation
 
 logger = logging.getLogger("digital_twin_ai.database")
 
@@ -42,6 +43,8 @@ async def connect_to_mongo() -> None:
             StudyActivity,
             HabitTracking,
             UserActivity,
+            Simulation,
+            Recommendation,
         ],
     )
     logger.info("MongoDB Atlas connection pool established → db: %s", settings.MONGODB_DB_NAME)

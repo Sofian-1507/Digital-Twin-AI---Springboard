@@ -1,18 +1,14 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-import { runFinanceScenarios, submitRecommendationFeedback } from "../services/simulationService";
+import { runStudyScenarios, submitRecommendationFeedback } from "../services/simulationService";
 import { getApiErrorMessage } from "../utils/apiError";
 import ScenarioComparison from "./ScenarioComparison";
 import ScenarioChart from "./ScenarioChart";
 import RecommendationCard from "./RecommendationCard";
 
-function SimulationForm() {
-  const [formData, setFormData] = useState({
-    additional_monthly_saving: "",
-    expense_reduction_pct: "",
-    months_ahead: 6,
-  });
+function StudySimulationForm() {
+  const [formData, setFormData] = useState({ additional_weekly_study_hours: "", weeks_ahead: 4 });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,10 +24,9 @@ function SimulationForm() {
     setResult(null);
 
     try {
-      const data = await runFinanceScenarios({
-        additional_monthly_saving: Number(formData.additional_monthly_saving) || 0,
-        expense_reduction_pct: Number(formData.expense_reduction_pct) || 0,
-        months_ahead: Number(formData.months_ahead),
+      const data = await runStudyScenarios({
+        additional_weekly_study_hours: Number(formData.additional_weekly_study_hours) || 0,
+        weeks_ahead: Number(formData.weeks_ahead),
       });
       setResult(data);
     } catch (err) {
@@ -52,39 +47,24 @@ function SimulationForm() {
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Finance What-If Simulation</h3>
+      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Study What-If Simulation</h3>
       <p className="mb-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
-        See how saving more or cutting expenses changes your future savings — projected off your real transaction history.
+        See how adding weekly study hours changes your projected productivity score — based on your real study history.
       </p>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Additional Monthly Saving (₹)
+            Additional Weekly Study Hours
           </label>
           <input
             type="number"
-            name="additional_monthly_saving"
-            value={formData.additional_monthly_saving}
+            name="additional_weekly_study_hours"
+            value={formData.additional_weekly_study_hours}
             onChange={handleChange}
-            placeholder="2000"
+            placeholder="3"
             min="0"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Expense Reduction (%)
-          </label>
-          <input
-            type="number"
-            name="expense_reduction_pct"
-            value={formData.expense_reduction_pct}
-            onChange={handleChange}
-            placeholder="10"
-            min="0"
-            max="100"
+            max="80"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
           />
         </div>
@@ -94,23 +74,23 @@ function SimulationForm() {
             Simulation Period
           </label>
           <select
-            name="months_ahead"
-            value={formData.months_ahead}
+            name="weeks_ahead"
+            value={formData.weeks_ahead}
             onChange={handleChange}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
           >
-            <option value="3">3 Months</option>
-            <option value="6">6 Months</option>
-            <option value="12">12 Months</option>
+            <option value="2">2 Weeks</option>
+            <option value="4">4 Weeks</option>
+            <option value="8">8 Weeks</option>
           </select>
         </div>
 
-        {error && <div className="sm:col-span-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
+        {error && <div className="sm:col-span-2 text-sm text-red-600 dark:text-red-400">{error}</div>}
 
         <button
           type="submit"
           disabled={loading}
-          className="sm:col-span-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="sm:col-span-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
         >
           {loading ? "Running Simulation..." : "Run Simulation"}
         </button>
@@ -127,4 +107,4 @@ function SimulationForm() {
   );
 }
 
-export default SimulationForm;
+export default StudySimulationForm;

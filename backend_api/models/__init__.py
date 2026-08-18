@@ -6,6 +6,7 @@ from models.user import User, UserPreferences, ActiveGoal, DigitalTwinState, Pro
 from models.finance import FinancialRecord
 from models.study import StudyActivity
 from models.habit import HabitTracking
+from models.simulation import Simulation, Recommendation, ScenarioResult, MetricPoint
 from models.enums import *
 
 __all__ = [
@@ -17,4 +18,8 @@ __all__ = [
     "FinancialRecord",
     "StudyActivity",
     "HabitTracking",
+    "Simulation",
+    "Recommendation",
+    "ScenarioResult",
+    "MetricPoint",
 ]

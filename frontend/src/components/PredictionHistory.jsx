@@ -17,13 +17,19 @@ function PredictionHistory({ history }) {
 
         <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Prediction History</h3>
 
-        <Input
-          type="text"
-          placeholder="Search Date..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-48"
-        />
+        {/* Searching only makes sense once there's more than one snapshot to filter —
+            with 0 or 1 rows (today's only prediction), showing it implies a browsable
+            history that doesn't exist yet. Reappears automatically once real
+            multi-row history is persisted. */}
+        {history.length > 1 && (
+          <Input
+            type="text"
+            placeholder="Search Date..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-48"
+          />
+        )}
 
       </div>
 

@@ -6,7 +6,6 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend_api.api.v1.simulation import router as simulation_router
 from core.config import get_settings
 from core.database import lifespan
 from core.exceptions import register_exception_handlers
@@ -21,6 +20,7 @@ from api.v1 import (
     productivity,
     habit_analytics,
     trend_prediction,
+    simulation,
 )
 
 # ─── Logging Configuration ────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ app.include_router(forecast.router, prefix=API_PREFIX)
 app.include_router(productivity.router, prefix=API_PREFIX)
 app.include_router(habit_analytics.router, prefix=API_PREFIX)
 app.include_router(trend_prediction.router, prefix=API_PREFIX)
-app.include_router(simulation_router,prefix="/api/v1")
+app.include_router(simulation.router, prefix=API_PREFIX)
 
 # ─── Health Check ─────────────────────────────────────────────────────────────
 @app.get("/health", tags=["Health"], summary="Application health check")

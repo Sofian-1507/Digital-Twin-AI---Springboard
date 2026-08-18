@@ -5,6 +5,11 @@ import PredictionSummary from "../components/PredictionSummary";
 import PredictionCards from "../components/PredictionCards";
 import FutureChart from "../components/FutureChart";
 import SimulationForm from "../components/SimulationForm";
+import StudySimulationForm from "../components/StudySimulationForm";
+import FitnessSimulationForm from "../components/FitnessSimulationForm";
+import HybridSimulationForm from "../components/HybridSimulationForm";
+import DomainComparison from "../components/DomainComparison";
+import SimulationHistoryList from "../components/SimulationHistoryList";
 import AIInsights from "../components/AIInsights";
 import PredictionHistory from "../components/PredictionHistory";
 import GoalTrendList from "../components/GoalTrendList";
@@ -13,7 +18,7 @@ import { SkeletonStatGrid, SkeletonChart } from "../components/ui/Skeleton";
 import { getTrendSummary } from "../services/trendService";
 import { getProductivityScore, getWeeklyProductivityTrend } from "../services/productivityService";
 import { getConsistencyScore } from "../services/habitAnalyticsService";
-import SimulationForm from "../components/SimulationForm";
+
 // Short "Aug 3" style label for chart x-axes, from an ISO date/period string.
 function formatShortDate(value) {
   const d = new Date(value);
@@ -21,13 +26,29 @@ function formatShortDate(value) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+// Linear-regression projections (study/fitness "future" scores) are an unbounded
+// extrapolation on the backend — a strong trend can project past 100 or below 0.
+// Clamp before display so percentage labels and progress-bar widths stay sane.
+function clampPct(value) {
+  return Math.min(100, Math.max(0, value));
+}
+
 const TABS = [
   { id: "forecasts", label: "Forecasts" },
   { id: "what-if", label: "What-If" },
 ];
 
+const WHAT_IF_SUBTABS = [
+  { id: "finance", label: "Finance" },
+  { id: "study", label: "Study" },
+  { id: "fitness", label: "Fitness" },
+  { id: "hybrid", label: "Combined" },
+  { id: "compare", label: "Compare All" },
+];
+
 function Prediction() {
   const [activeTab, setActiveTab]         = useState("forecasts");
+  const [whatIfSubtab, setWhatIfSubtab]   = useState("finance");
   const [trend, setTrend]                 = useState(null);
   const [productivityScore, setProductivityScore] = useState(null);
   const [consistencyScore, setConsistencyScore]   = useState(null);
@@ -80,28 +101,37 @@ function Prediction() {
     ? [
         {
           title: "Study",
-          current: Math.round(productivityScore?.productivity_score ?? 0),
-          future: Math.round(trend.study?.projected_productivity?.[0]?.value ?? 0),
+          current: Math.round(clampPct(productivityScore?.productivity_score ?? 0)),
+          future: Math.round(clampPct(trend.study?.projected_productivity?.[0]?.value ?? 0)),
         },
         {
           title: "Fitness",
-          current: Math.round(consistencyScore?.consistency_score ?? 0),
-          future: Math.round(trend.fitness?.projected_fitness_score?.[0]?.value ?? 0),
+          current: Math.round(clampPct(consistencyScore?.consistency_score ?? 0)),
+          future: Math.round(clampPct(trend.fitness?.projected_fitness_score?.[0]?.value ?? 0)),
         },
       ]
     : [];
 
   // Historical weekly productivity trend + the trend engine's projected future weeks,
   // concatenated chronologically for a single "past -> predicted" growth line.
+  // The predicted point is anchored to the study engine's last *active* week, which can
+  // fall before the current calendar week if the user hasn't logged a session recently —
+  // filter out anything that wouldn't chronologically follow the historical portion, so
+  // the line never shows a "future" point landing on/before data already on the chart.
+  const lastHistoricalWeek = weeklyTrend.length > 0
+    ? new Date(weeklyTrend[weeklyTrend.length - 1].week_start)
+    : null;
   const futureChartData = [
     ...weeklyTrend.map((w) => ({
       month: formatShortDate(w.week_start),
-      score: Math.round(w.average_productivity_score),
+      score: Math.round(clampPct(w.average_productivity_score)),
     })),
-    ...(trend?.study?.projected_productivity ?? []).map((p) => ({
-      month: formatShortDate(p.period),
-      score: Math.round(p.value),
-    })),
+    ...(trend?.study?.projected_productivity ?? [])
+      .filter((p) => !lastHistoricalWeek || new Date(p.period) > lastHistoricalWeek)
+      .map((p) => ({
+        month: formatShortDate(p.period),
+        score: Math.round(clampPct(p.value)),
+      })),
   ];
 
   const aiInsights = trend
@@ -110,13 +140,13 @@ function Prediction() {
           trend.savings?.projected_savings?.[0]?.value ?? 0
         ).toLocaleString()} (confidence ${Math.round((trend.savings?.confidence_score ?? 0) * 100)}%)`,
         `📚 Predicted study score next week: ${Math.round(
-          trend.study?.projected_productivity?.[0]?.value ?? 0
+          clampPct(trend.study?.projected_productivity?.[0]?.value ?? 0)
         )}% (confidence ${Math.round((trend.study?.productivity_confidence_score ?? 0) * 100)}%)`,
         `🏃 Predicted fitness score next week: ${Math.round(
-          trend.fitness?.projected_fitness_score?.[0]?.value ?? 0
+          clampPct(trend.fitness?.projected_fitness_score?.[0]?.value ?? 0)
         )}% (confidence ${Math.round((trend.fitness?.confidence_score ?? 0) * 100)}%)`,
         ...(trend.study?.predicted_exam_score != null
-          ? [`🎓 Predicted exam score: ${Math.round(trend.study.predicted_exam_score)}%`]
+          ? [`🎓 Predicted exam score: ${Math.round(clampPct(trend.study.predicted_exam_score))}%`]
           : []),
         `📈 Overall prediction confidence: ${Math.round((trend.overall_confidence_score ?? 0) * 100)}%`,
       ]
@@ -160,7 +190,6 @@ function Prediction() {
           <PredictionCards predictions={predictionCards} />
 
           <FutureChart data={futureChartData} />
-          <SimulationForm />
           <AIInsights insights={aiInsights} />
 
           <GoalTrendList goals={trend?.goals} />
@@ -168,8 +197,32 @@ function Prediction() {
           <PredictionHistory history={derivedHistory} />
         </div>
       ) : (
-        <div role="tabpanel" id="panel-what-if" aria-labelledby="tab-what-if">
-          <SimulationForm />
+        <div role="tabpanel" id="panel-what-if" aria-labelledby="tab-what-if" className="flex flex-col gap-6">
+          <div role="tablist" aria-label="What-if domains" className="flex flex-wrap gap-2">
+            {WHAT_IF_SUBTABS.map((subtab) => (
+              <button
+                key={subtab.id}
+                role="tab"
+                aria-selected={whatIfSubtab === subtab.id}
+                onClick={() => setWhatIfSubtab(subtab.id)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  whatIfSubtab === subtab.id
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300"
+                }`}
+              >
+                {subtab.label}
+              </button>
+            ))}
+          </div>
+
+          {whatIfSubtab === "finance" && <SimulationForm />}
+          {whatIfSubtab === "study" && <StudySimulationForm />}
+          {whatIfSubtab === "fitness" && <FitnessSimulationForm />}
+          {whatIfSubtab === "hybrid" && <HybridSimulationForm />}
+          {whatIfSubtab === "compare" && <DomainComparison />}
+
+          <SimulationHistoryList />
         </div>
       )}
 
