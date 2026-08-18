@@ -6,12 +6,14 @@ function HabitSummary({ habits }) {
     0
   );
 
-  const averageSleep = (
-    habits.reduce(
-      (sum, item) => sum + Number(item.sleep),
-      0
-    ) / habits.length
-  ).toFixed(1);
+  const averageSleep = habits.length === 0
+    ? "0.0"
+    : (
+        habits.reduce(
+          (sum, item) => sum + Number(item.sleep),
+          0
+        ) / habits.length
+      ).toFixed(1);
 
   const totalExercise = habits.reduce(
     (sum, item) => sum + Number(item.exercise),

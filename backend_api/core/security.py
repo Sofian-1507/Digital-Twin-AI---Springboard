@@ -44,22 +44,30 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 # ─── JWT ──────────────────────────────────────────────────────────────────────
 
-def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    subject: str, token_version: int = 0, expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Creates a signed JWT access token.
-    `subject` is the user's MongoDB ObjectId string.
+    `subject` is the user's MongoDB ObjectId string. `token_version` is embedded as the
+    `tv` claim — bumping User.token_version (on logout/password-change) invalidates every
+    token minted with an older version, since get_current_user checks this claim against
+    the live stored value.
     """
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    payload = {"sub": subject, "exp": expire, "iat": datetime.now(timezone.utc)}
+    payload = {"sub": subject, "tv": token_version, "exp": expire, "iat": datetime.now(timezone.utc)}
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def decode_access_token(token: str) -> Optional[str]:
+def decode_access_token(token: str) -> Optional[tuple[str, int]]:
     """
     Decodes and validates a JWT token.
-    Returns the `sub` (user_id) claim if valid, None if expired or invalid.
+    Returns (user_id, token_version) if valid, None if expired or invalid.
+    A token minted before the `tv` claim existed has no such claim — treated as
+    version 0, matching User.token_version's default, so pre-existing sessions
+    aren't broken by this claim being introduced.
     """
     try:
         payload = jwt.decode(
@@ -67,6 +75,9 @@ def decode_access_token(token: str) -> Optional[str]:
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
         )
-        return payload.get("sub")
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        return user_id, payload.get("tv", 0)
     except JWTError:
         return None

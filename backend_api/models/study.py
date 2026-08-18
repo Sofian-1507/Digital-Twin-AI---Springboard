@@ -12,6 +12,7 @@ from typing import Optional
 
 from beanie import Document, DecimalAnnotation, PydanticObjectId
 from pydantic import Field, model_validator
+from pymongo import ASCENDING, DESCENDING, IndexModel
 
 from models.enums import SessionType
 
@@ -33,7 +34,9 @@ class StudyActivity(Document):
     exam_marks_pct: Optional[DecimalAnnotation] = None        # Auto-computed (mirrors pre-validate middleware)
 
     focus_score: Optional[int] = Field(default=None, ge=0, le=100)
-    linked_goal_id: Optional[PydanticObjectId] = None
+    # str, not PydanticObjectId: active_goals.goal_id is a UUID string (models/user.py),
+    # not a Mongo ObjectId — this field must match that type to actually be usable.
+    linked_goal_id: Optional[str] = None
 
     session_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -59,6 +62,22 @@ class StudyActivity(Document):
 
     class Settings:
         name = "study_activities"   # ← Exact collection name from TS layer
+        # Already live on the database (created out-of-band); declared here so a
+        # fresh database gets them too. Names/keys match the live indexes exactly.
+        indexes = [
+            IndexModel(
+                [("user_id", ASCENDING), ("session_date", DESCENDING)],
+                name="idx_study_user_date",
+            ),
+            IndexModel(
+                [("user_id", ASCENDING), ("subject", ASCENDING), ("session_date", DESCENDING)],
+                name="idx_study_user_subj_date",
+            ),
+            IndexModel(
+                [("user_id", ASCENDING), ("session_type", ASCENDING), ("session_date", DESCENDING)],
+                name="idx_study_user_type_date",
+            ),
+        ]
 
     class Config:
         populate_by_name = True

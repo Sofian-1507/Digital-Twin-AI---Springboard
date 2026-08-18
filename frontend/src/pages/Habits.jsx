@@ -107,20 +107,28 @@ function Habits() {
   // which is already covered by the initial fetch above).
   useEffect(() => {
     if (isLoading) return;
+    // Guards against an older in-flight request resolving after a newer one (e.g. rapid
+    // page-clicks) and overwriting fresher data.
+    let cancelled = false;
     async function fetchTablePage() {
       setIsTableLoading(true);
       try {
         const result = await getHabitLogs({ page, limit: 30 });
+        if (cancelled) return;
         setHabitList((result.data || []).map(toDisplayHabit));
         setTotalPages(result.total_pages || 1);
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to fetch habit logs:", err);
         toast.error("Could not load habit logs. Please try again later.");
       } finally {
-        setIsTableLoading(false);
+        if (!cancelled) setIsTableLoading(false);
       }
     }
     fetchTablePage();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 

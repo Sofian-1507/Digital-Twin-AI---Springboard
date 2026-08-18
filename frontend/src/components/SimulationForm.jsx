@@ -5,7 +5,7 @@ import { runFinanceScenarios, submitRecommendationFeedback } from "../services/s
 import { getApiErrorMessage } from "../utils/apiError";
 import ScenarioComparison from "./ScenarioComparison";
 import ScenarioChart from "./ScenarioChart";
-import RecommendationCard from "./RecommendationCard";
+import RecommendationCard from "./SimulationRecommendationCard";
 
 function SimulationForm() {
   const [formData, setFormData] = useState({

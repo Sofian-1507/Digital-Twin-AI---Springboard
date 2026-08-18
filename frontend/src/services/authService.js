@@ -39,8 +39,34 @@ export const loginUser = async (credentials) => {
 };
 
 /**
- * Clear the JWT from localStorage (client-side logout).
+ * Logs out on the server (invalidates this token, and every other outstanding
+ * token for this account — there's no per-device session concept), then always
+ * clears the local token regardless of whether the server call succeeds, so the
+ * user is never stuck "logged in" locally just because of a network error.
+ * POST /api/v1/auth/logout
  */
-export const logoutUser = () => {
-  localStorage.removeItem("token");
+export const logoutUser = async () => {
+  try {
+    await api.post("/auth/logout");
+  } catch {
+    // Best-effort — still clear the local session below even if this failed
+    // (e.g. offline, or the token was already invalid).
+  } finally {
+    localStorage.removeItem("token");
+  }
+};
+
+/**
+ * Changes the current user's password. Invalidates every other outstanding
+ * session; the returned fresh token keeps this session working.
+ * POST /api/v1/users/me/change-password
+ * @param {{ current_password: string, new_password: string }} payload
+ * @returns {Promise<{ access_token, token_type, user_id, email }>}
+ */
+export const changePassword = async (payload) => {
+  const response = await api.post("/users/me/change-password", payload);
+  if (response.data.access_token) {
+    localStorage.setItem("token", response.data.access_token);
+  }
+  return response.data;
 };

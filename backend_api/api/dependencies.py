@@ -26,14 +26,15 @@ async def get_current_user(
     Raises HTTP 401 if the token is invalid/expired or the user no longer exists.
     This is the FastAPI equivalent of the TS layer's getTwinContext() O(1) read.
     """
-    user_id = decode_access_token(token)
-    if not user_id:
+    decoded = decode_access_token(token)
+    if not decoded:
         logger.warning("Invalid or expired JWT token presented.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    user_id, token_version = decoded
 
     user = await User.get(PydanticObjectId(user_id))
     if not user:
@@ -41,6 +42,15 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if token_version != user.token_version:
+        logger.warning("Stale token_version for user %s (token had %s, current is %s).",
+                        user_id, token_version, user.token_version)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has been invalidated. Please log in again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

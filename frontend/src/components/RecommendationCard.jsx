@@ -1,85 +1,22 @@
-import { useState } from "react";
+import InsightList from "./InsightList";
 
-function formatStatValue(value, unit) {
-  const formatted = Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
-  if (!unit) return formatted;
-  if (unit === "INR") return `₹${formatted}`;
-  return `${formatted} ${unit}`;
-}
+const DEFAULT_INSIGHTS = [
+  "📘 Spend 1 extra hour on DSA this week.",
+  "☕ Take a 10-minute break after every 90 minutes of study.",
+  "📚 React progress is excellent. Continue practicing projects.",
+  "🚀 Estimated productivity next week: 91%",
+];
 
-function RecommendationCard({ recommendation, onFeedback }) {
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(null); // "HELPFUL" | "UNHELPFUL" | null
-
-  if (!recommendation) {
-    return null;
-  }
-
-  const handleFeedback = async (value) => {
-    if (submitting || submitted) return;
-    setSubmitting(true);
-    try {
-      await onFeedback(recommendation.id, value);
-      setSubmitted(value);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+function RecommendationCard({ insights }) {
   return (
-    <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-6 shadow-sm dark:border-indigo-500/30 dark:bg-indigo-500/10">
-      <div className="mb-4 flex items-start gap-3">
-        <span className="text-2xl">🤖</span>
-
-        <div>
-          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">AI Recommendation</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Based on your simulated future outcomes</p>
-        </div>
-      </div>
-
-      <h4 className="mb-1 text-sm font-semibold text-indigo-700 dark:text-indigo-300">{recommendation.title}</h4>
-      <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">{recommendation.reason}</p>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {recommendation.stats.map((stat) => (
-          <div key={stat.label} className="rounded-lg bg-white p-3 dark:bg-slate-800">
-            <span className="block text-xs text-slate-500 dark:text-slate-400">{stat.label}</span>
-            <strong className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {formatStatValue(stat.value, stat.unit)}
-            </strong>
-          </div>
-        ))}
-      </div>
-
-      {onFeedback && (
-        <div className="mt-4">
-          {submitted ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Thanks for your feedback ({submitted === "HELPFUL" ? "👍 Helpful" : "👎 Not helpful"}).
-            </p>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleFeedback("HELPFUL")}
-                disabled={submitting}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                👍 Helpful
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFeedback("UNHELPFUL")}
-                disabled={submitting}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                👎 Not helpful
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <InsightList
+      title="AI Study Recommendation"
+      items={insights}
+      defaultItems={DEFAULT_INSIGHTS}
+      cardClassName="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+      listClassName="flex flex-col gap-2.5"
+      itemClassName="rounded-lg border-l-4 border-violet-500 bg-slate-50 p-3.5 text-sm text-slate-700 dark:bg-slate-700/40 dark:text-slate-300"
+    />
   );
 }
 

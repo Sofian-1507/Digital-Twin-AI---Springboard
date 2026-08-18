@@ -109,6 +109,9 @@ function Study() {
   // Re-fetch the table page whenever the subject filter or page changes.
   useEffect(() => {
     if (isLoading) return;
+    // Guards against an older in-flight request resolving after a newer one (e.g. rapid
+    // page-clicks or a filter change fired mid-fetch) and overwriting fresher data.
+    let cancelled = false;
     async function fetchTablePage() {
       setIsTableLoading(true);
       try {
@@ -117,18 +120,23 @@ function Study() {
           limit: 20,
           ...(subjectFilter ? { subject: subjectFilter } : {}),
         });
+        if (cancelled) return;
         const data = result.data || [];
         setSessions(data);
         setTotalPages(result.total_pages || 1);
         setChartData(buildWeeklyChart(data));
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to fetch study sessions:", err);
         toast.error("Could not load study sessions. Please try again later.");
       } finally {
-        setIsTableLoading(false);
+        if (!cancelled) setIsTableLoading(false);
       }
     }
     fetchTablePage();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, subjectFilter]);
 
@@ -144,17 +152,14 @@ function Study() {
     setPage(1);
   }
 
-  /**
-   * Posts a new session to the backend and prepends it to the local list.
-   * session_type uses a valid backend enum value: "DEEP_WORK".
-   */
+  /** Posts a new session to the backend and prepends it to the local list. */
   async function addSession(formData) {
     try {
       const payload = {
         subject:      formData.subject,
         study_hours:  Number(formData.hours),
-        session_type: "DEEP_WORK",
-        attendance_pct: 100,
+        session_type: formData.session_type,
+        attendance_pct: Number(formData.attendance_pct),
         session_date: formData.date
           ? new Date(formData.date).toISOString()
           : undefined,
@@ -178,8 +183,8 @@ function Study() {
       const payload = {
         subject:      formData.subject,
         study_hours:  Number(formData.hours),
-        session_type: "DEEP_WORK",
-        attendance_pct: 100,
+        session_type: formData.session_type,
+        attendance_pct: Number(formData.attendance_pct),
         session_date: formData.date
           ? new Date(formData.date).toISOString()
           : undefined,
@@ -225,7 +230,8 @@ function Study() {
       date: dateStr ? dateStr.substring(0, 10) : "",
       subject: record.subject,
       hours: record.hours || record.study_hours,
-      status: record.status || "Completed",
+      session_type: record.session_type || "DEEP_WORK",
+      attendance_pct: record.attendance_pct ?? 100,
     });
   };
 

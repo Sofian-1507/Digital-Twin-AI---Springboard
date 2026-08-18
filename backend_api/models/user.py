@@ -97,6 +97,12 @@ class User(Document):
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     active_goals: list[ActiveGoal] = Field(default_factory=list)
     digital_twin_state: DigitalTwinState = Field(default_factory=DigitalTwinState)
+    # Bumped on logout / password change to invalidate every previously issued JWT for
+    # this user (see core/security.py's "tv" claim + api/dependencies.py's check).
+    # Defaults to 0 for both new users and every pre-existing user document (which has
+    # no token_version key at all) — matching a missing "tv" claim on already-issued
+    # tokens, so this doesn't invalidate anyone's current session when it first deploys.
+    token_version: int = Field(default=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

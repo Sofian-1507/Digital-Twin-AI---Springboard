@@ -30,7 +30,7 @@ function HabitTable({ habits, onDelete }) {
   const [sortDir, setSortDir] = useState("desc");
 
   const filteredHabits = habits.filter((item) =>
-    item.mood
+    (item.mood || "")
       .toLowerCase()
       .includes(searchMood.toLowerCase())
   );

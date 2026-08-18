@@ -37,7 +37,7 @@ def _to_response(record: FinancialRecord) -> FinanceRecordResponse:
         description=record.description,
         is_recurring=record.is_recurring,
         recurring_frequency=record.recurring_frequency,
-        linked_goal_id=str(record.linked_goal_id) if record.linked_goal_id else None,
+        linked_goal_id=record.linked_goal_id,
         transaction_date=record.transaction_date,
         created_at=record.created_at,
     )
@@ -55,7 +55,7 @@ async def create_transaction(
         description=payload.description,
         is_recurring=payload.is_recurring,
         recurring_frequency=payload.recurring_frequency,
-        linked_goal_id=PydanticObjectId(payload.linked_goal_id) if payload.linked_goal_id else None,
+        linked_goal_id=payload.linked_goal_id,
         transaction_date=payload.transaction_date or datetime.now(timezone.utc),
     )
     await record.insert()
@@ -88,13 +88,9 @@ async def update_transaction(
     if not update_data:
         return _to_response(record)
         
-    if "linked_goal_id" in update_data:
-        val = update_data["linked_goal_id"]
-        update_data["linked_goal_id"] = PydanticObjectId(val) if val else None
-
     for key, value in update_data.items():
         setattr(record, key, value)
-        
+
     await record.save()
     
     await activity_service.log_activity(

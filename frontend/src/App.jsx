@@ -1,11 +1,14 @@
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AppRoutes from "./routes/AppRoutes";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 function App() {
   return (
     <>
-      <AppRoutes />
+      <ErrorBoundary>
+        <AppRoutes />
+      </ErrorBoundary>
       <ToastContainer
         position="top-right"
         autoClose={4000}

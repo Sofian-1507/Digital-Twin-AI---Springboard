@@ -59,10 +59,10 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Clears the session on the client side.
+   * Logs out server-side (invalidating the token) and clears the session locally.
    */
-  const logout = () => {
-    logoutUser();
+  const logout = async () => {
+    await logoutUser();
     setUser(null);
   };
 

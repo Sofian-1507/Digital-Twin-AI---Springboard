@@ -5,7 +5,7 @@ import { runHybridScenarios, submitRecommendationFeedback } from "../services/si
 import { getApiErrorMessage } from "../utils/apiError";
 import ScenarioComparison from "./ScenarioComparison";
 import ScenarioChart from "./ScenarioChart";
-import RecommendationCard from "./RecommendationCard";
+import RecommendationCard from "./SimulationRecommendationCard";
 
 function HybridSimulationForm() {
   const [formData, setFormData] = useState({

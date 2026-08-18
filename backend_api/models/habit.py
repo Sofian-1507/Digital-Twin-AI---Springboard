@@ -13,6 +13,7 @@ from typing import Optional
 
 from beanie import Document, DecimalAnnotation, PydanticObjectId
 from pydantic import Field, model_validator
+from pymongo import ASCENDING, IndexModel
 
 from models.enums import BurnoutRisk
 
@@ -49,6 +50,20 @@ class HabitTracking(Document):
 
     class Settings:
         name = "habit_trackings"    # ← Exact collection name from TS layer
+        # This index did NOT previously exist on the live database despite being
+        # documented above and in core/exceptions.py's DuplicateKeyError handler —
+        # confirmed via a live read-only query before adding this (zero pre-existing
+        # duplicate (user_id, log_date) pairs), so this is safe to create with no
+        # migration/cleanup step. It's the actual DB-level guarantee that
+        # upsert_daily_log()'s find_one_and_update(upsert=True) pattern depends on
+        # to be atomic under concurrent requests for the same user+day.
+        indexes = [
+            IndexModel(
+                [("user_id", ASCENDING), ("log_date", ASCENDING)],
+                name="idx_habit_user_date_unique",
+                unique=True,
+            ),
+        ]
 
     class Config:
         populate_by_name = True

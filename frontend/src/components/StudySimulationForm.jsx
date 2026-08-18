@@ -5,7 +5,7 @@ import { runStudyScenarios, submitRecommendationFeedback } from "../services/sim
 import { getApiErrorMessage } from "../utils/apiError";
 import ScenarioComparison from "./ScenarioComparison";
 import ScenarioChart from "./ScenarioChart";
-import RecommendationCard from "./RecommendationCard";
+import RecommendationCard from "./SimulationRecommendationCard";
 
 function StudySimulationForm() {
   const [formData, setFormData] = useState({ additional_weekly_study_hours: "", weeks_ahead: 4 });

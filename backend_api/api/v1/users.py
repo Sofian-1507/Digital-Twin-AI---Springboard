@@ -1,21 +1,25 @@
 """
 api/v1/users.py — User profile management endpoints.
-GET    /api/v1/users/me              → full twin context (O(1) read)
-PATCH  /api/v1/users/me/profile      → partial profile update
-PATCH  /api/v1/users/me/preferences  → partial preferences update
-POST   /api/v1/users/me/goals        → add active goal
-GET    /api/v1/users/me/goals        → list active goals
+GET    /api/v1/users/me                  → full twin context (O(1) read)
+PATCH  /api/v1/users/me/profile          → partial profile update
+PATCH  /api/v1/users/me/preferences      → partial preferences update
+POST   /api/v1/users/me/change-password  → change password, invalidates other sessions
+POST   /api/v1/users/me/goals            → add active goal
+GET    /api/v1/users/me/goals            → list active goals
 """
 import logging
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, Request, status, Depends
 from beanie import PydanticObjectId
 
 from api.dependencies import CurrentUser
+from core.rate_limit import limiter
+from core.security import create_access_token
 from models.user import User
+from schemas.auth_schema import ChangePasswordRequest, TokenResponse
 from schemas.user_schema import (
     UserResponse,
     ProfileUpdateRequest,
@@ -89,11 +93,12 @@ def _serialize_user(user: User) -> UserResponse:
 )
 async def get_me(current_user: CurrentUser) -> UserResponse:
     """
-    Returns the full user aggregate in a single database read:
-    profile + preferences + active_goals + digital_twin_state.
-    Python equivalent of getTwinContext() from user_repository.ts.
+    Returns the full user aggregate: profile + preferences + active_goals +
+    digital_twin_state (recomputed live from real activity on every call —
+    see user_service.get_twin_context for the data sources).
     """
-    return _serialize_user(current_user)
+    user = await user_service.get_twin_context(str(current_user.id))
+    return _serialize_user(user)
 
 @router.delete(
     "/me",
@@ -105,6 +110,32 @@ async def delete_me(
 ) -> None:
     """Permanently deletes the user and all associated records."""
     await user_service.delete_user(current_user)
+
+
+@router.post(
+    "/me/change-password",
+    response_model=TokenResponse,
+    summary="Change the current user's password",
+)
+@limiter.limit("5/minute")
+async def change_password(
+    request: Request,
+    payload: ChangePasswordRequest,
+    current_user: CurrentUser,
+) -> TokenResponse:
+    """
+    Verifies the current password, sets the new one, and invalidates every other
+    outstanding session for this account. Returns a fresh token so the session that
+    made this change keeps working — every other previously issued token is now stale.
+    Rate limited (takes a password guess as input, same as /auth/login).
+    """
+    user = await user_service.change_password(current_user, payload)
+    token = create_access_token(subject=str(user.id), token_version=user.token_version)
+    return TokenResponse(
+        access_token=token,
+        user_id=str(user.id),
+        email=user.email,
+    )
 
 
 @router.patch(

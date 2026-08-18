@@ -5,6 +5,7 @@ Covers all MongoDB-specific error types plus domain business logic errors.
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from pymongo.errors import DuplicateKeyError
+from slowapi.errors import RateLimitExceeded
 
 
 # ─── Custom Domain Exceptions ─────────────────────────────────────────────────
@@ -84,5 +85,20 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "error": "DUPLICATE_KEY",
                 "message": "A record with this unique constraint already exists.",
                 "detail": str(exc)[:200],
+            },
+        )
+
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+        """
+        Overrides slowapi's default plain-text response with the same JSON error
+        shape every other handler in this file uses, so frontend error parsing
+        (getApiErrorMessage) works identically for a 429 as for any other error.
+        """
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "error": "RATE_LIMITED",
+                "message": "Too many attempts. Please wait a moment and try again.",
             },
         )

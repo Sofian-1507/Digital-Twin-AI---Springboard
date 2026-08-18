@@ -33,7 +33,7 @@ function StudyTable({ sessions, onEdit, onDelete }) {
 
   const filteredSessions = sessions.filter((item) => {
 
-    const subjectMatch = item.subject
+    const subjectMatch = (item.subject || "")
       .toLowerCase()
       .includes(search.toLowerCase());
 

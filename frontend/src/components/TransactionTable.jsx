@@ -29,7 +29,7 @@ function TransactionTable({ transactions, onEdit, onDelete }) {
   const [sortDir, setSortDir] = useState("desc");
 
   const filteredTransactions = transactions.filter((item) =>
-    item.category
+    (item.category || "")
       .toLowerCase()
       .includes(search.toLowerCase())
   );

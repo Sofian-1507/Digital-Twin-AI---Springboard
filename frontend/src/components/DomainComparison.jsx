@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 
 import { getDomainComparison } from "../services/simulationService";
 import { getApiErrorMessage } from "../utils/apiError";
-import RecommendationCard from "./RecommendationCard";
+import RecommendationCard from "./SimulationRecommendationCard";
 
 const DOMAIN_LABELS = { finance: "Finance", study: "Study", fitness: "Fitness" };
 

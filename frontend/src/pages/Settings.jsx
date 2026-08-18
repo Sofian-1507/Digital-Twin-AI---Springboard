@@ -3,12 +3,14 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
 import PreferencesForm from "../components/PreferencesForm";
+import ChangePasswordForm from "../components/ChangePasswordForm";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import { SkeletonCard } from "../components/ui/Skeleton";
 
 import { getUser, updatePreferences, deleteUser } from "../services/userService";
+import { changePassword } from "../services/authService";
 import { useAuth } from "../context/useAuth";
 
 /**
@@ -71,6 +73,14 @@ function Settings() {
       <Card>
         <h3 className="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-100">Preferences</h3>
         <PreferencesForm user={user} onSave={savePreferences} />
+      </Card>
+
+      <Card className="mt-6">
+        <h3 className="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-100">Change Password</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Changing your password logs out every other device or browser currently signed in.
+        </p>
+        <ChangePasswordForm onSave={changePassword} />
       </Card>
 
       <div className="mt-6 rounded-2xl border border-red-200 p-5 dark:border-red-900/60 dark:bg-red-950/10">

@@ -40,7 +40,7 @@ def _to_response(record: StudyActivity) -> StudyRecordResponse:
         max_exam_marks=record.max_exam_marks,
         exam_marks_pct=record.exam_marks_pct,
         focus_score=record.focus_score,
-        linked_goal_id=str(record.linked_goal_id) if record.linked_goal_id else None,
+        linked_goal_id=record.linked_goal_id,
         session_date=record.session_date,
         created_at=record.created_at,
     )
@@ -65,7 +65,7 @@ async def log_study_session(
         exam_marks=payload.exam_marks,
         max_exam_marks=payload.max_exam_marks,
         focus_score=payload.focus_score,
-        linked_goal_id=PydanticObjectId(payload.linked_goal_id) if payload.linked_goal_id else None,
+        linked_goal_id=payload.linked_goal_id,
         session_date=payload.session_date or datetime.now(timezone.utc),
     )
     await record.insert()
@@ -98,13 +98,9 @@ async def update_session(
     if not update_data:
         return _to_response(record)
         
-    if "linked_goal_id" in update_data:
-        val = update_data["linked_goal_id"]
-        update_data["linked_goal_id"] = PydanticObjectId(val) if val else None
-
     for key, value in update_data.items():
         setattr(record, key, value)
-        
+
     # Re-trigger percentage computation
     record = record.compute_percentage_scores()
         

@@ -3,15 +3,25 @@ import { toast } from "react-toastify";
 import { Input, Select } from "./ui/Field";
 import Button from "./ui/Button";
 
+const SESSION_TYPES = [
+  { value: "DEEP_WORK", label: "Deep Work" },
+  { value: "REVIEW", label: "Review" },
+  { value: "LECTURE", label: "Lecture" },
+  { value: "PRACTICE_EXAM", label: "Practice Exam" },
+  { value: "ASSIGNMENT", label: "Assignment" },
+  { value: "RESEARCH", label: "Research" },
+];
+
+const DEFAULT_FORM = {
+  date: "",
+  subject: "",
+  hours: "",
+  session_type: "DEEP_WORK",
+  attendance_pct: 100,
+};
+
 function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel = null }) {
-  const [formData, setFormData] = useState(
-    initialData || {
-      date: "",
-      subject: "",
-      hours: "",
-      status: "Completed",
-    }
-  );
+  const [formData, setFormData] = useState(initialData || DEFAULT_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -34,18 +44,19 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
       return;
     }
 
+    const attendance = Number(formData.attendance_pct);
+    if (Number.isNaN(attendance) || attendance < 0 || attendance > 100) {
+      toast.error("Attendance must be between 0 and 100.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (initialData && onUpdate) {
         await onUpdate(initialData.id, formData);
       } else {
         await addSession(formData);
-        setFormData({
-          date: "",
-          subject: "",
-          hours: "",
-          status: "Completed",
-        });
+        setFormData(DEFAULT_FORM);
       }
     } finally {
       setIsSubmitting(false);
@@ -88,10 +99,22 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
           onChange={handleChange}
         />
 
-        <Select name="status" value={formData.status} onChange={handleChange}>
-          <option>Completed</option>
-          <option>Pending</option>
+        <Select name="session_type" value={formData.session_type} onChange={handleChange}>
+          {SESSION_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
         </Select>
+
+        <Input
+          type="number"
+          name="attendance_pct"
+          placeholder="Attendance %"
+          min="0"
+          max="100"
+          step="1"
+          value={formData.attendance_pct}
+          onChange={handleChange}
+        />
 
       </div>
 

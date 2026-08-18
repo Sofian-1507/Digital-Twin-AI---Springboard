@@ -116,6 +116,9 @@ function Finance() {
   // very first render, which is covered by the dashboard fetch above).
   useEffect(() => {
     if (isLoading) return;
+    // Guards against an older in-flight request resolving after a newer one (e.g. rapid
+    // page-clicks or a filter change fired mid-fetch) and overwriting fresher data.
+    let cancelled = false;
     async function fetchTablePage() {
       setIsTableLoading(true);
       try {
@@ -125,16 +128,21 @@ function Finance() {
           ...(typeFilter ? { type: typeFilter } : {}),
           ...(categoryFilter ? { category: categoryFilter } : {}),
         });
+        if (cancelled) return;
         setTransactions(result.data || []);
         setTotalPages(result.total_pages || 1);
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to fetch transactions:", err);
         toast.error("Could not load transactions. Please try again later.");
       } finally {
-        setIsTableLoading(false);
+        if (!cancelled) setIsTableLoading(false);
       }
     }
     fetchTablePage();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, typeFilter, categoryFilter]);
 
@@ -224,8 +232,8 @@ function Finance() {
     const initialData = {
       id: record.id,
       date: dateStr ? dateStr.substring(0, 10) : "",
-      type: record.type.toUpperCase(), // Income -> INCOME
-      category: record.category.toUpperCase(),
+      type: (record.type || "EXPENSE").toUpperCase(), // Income -> INCOME
+      category: (record.category || "OTHER").toUpperCase(),
       amount: record.amount,
       description: record.description || "",
     };

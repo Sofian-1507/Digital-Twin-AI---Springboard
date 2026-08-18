@@ -6,9 +6,11 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.middleware import SlowAPIMiddleware
 from core.config import get_settings
 from core.database import lifespan
 from core.exceptions import register_exception_handlers
+from core.rate_limit import limiter
 from api.v1 import (
     auth,
     users,
@@ -47,6 +49,10 @@ app = FastAPI(
     lifespan=lifespan,                  # Async startup/shutdown (replaces @app.on_event)
 )
 
+# ─── Rate Limiting (scoped to auth endpoints — see api/v1/auth.py) ────────────
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
@@ -56,7 +62,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Global Exception Handlers ────────────────────────────────────────────────
+# ─── Global Exception Handlers ─────────────────────────────────────────────────
+# Includes the RateLimitExceeded handler for the limiter registered above.
 register_exception_handlers(app)
 
 # ─── API Routers ──────────────────────────────────────────────────────────────
