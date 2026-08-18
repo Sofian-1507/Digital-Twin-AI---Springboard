@@ -12,6 +12,7 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 
+from core.exceptions import NotFoundError
 from models.study import StudyActivity
 from schemas.study_schema import (
     StudyCreateRequest,
@@ -86,13 +87,11 @@ async def update_session(
     try:
         sid = PydanticObjectId(session_id)
     except Exception:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-        
+        raise NotFoundError("Session", session_id)
+
     record = await StudyActivity.find_one({"_id": sid, "user_id": uid})
     if not record:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise NotFoundError("Session", session_id)
         
     update_data = payload.model_dump(exclude_unset=True)
     if not update_data:
@@ -121,13 +120,11 @@ async def delete_session(user_id: str, session_id: str) -> None:
     try:
         sid = PydanticObjectId(session_id)
     except Exception:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-        
+        raise NotFoundError("Session", session_id)
+
     record = await StudyActivity.find_one({"_id": sid, "user_id": uid})
     if not record:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise NotFoundError("Session", session_id)
         
     await record.delete()
     

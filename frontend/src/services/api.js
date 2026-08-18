@@ -3,30 +3,20 @@
  * Axios singleton pre-configured for the FastAPI backend.
  *
  * - Base URL read from VITE_API_URL (falls back to localhost:8000)
- * - Request interceptor: attaches the JWT Bearer token on every call
- * - Response interceptor: clears localStorage and redirects on 401
+ * - withCredentials: true — auth is an httpOnly cookie the backend sets on
+ *   login/register/change-password, not a token this code reads or attaches;
+ *   the browser sends it automatically on every request to the API origin.
+ * - Response interceptor: redirects to /login on 401
  */
 import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/v1",
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
-
-// ── Request interceptor ──────────────────────────────────────────────────────
-// Attach JWT from localStorage to every request automatically.
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
@@ -46,13 +36,13 @@ function delay(ms) {
 }
 
 // ── Response interceptor ─────────────────────────────────────────────────────
-// On 401 Unauthorized, clear the stale session and redirect to login.
+// On 401 Unauthorized, redirect to login (the httpOnly cookie, if any, is either
+// missing or stale — nothing for this code to clear client-side).
 // On a transient network/5xx failure for a GET, retry a couple of times before failing.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
       // Redirect to login only if not already there
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";

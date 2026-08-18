@@ -13,6 +13,7 @@ import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui
 
 import { getHabitLogs, logDailyHabit, deleteHabitLog } from "../services/habitService";
 import { getHabitTrend, getHabitAnalyticsSummary } from "../services/habitAnalyticsService";
+import { getApiErrorMessage } from "../utils/apiError";
 
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -163,7 +164,7 @@ function Habits() {
       toast.success("Habit log saved successfully.");
     } catch (err) {
       console.error("Failed to add habit log:", err);
-      toast.error("Failed to log habit. Please try again.");
+      toast.error(getApiErrorMessage(err, "Failed to log habit. Please try again."));
       throw err;
     }
   }

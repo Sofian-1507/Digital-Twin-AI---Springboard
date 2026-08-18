@@ -1,4 +1,6 @@
-function SavingsProgress({ transactions, goal: activeGoal }) {
+import { formatCurrency } from "../utils/currency";
+
+function SavingsProgress({ transactions, goal: activeGoal, currency = "USD" }) {
 
   // Bug fix: comparing against "Income"/"Expense" never matched the backend's
   // actual uppercase enum values ("INCOME"/"EXPENSE"), so this always computed
@@ -50,7 +52,7 @@ function SavingsProgress({ transactions, goal: activeGoal }) {
       <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{activeGoal.title}</h3>
 
       <h2 className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${isNegative ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`}>
-        ${savings.toLocaleString()} / ${goal.toLocaleString()}
+        {formatCurrency(savings, currency)} / {formatCurrency(goal, currency)}
       </h2>
 
       <div className="my-5 h-4 w-full overflow-hidden rounded-full bg-slate-200">

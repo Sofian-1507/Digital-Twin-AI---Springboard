@@ -4,6 +4,11 @@
  *
  * The FastAPI backend uses plain JSON for both /auth/register and /auth/login
  * (LoginRequest and RegisterRequest are Pydantic BaseModels, not OAuth2PasswordRequestForm).
+ *
+ * Auth is an httpOnly cookie the backend sets directly on the response (see
+ * api.js's withCredentials: true) — this code never reads or stores a token itself.
+ * The response body still includes access_token for API/schema stability, but
+ * it's intentionally unused here.
  */
 import api from "./api";
 
@@ -15,9 +20,6 @@ import api from "./api";
  */
 export const registerUser = async (payload) => {
   const response = await api.post("/auth/register", payload);
-  if (response.data.access_token) {
-    localStorage.setItem("token", response.data.access_token);
-  }
   return response.data;
 };
 
@@ -32,41 +34,33 @@ export const loginUser = async (credentials) => {
     email: credentials.email,
     password: credentials.password,
   });
-  if (response.data.access_token) {
-    localStorage.setItem("token", response.data.access_token);
-  }
   return response.data;
 };
 
 /**
- * Logs out on the server (invalidates this token, and every other outstanding
- * token for this account — there's no per-device session concept), then always
- * clears the local token regardless of whether the server call succeeds, so the
- * user is never stuck "logged in" locally just because of a network error.
+ * Logs out on the server: invalidates this session's token_version (and every
+ * other outstanding session for this account — there's no per-device session
+ * concept) and clears the httpOnly cookie. Best-effort — if the request fails
+ * (e.g. offline, or the cookie was already invalid), there's nothing to clean
+ * up client-side since there's no local token to remove.
  * POST /api/v1/auth/logout
  */
 export const logoutUser = async () => {
   try {
     await api.post("/auth/logout");
   } catch {
-    // Best-effort — still clear the local session below even if this failed
-    // (e.g. offline, or the token was already invalid).
-  } finally {
-    localStorage.removeItem("token");
+    // Best-effort — the cookie (if any) will simply fail auth on the next request.
   }
 };
 
 /**
  * Changes the current user's password. Invalidates every other outstanding
- * session; the returned fresh token keeps this session working.
+ * session; the backend re-sets the auth cookie so this session keeps working.
  * POST /api/v1/users/me/change-password
  * @param {{ current_password: string, new_password: string }} payload
  * @returns {Promise<{ access_token, token_type, user_id, email }>}
  */
 export const changePassword = async (payload) => {
   const response = await api.post("/users/me/change-password", payload);
-  if (response.data.access_token) {
-    localStorage.setItem("token", response.data.access_token);
-  }
   return response.data;
 };

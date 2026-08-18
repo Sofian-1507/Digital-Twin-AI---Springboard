@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     MONGODB_DB_NAME: str = "digital_twin_ai_prod"
     MONGODB_MAX_POOL_SIZE: int = 100
     MONGODB_MIN_POOL_SIZE: int = 10
+    MONGODB_CONNECT_TIMEOUT_MS: int = 10_000
+    MONGODB_SOCKET_TIMEOUT_MS: int = 45_000
 
     # ── App ───────────────────────────────────────────────────────────────────
     APP_NAME: str = "Digital Twin AI – FastAPI Backend"
@@ -31,6 +33,10 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = _INSECURE_JWT_SECRET_PLACEHOLDER
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
+    # The `access_token` cookie's Secure flag — must be True behind real HTTPS.
+    # False is correct for local HTTP dev (mirrors is_production's NODE_ENV switch).
+    COOKIE_SECURE: bool = False
 
     @field_validator("JWT_SECRET_KEY")
     @classmethod

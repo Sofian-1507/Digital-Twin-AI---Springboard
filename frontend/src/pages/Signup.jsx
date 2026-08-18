@@ -7,6 +7,7 @@ import { registerUser } from "../services/authService";
 import { useAuth } from "../context/useAuth";
 import { Input, Select } from "../components/ui/Field";
 import Button from "../components/ui/Button";
+import { getApiErrorMessage } from "../utils/apiError";
 
 function Signup() {
   const navigate = useNavigate();
@@ -54,13 +55,7 @@ function Signup() {
       await login(data);
       navigate("/dashboard");
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        "Registration failed. Please try again.";
-      const readable = Array.isArray(msg)
-        ? msg[0]?.msg || "Registration failed."
-        : msg;
-      toast.error(readable);
+      toast.error(getApiErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setIsLoading(false);
     }

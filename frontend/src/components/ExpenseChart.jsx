@@ -8,15 +8,16 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { formatCurrency } from "../utils/currency";
 
-function ExpenseChart({ data }) {
+function ExpenseChart({ data, currency = "USD" }) {
   const latest = data?.[data.length - 1];
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
       <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Monthly Expense Trend</h3>
       <p className="sr-only">
-        Monthly expense trend chart. {latest ? `Most recent month: ${latest.month}, $${Math.round(latest.expense).toLocaleString()}.` : "No data yet."}
+        Monthly expense trend chart. {latest ? `Most recent month: ${latest.month}, ${formatCurrency(Math.round(latest.expense), currency)}.` : "No data yet."}
       </p>
 
       <ResponsiveContainer width="100%" height={300}>

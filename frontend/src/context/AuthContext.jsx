@@ -2,8 +2,9 @@
  * src/context/AuthContext.jsx
  * Provides authentication state (user, isLoading) to the entire app.
  *
- * On mount, checks for an existing JWT in localStorage and fetches the
- * user profile from the backend to rehydrate the session automatically.
+ * Auth is an httpOnly cookie (see services/api.js) — this code can't read it to
+ * check "is there a session" up front, so it always asks the backend on mount
+ * and treats a 401 as logged-out.
  */
 import { useState, useEffect } from "react";
 import { getUser } from "../services/userService";
@@ -22,26 +23,29 @@ export function AuthProvider({ children }) {
   }, [user?.preferences?.dark_mode]);
 
   // ── Restore session on initial app load ────────────────────────────────────
+  // No cross-tab `storage` listener here on purpose: an httpOnly cookie is
+  // automatically shared by the browser across every tab of the same origin, so
+  // logging out in one tab already applies to the others — just via their next
+  // API call 401'ing, rather than instantly like a readable localStorage token
+  // could signal. Nothing for this code to listen for.
   useEffect(() => {
     async function restoreSession() {
-      const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const userData = await getUser();
-          setUser(userData);
-        } catch {
-          // Token is invalid or expired; clean it up
-          logoutUser();
-        }
+      try {
+        const userData = await getUser();
+        setUser(userData);
+      } catch {
+        // No valid session cookie — stay logged out.
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
     restoreSession();
   }, []);
 
   /**
-   * Called after a successful login or register API response.
-   * The token has already been written to localStorage by authService.
+   * Called after a successful login or register API response. The auth cookie
+   * has already been set by the backend on that response.
    * @param {object} userData - the UserResponse or TokenResponse from the backend
    */
   const login = async (userData) => {
@@ -59,7 +63,7 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Logs out server-side (invalidating the token) and clears the session locally.
+   * Logs out server-side (invalidating the session cookie) and clears local state.
    */
   const logout = async () => {
     await logoutUser();

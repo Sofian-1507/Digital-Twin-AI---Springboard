@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import bcrypt as _bcrypt
+from fastapi import Response
 from jose import JWTError, jwt
 
 from core.config import get_settings
@@ -19,6 +20,7 @@ from core.config import get_settings
 settings = get_settings()
 
 _BCRYPT_ROUNDS = 12  # matches typical TS bcrypt default
+AUTH_COOKIE_NAME = "access_token"
 
 
 # ─── Password ─────────────────────────────────────────────────────────────────
@@ -81,3 +83,23 @@ def decode_access_token(token: str) -> Optional[tuple[str, int]]:
         return user_id, payload.get("tv", 0)
     except JWTError:
         return None
+
+
+# ─── Auth cookie (httpOnly — the browser frontend's auth mechanism) ────────────
+# The Authorization-header path (Swagger UI, non-browser clients) is unaffected —
+# see api/dependencies.py's get_current_user, which accepts either, cookie first.
+
+def set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=settings.COOKIE_SECURE,
+        max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
+
+def clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(key=AUTH_COOKIE_NAME, path="/")

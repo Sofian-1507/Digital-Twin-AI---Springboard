@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { Select } from "./ui/Field";
 import Button from "./ui/Button";
+import { getApiErrorMessage } from "../utils/apiError";
 
 /**
  * PreferencesForm — edits the user's embedded preferences sub-document.
@@ -34,8 +35,8 @@ function PreferencesForm({ user, onSave }) {
     setIsSubmitting(true);
     try {
       await onSave(formData);
-    } catch {
-      toast.error("Failed to save preferences. Please try again.");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to save preferences. Please try again."));
     } finally {
       setIsSubmitting(false);
     }

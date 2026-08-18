@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from beanie import PydanticObjectId
 from bson import Decimal128
-from fastapi import HTTPException
 
+from core.exceptions import NotFoundError
 from models.enums import FinancialCategory, TransactionType
 from models.finance import FinancialRecord
 from schemas.finance_schema import FinanceCreateRequest, FinanceUpdateRequest
@@ -91,17 +91,15 @@ async def test_update_transaction_normal_case():
 
 @pytest.mark.asyncio
 async def test_update_transaction_not_found_bad_id_format():
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(NotFoundError):
         await finance_service.update_transaction(USER_ID, "not-an-object-id", FinanceUpdateRequest())
-    assert exc_info.value.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_update_transaction_not_found_valid_id_no_match():
     with patch.object(FinancialRecord, "find_one", new=AsyncMock(return_value=None)):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError):
             await finance_service.update_transaction(USER_ID, TXN_ID, FinanceUpdateRequest())
-    assert exc_info.value.status_code == 404
 
 
 # ─── delete_transaction ──────────────────────────────────────────────────────────
@@ -124,9 +122,8 @@ async def test_delete_transaction_normal_case():
 @pytest.mark.asyncio
 async def test_delete_transaction_not_found():
     with patch.object(FinancialRecord, "find_one", new=AsyncMock(return_value=None)):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError):
             await finance_service.delete_transaction(USER_ID, TXN_ID)
-    assert exc_info.value.status_code == 404
 
 
 # ─── list_transactions ───────────────────────────────────────────────────────────

@@ -67,6 +67,7 @@ function Finance() {
   // First FINANCE-category goal the user has set — used as the real savings
   // target instead of a hardcoded placeholder. null if they haven't set one.
   const savingsGoal = user?.active_goals?.find((g) => g.category === "FINANCE") ?? null;
+  const currency = user?.preferences?.currency ?? "USD";
 
   const [transactions, setTransactions] = useState([]);
   const [expenseChartData, setExpenseChartData] = useState([]);
@@ -258,16 +259,16 @@ function Finance() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <FinanceSummary transactions={transactions} />
+          <FinanceSummary transactions={transactions} currency={currency} />
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
-            <ExpenseChart data={expenseChartData} />
-            <CategoryChart data={categoryChartData} />
+            <ExpenseChart data={expenseChartData} currency={currency} />
+            <CategoryChart data={categoryChartData} currency={currency} />
           </div>
 
-          <IncomeProjectionCard projection={incomeProjection} />
+          <IncomeProjectionCard projection={incomeProjection} currency={currency} />
 
-          <SavingsProgress transactions={transactions} goal={savingsGoal} />
+          <SavingsProgress transactions={transactions} goal={savingsGoal} currency={currency} />
 
           <div className="flex flex-wrap items-center gap-3">
             <Select value={typeFilter} onChange={handleTypeFilterChange} aria-label="Filter by type" className="w-auto">
@@ -298,6 +299,7 @@ function Finance() {
               transactions={transactions}
               onEdit={startEdit}
               onDelete={handleDelete}
+              currency={currency}
             />
           )}
 

@@ -1,4 +1,5 @@
 import { StatTile } from "./ui/StatTile";
+import { formatCurrency } from "../utils/currency";
 
 /**
  * Bug fix: this component received a `transactions` prop but never read it —
@@ -6,7 +7,7 @@ import { StatTile } from "./ui/StatTile";
  * computed from the actual transaction list. "Budget Used" is retired (no
  * budget-setting feature exists anywhere in the backend to back it).
  */
-function FinanceSummary({ transactions }) {
+function FinanceSummary({ transactions, currency = "USD" }) {
   const income = transactions
     .filter((t) => String(t.type).toUpperCase() === "INCOME")
     .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -19,9 +20,9 @@ function FinanceSummary({ transactions }) {
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      <StatTile accent="emerald" label="Total Income" value={`$${income.toLocaleString()}`} />
-      <StatTile accent="red" label="Total Expense" value={`$${expense.toLocaleString()}`} />
-      <StatTile accent="indigo" label="Total Savings" value={`$${savings.toLocaleString()}`} />
+      <StatTile accent="emerald" label="Total Income" value={formatCurrency(income, currency)} />
+      <StatTile accent="red" label="Total Expense" value={formatCurrency(expense, currency)} />
+      <StatTile accent="indigo" label="Total Savings" value={formatCurrency(savings, currency)} />
     </div>
   );
 }

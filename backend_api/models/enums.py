@@ -116,13 +116,3 @@ class UserFeedback(str, Enum):
     IRRELEVANT = "IRRELEVANT"
 
 
-class GoalStatus(str, Enum):
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-    ABANDONED = "ABANDONED"
-
-
-class ChatRole(str, Enum):
-    USER = "USER"
-    ASSISTANT = "ASSISTANT"
-    SYSTEM = "SYSTEM"

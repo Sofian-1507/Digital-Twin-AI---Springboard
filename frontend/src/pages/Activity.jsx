@@ -7,6 +7,7 @@ import { SkeletonTable } from "../components/ui/Skeleton";
 import EmptyState from "../components/ui/EmptyState";
 import { activityBadgeTone } from "../utils/activityBadge";
 import { Select } from "../components/ui/Field";
+import Pagination from "../components/Pagination";
 
 const TYPE_FILTERS = [
   { value: "", label: "All actions" },
@@ -34,21 +35,31 @@ function Activity() {
   const [isLoading, setIsLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("");
   const [sortDir, setSortDir] = useState("desc");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
+    let cancelled = false;
     async function fetchActivities() {
+      setIsLoading(true);
       try {
-        const result = await getActivityHistory({ limit: 50 });
-        setActivities(result.items || []);
+        const result = await getActivityHistory({ page, limit: 20 });
+        if (cancelled) return;
+        setActivities(result.data || []);
+        setTotalPages(result.total_pages || 1);
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to fetch activity history:", err);
         toast.error("Could not load activity history. Please try again later.");
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
     fetchActivities();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [page]);
 
   // Client-side filter: action_type is already returned by the existing
   // /activity endpoint, so no new API call is needed for this.
@@ -125,6 +136,10 @@ function Activity() {
           {filteredActivities.length === 0 && (
             <EmptyState title="No matching activity" message="Try a different action-type filter." />
           )}
+
+          <div className="mt-4">
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isLoading} />
+          </div>
         </div>
       )}
     </div>

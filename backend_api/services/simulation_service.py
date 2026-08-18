@@ -269,7 +269,7 @@ def _build_recommendation_text(domain_label: str, best: _RawScenario, baseline_n
 class DecisionSimulationService:
     # ── Finance ─────────────────────────────────────────────────────────────
     async def simulate_finance_scenarios(
-        self, user_id: str, request: FinanceScenarioRequest
+        self, user_id: str, request: FinanceScenarioRequest, persist: bool = True
     ) -> SimulationResponse:
         uid = PydanticObjectId(user_id)
         user = await User.get(uid)
@@ -311,12 +311,12 @@ class DecisionSimulationService:
 
         return await self._finalize(
             user_id, SimulationDomain.FINANCE, RecommendationCategory.FINANCE,
-            request.model_dump(), raw_scenarios, baseline_name="Current Plan",
+            request.model_dump(), raw_scenarios, baseline_name="Current Plan", persist=persist,
         )
 
     # ── Study ───────────────────────────────────────────────────────────────
     async def simulate_study_scenarios(
-        self, user_id: str, request: StudyScenarioRequest
+        self, user_id: str, request: StudyScenarioRequest, persist: bool = True
     ) -> SimulationResponse:
         uid = PydanticObjectId(user_id)
         user = await User.get(uid)
@@ -357,12 +357,12 @@ class DecisionSimulationService:
 
         return await self._finalize(
             user_id, SimulationDomain.ACADEMIC, RecommendationCategory.ACADEMIC,
-            request.model_dump(), raw_scenarios, baseline_name="Current Pace",
+            request.model_dump(), raw_scenarios, baseline_name="Current Pace", persist=persist,
         )
 
     # ── Fitness ─────────────────────────────────────────────────────────────
     async def simulate_fitness_scenarios(
-        self, user_id: str, request: FitnessScenarioRequest
+        self, user_id: str, request: FitnessScenarioRequest, persist: bool = True
     ) -> SimulationResponse:
         uid = PydanticObjectId(user_id)
         user = await User.get(uid)
@@ -411,7 +411,7 @@ class DecisionSimulationService:
 
         return await self._finalize(
             user_id, SimulationDomain.HABIT, RecommendationCategory.FITNESS,
-            request.model_dump(), raw_scenarios, baseline_name="Current Routine",
+            request.model_dump(), raw_scenarios, baseline_name="Current Routine", persist=persist,
         )
 
     # ── Hybrid (combines all three domains into named lifestyle scenarios) ──
@@ -427,10 +427,14 @@ class DecisionSimulationService:
             additional_exercise_minutes=request.additional_exercise_minutes,
             sleep_adjustment_hours=request.sleep_adjustment_hours,
         )
+        # persist=False: these are intermediate sub-domain runs consumed only to build
+        # the hybrid scenario set below — persisting them too would silently write 3
+        # "invisible" simulations the user never actually asked to save, on top of the
+        # one hybrid result this call is actually for.
         finance_sim, study_sim, fitness_sim = await asyncio.gather(
-            self.simulate_finance_scenarios(user_id, finance_req),
-            self.simulate_study_scenarios(user_id, study_req),
-            self.simulate_fitness_scenarios(user_id, fitness_req),
+            self.simulate_finance_scenarios(user_id, finance_req, persist=False),
+            self.simulate_study_scenarios(user_id, study_req, persist=False),
+            self.simulate_fitness_scenarios(user_id, fitness_req, persist=False),
         )
 
         def top(sim: SimulationResponse):
@@ -510,6 +514,7 @@ class DecisionSimulationService:
         input_parameters: dict,
         raw_scenarios: list[_RawScenario],
         baseline_name: str,
+        persist: bool = True,
     ) -> SimulationResponse:
         primary_values = [s.primary_metric_value for s in raw_scenarios]
         goal_months = [s.goal_months for s in raw_scenarios]
@@ -540,7 +545,6 @@ class DecisionSimulationService:
             scenarios=scenario_docs,
             created_at=datetime.now(timezone.utc),
         )
-        await simulation.insert()
 
         priority = Priority.HIGH if best_doc.score >= 75 else Priority.MEDIUM if best_doc.score >= 40 else Priority.LOW
         recommendation = Recommendation(
@@ -552,7 +556,16 @@ class DecisionSimulationService:
             recommended_scenario_name=best_doc.name,
             priority=priority,
         )
-        await recommendation.insert()
+
+        if persist:
+            await simulation.insert()
+            recommendation.simulation_id = simulation.id
+            await recommendation.insert()
+        else:
+            # Not persisted (e.g. an intermediate sub-domain run inside simulate_hybrid_scenarios) —
+            # still needs valid-looking ids for the response shape, just never written to Mongo.
+            simulation.id = PydanticObjectId()
+            recommendation.id = PydanticObjectId()
 
         return SimulationResponse(
             id=str(simulation.id),

@@ -29,8 +29,8 @@ async def connect_to_mongo() -> None:
         settings.MONGODB_URI,
         maxPoolSize=settings.MONGODB_MAX_POOL_SIZE,
         minPoolSize=settings.MONGODB_MIN_POOL_SIZE,
-        serverSelectionTimeoutMS=10_000,
-        socketTimeoutMS=45_000,
+        serverSelectionTimeoutMS=settings.MONGODB_CONNECT_TIMEOUT_MS,
+        socketTimeoutMS=settings.MONGODB_SOCKET_TIMEOUT_MS,
         tz_aware=True,  # Decode BSON datetimes as UTC-aware, not naive — naive datetimes
                         # read back from Mongo can't be compared against datetime.now(timezone.utc).
     )
@@ -56,6 +56,19 @@ async def close_mongo_connection() -> None:
     if _client:
         _client.close()
         logger.info("MongoDB Atlas connection pool closed.")
+
+
+async def ping_database() -> bool:
+    """Cheap connectivity check for /health — returns False instead of raising
+    if Mongo is unreachable, so a health check can report 'degraded' rather than 500."""
+    if _client is None:
+        return False
+    try:
+        await _client.admin.command("ping")
+        return True
+    except Exception:
+        logger.warning("Database ping failed for /health check.", exc_info=True)
+        return False
 
 
 @asynccontextmanager

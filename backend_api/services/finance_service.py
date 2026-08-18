@@ -12,6 +12,7 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 
+from core.exceptions import NotFoundError
 from models.finance import FinancialRecord
 from models.enums import TransactionType
 from schemas.finance_schema import (
@@ -76,13 +77,11 @@ async def update_transaction(
     try:
         tid = PydanticObjectId(transaction_id)
     except Exception:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
-        
+        raise NotFoundError("Transaction", transaction_id)
+
     record = await FinancialRecord.find_one({"_id": tid, "user_id": uid})
     if not record:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        raise NotFoundError("Transaction", transaction_id)
         
     update_data = payload.model_dump(exclude_unset=True)
     if not update_data:
@@ -108,13 +107,11 @@ async def delete_transaction(user_id: str, transaction_id: str) -> None:
     try:
         tid = PydanticObjectId(transaction_id)
     except Exception:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
-        
+        raise NotFoundError("Transaction", transaction_id)
+
     record = await FinancialRecord.find_one({"_id": tid, "user_id": uid})
     if not record:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        raise NotFoundError("Transaction", transaction_id)
         
     await record.delete()
     

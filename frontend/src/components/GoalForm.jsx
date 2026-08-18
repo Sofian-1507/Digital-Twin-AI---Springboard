@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { Input, Select } from "./ui/Field";
 import Button from "./ui/Button";
+import { getApiErrorMessage } from "../utils/apiError";
 
 /**
  * GoalForm — creates a new active goal, or edits an existing one when
@@ -64,8 +65,10 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
         });
       }
       // Success toast is shown by Profile.jsx to avoid duplicates
-    } catch {
-      toast.error(initialData ? "Failed to update goal. Please try again." : "Failed to add goal. Please try again.");
+    } catch (err) {
+      toast.error(getApiErrorMessage(
+        err, initialData ? "Failed to update goal. Please try again." : "Failed to add goal. Please try again."
+      ));
     } finally {
       setIsSubmitting(false);
     }

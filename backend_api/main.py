@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 from core.config import get_settings
-from core.database import lifespan
+from core.database import lifespan, ping_database
 from core.exceptions import register_exception_handlers
 from core.rate_limit import limiter
 from api.v1 import (
@@ -43,9 +43,11 @@ app = FastAPI(
         "Connects to the production-ready MongoDB Atlas database (users, financial_records, "
         "study_activities, habit_trackings) via async Motor + Beanie ODM."
     ),
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    # Hidden in production — the full API schema/interactive docs shouldn't be
+    # publicly browsable outside development.
+    docs_url=None if settings.is_production else "/api/docs",
+    redoc_url=None if settings.is_production else "/api/redoc",
+    openapi_url=None if settings.is_production else "/api/openapi.json",
     lifespan=lifespan,                  # Async startup/shutdown (replaces @app.on_event)
 )
 
@@ -84,9 +86,11 @@ app.include_router(simulation.router, prefix=API_PREFIX)
 # ─── Health Check ─────────────────────────────────────────────────────────────
 @app.get("/health", tags=["Health"], summary="Application health check")
 async def health_check() -> dict:
+    db_ok = await ping_database()
     return {
-        "status": "ok",
+        "status": "ok" if db_ok else "degraded",
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "env": settings.NODE_ENV,
+        "database": "connected" if db_ok else "unreachable",
     }

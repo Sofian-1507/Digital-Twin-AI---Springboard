@@ -60,9 +60,9 @@ async def list_activities(
     ]
     
     return PaginatedActivityResponse(
-        items=items,
+        data=items,
         total=total,
         page=page,
         limit=limit,
-        pages=math.ceil(total / limit) if limit > 0 else 1
+        total_pages=math.ceil(total / limit) if limit > 0 else 1
     )

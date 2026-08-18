@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from beanie import PydanticObjectId
-from fastapi import HTTPException
 
+from core.exceptions import NotFoundError
 from models.enums import BurnoutRisk
 from models.habit import HabitTracking
 from schemas.habit_schema import HabitCreateRequest
@@ -128,17 +128,15 @@ async def test_delete_daily_log_normal_case():
 
 @pytest.mark.asyncio
 async def test_delete_daily_log_not_found_bad_id_format():
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(NotFoundError):
         await habit_service.delete_daily_log(USER_ID, "not-an-object-id")
-    assert exc_info.value.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_delete_daily_log_not_found_valid_id_no_match():
     with patch.object(HabitTracking, "find_one", new=AsyncMock(return_value=None)):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError):
             await habit_service.delete_daily_log(USER_ID, LOG_ID)
-    assert exc_info.value.status_code == 404
 
 
 # ─── list_logs ────────────────────────────────────────────────────────────────────

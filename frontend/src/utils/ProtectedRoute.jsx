@@ -1,25 +1,20 @@
 import { Navigate } from "react-router-dom";
-import { logoutUser } from "../services/authService";
+import { useAuth } from "../context/useAuth";
 
-/** Decodes a JWT's payload without verifying its signature (server-side auth
- * still enforces that) — just enough to read the `exp` claim client-side. */
-function isTokenExpired(token) {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (!payload.exp) return false;
-    return Date.now() >= payload.exp * 1000;
-  } catch {
-    return true; // malformed token — treat as expired/invalid
-  }
-}
-
+/**
+ * Gates protected routes on AuthContext's session state, rather than reading a
+ * token directly (auth is an httpOnly cookie now — JS can't read it at all, so
+ * there's nothing to decode/check expiry on here; AuthContext's restoreSession
+ * already asked the backend and knows whether the session is valid).
+ */
 function ProtectedRoute({ children }) {
+  const { user, isLoading } = useAuth();
 
-  const token =
-    localStorage.getItem("token");
+  if (isLoading) {
+    return <h2>Loading...</h2>;
+  }
 
-  if (!token || isTokenExpired(token)) {
-    if (token) logoutUser();
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 

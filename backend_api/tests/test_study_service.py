@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from beanie import PydanticObjectId
-from fastapi import HTTPException
 
+from core.exceptions import NotFoundError
 from models.enums import SessionType
 from models.study import StudyActivity
 from schemas.study_schema import StudyCreateRequest, StudyUpdateRequest
@@ -94,17 +94,15 @@ async def test_update_session_normal_case():
 
 @pytest.mark.asyncio
 async def test_update_session_not_found_bad_id_format():
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(NotFoundError):
         await study_service.update_session(USER_ID, "not-an-object-id", StudyUpdateRequest())
-    assert exc_info.value.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_update_session_not_found_valid_id_no_match():
     with patch.object(StudyActivity, "find_one", new=AsyncMock(return_value=None)):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError):
             await study_service.update_session(USER_ID, SESSION_ID, StudyUpdateRequest())
-    assert exc_info.value.status_code == 404
 
 
 # ─── delete_session ──────────────────────────────────────────────────────────────
@@ -127,9 +125,8 @@ async def test_delete_session_normal_case():
 @pytest.mark.asyncio
 async def test_delete_session_not_found():
     with patch.object(StudyActivity, "find_one", new=AsyncMock(return_value=None)):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError):
             await study_service.delete_session(USER_ID, SESSION_ID)
-    assert exc_info.value.status_code == 404
 
 
 # ─── list_sessions ───────────────────────────────────────────────────────────────

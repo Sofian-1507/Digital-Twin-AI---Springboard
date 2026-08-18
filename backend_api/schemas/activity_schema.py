@@ -14,8 +14,10 @@ class ActivityRecordResponse(BaseModel):
         from_attributes = True
 
 class PaginatedActivityResponse(BaseModel):
-    items: list[ActivityRecordResponse]
+    """Field names (data/total_pages) match every other Paginated*Response in this
+    app (finance/study/habit) — this used to be the one outlier (items/pages)."""
+    data: list[ActivityRecordResponse]
     total: int
     page: int
     limit: int
-    pages: int
+    total_pages: int

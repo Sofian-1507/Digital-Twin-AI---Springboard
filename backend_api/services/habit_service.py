@@ -14,7 +14,7 @@ from typing import Optional
 from beanie import PydanticObjectId
 from pymongo.errors import DuplicateKeyError
 
-from core.exceptions import ConflictError
+from core.exceptions import ConflictError, NotFoundError
 from models.habit import HabitTracking
 from models.enums import BurnoutRisk
 from schemas.habit_schema import (
@@ -103,13 +103,11 @@ async def delete_daily_log(user_id: str, log_id: str) -> None:
     try:
         lid = PydanticObjectId(log_id)
     except Exception:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Habit log not found")
-        
+        raise NotFoundError("Habit log", log_id)
+
     record = await HabitTracking.find_one({"_id": lid, "user_id": uid})
     if not record:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Habit log not found")
+        raise NotFoundError("Habit log", log_id)
         
     await record.delete()
     

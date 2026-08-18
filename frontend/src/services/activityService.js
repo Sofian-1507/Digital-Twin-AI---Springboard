@@ -8,8 +8,8 @@ import api from "./api";
 /**
  * Fetch paginated user activity history.
  * GET /api/v1/activity
- * @param {{ skip?, limit? }} params
- * @returns {Promise<ActivityResponse[]>}
+ * @param {{ page?: number, limit?: number }} params
+ * @returns {Promise<{data: object[], total: number, page: number, limit: number, total_pages: number}>}
  */
 export const getActivityHistory = async (params = {}) => {
   const response = await api.get("/activity", { params });

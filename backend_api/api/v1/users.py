@@ -12,12 +12,12 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Request, status, Depends
+from fastapi import APIRouter, Request, Response, status, Depends
 from beanie import PydanticObjectId
 
 from api.dependencies import CurrentUser
 from core.rate_limit import limiter
-from core.security import create_access_token
+from core.security import create_access_token, set_auth_cookie
 from models.user import User
 from schemas.auth_schema import ChangePasswordRequest, TokenResponse
 from schemas.user_schema import (
@@ -120,17 +120,19 @@ async def delete_me(
 @limiter.limit("5/minute")
 async def change_password(
     request: Request,
+    response: Response,
     payload: ChangePasswordRequest,
     current_user: CurrentUser,
 ) -> TokenResponse:
     """
     Verifies the current password, sets the new one, and invalidates every other
-    outstanding session for this account. Returns a fresh token so the session that
-    made this change keeps working — every other previously issued token is now stale.
-    Rate limited (takes a password guess as input, same as /auth/login).
+    outstanding session for this account. Re-sets the auth cookie with a fresh token
+    so this session keeps working — every other previously issued token/cookie is
+    now stale. Rate limited (takes a password guess as input, same as /auth/login).
     """
     user = await user_service.change_password(current_user, payload)
     token = create_access_token(subject=str(user.id), token_version=user.token_version)
+    set_auth_cookie(response, token)
     return TokenResponse(
         access_token=token,
         user_id=str(user.id),

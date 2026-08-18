@@ -3,6 +3,7 @@ import { Edit, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Input } from "./ui/Field";
 import Badge from "./ui/Badge";
 import EmptyState from "./ui/EmptyState";
+import { formatCurrency } from "../utils/currency";
 
 const SORTERS = {
   date: (t) => new Date(t.transaction_date || 0).getTime(),
@@ -23,7 +24,7 @@ function SortButton({ label, active, dir, onClick }) {
   );
 }
 
-function TransactionTable({ transactions, onEdit, onDelete }) {
+function TransactionTable({ transactions, onEdit, onDelete, currency = "USD" }) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
@@ -100,7 +101,7 @@ function TransactionTable({ transactions, onEdit, onDelete }) {
 
                   <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.category}</td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-400">${item.amount}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-400">{formatCurrency(item.amount, currency)}</td>
 
                   <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.description}</td>
 

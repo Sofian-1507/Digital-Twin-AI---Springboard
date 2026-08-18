@@ -7,6 +7,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { formatCurrency } from "../utils/currency";
 
 const COLORS = [
   "#4F46E5",
@@ -15,14 +16,14 @@ const COLORS = [
   "#EF4444",
 ];
 
-function CategoryChart({ data }) {
+function CategoryChart({ data, currency = "USD" }) {
   const top = data?.length ? [...data].sort((a, b) => b.value - a.value)[0] : null;
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
       <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Expense Categories</h3>
       <p className="sr-only">
-        Expense breakdown by category. {top ? `Top category: ${top.name}, $${Math.round(top.value).toLocaleString()}.` : "No data yet."}
+        Expense breakdown by category. {top ? `Top category: ${top.name}, ${formatCurrency(Math.round(top.value), currency)}.` : "No data yet."}
       </p>
 
       <ResponsiveContainer width="100%" height={300}>

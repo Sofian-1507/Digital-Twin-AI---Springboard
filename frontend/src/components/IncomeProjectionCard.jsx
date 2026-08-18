@@ -1,3 +1,5 @@
+import { formatCurrency } from "../utils/currency";
+
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /**
@@ -7,7 +9,7 @@ const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"
  * This is model output, not a value the user entered — per the design
  * system, predicted content always carries the violet accent.
  */
-function IncomeProjectionCard({ projection }) {
+function IncomeProjectionCard({ projection, currency = "USD" }) {
   if (!projection || !projection.projections?.length) return null;
 
   return (
@@ -17,7 +19,7 @@ function IncomeProjectionCard({ projection }) {
         {projection.projections.map((p) => (
           <li key={`${p.year}-${p.month}`} className="flex justify-between border-b border-slate-100 dark:border-slate-700 py-2.5 text-sm">
             <span className="font-mono tabular-nums text-slate-600 dark:text-slate-400">{MONTH_NAMES[p.month - 1]} {p.year}</span>
-            <strong className="font-mono tabular-nums text-violet-600">${Number(p.projected_amount).toLocaleString()}</strong>
+            <strong className="font-mono tabular-nums text-violet-600">{formatCurrency(p.projected_amount, currency)}</strong>
           </li>
         ))}
       </ul>

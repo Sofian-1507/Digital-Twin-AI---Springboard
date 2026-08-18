@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { Input, Select } from "./ui/Field";
 import Button from "./ui/Button";
+import { getApiErrorMessage } from "../utils/apiError";
 
 /**
  * ProfileForm — edits the user's profile sub-document.
@@ -52,8 +53,8 @@ function ProfileForm({ user, onSave, onCancel }) {
         risk_tolerance:          formData.risk_tolerance || undefined,
       });
       // Success toast is shown by Profile.jsx to avoid duplicates
-    } catch {
-      toast.error("Failed to save profile. Please try again.");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to save profile. Please try again."));
     } finally {
       setIsSubmitting(false);
     }

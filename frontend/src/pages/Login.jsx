@@ -7,6 +7,7 @@ import { loginUser } from "../services/authService";
 import { useAuth } from "../context/useAuth";
 import { Input } from "../components/ui/Field";
 import Button from "../components/ui/Button";
+import { getApiErrorMessage } from "../utils/apiError";
 
 function Login() {
   const navigate = useNavigate();
@@ -36,10 +37,7 @@ function Login() {
       await login(data);
       navigate("/dashboard");
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        "Invalid email or password. Please try again.";
-      toast.error(typeof msg === "string" ? msg : "Login failed. Please try again.");
+      toast.error(getApiErrorMessage(err, "Invalid email or password. Please try again."));
     } finally {
       setIsLoading(false);
     }
