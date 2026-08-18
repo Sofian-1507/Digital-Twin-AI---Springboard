@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 
 import FinanceChart from "../components/FinanceChart";
 import StudyChart from "../components/StudyChart";
+import DigitalTwinCard from "../components/DigitalTwinCard";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
@@ -211,34 +212,25 @@ function Dashboard() {
 
             <Card>
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Financial Goal</h3>
-              <progress
-                className="my-5 h-3 w-full accent-indigo-600"
-                aria-label="Savings rate progress"
-                value={savingsRatePct != null ? Math.min(100, savingsRatePct) : 0}
-                max="100"
-              ></progress>
+              <div className="my-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label="Savings rate progress" aria-valuenow={savingsRatePct != null ? Math.min(100, savingsRatePct) : 0} aria-valuemin={0} aria-valuemax={100}>
+                <div className="h-full rounded-full bg-indigo-600" style={{ width: `${savingsRatePct != null ? Math.min(100, savingsRatePct) : 0}%` }}></div>
+              </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">{savingsRatePct != null ? `${savingsRatePct.toFixed(0)}% Savings Rate` : "No data yet"}</p>
             </Card>
 
             <Card>
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Study Goal</h3>
-              <progress
-                className="my-5 h-3 w-full accent-indigo-600"
-                aria-label="Study consistency progress"
-                value={productivityScore ? Math.min(100, productivityScore.productivity_score) : 0}
-                max="100"
-              ></progress>
+              <div className="my-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label="Study consistency progress" aria-valuenow={productivityScore ? Math.min(100, productivityScore.productivity_score) : 0} aria-valuemin={0} aria-valuemax={100}>
+                <div className="h-full rounded-full bg-indigo-600" style={{ width: `${productivityScore ? Math.min(100, productivityScore.productivity_score) : 0}%` }}></div>
+              </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">{productivityScore ? `${Math.round(productivityScore.productivity_score)}% Consistency` : "No data yet"}</p>
             </Card>
 
             <Card>
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Lifestyle Goal</h3>
-              <progress
-                className="my-5 h-3 w-full accent-indigo-600"
-                aria-label="Lifestyle score progress"
-                value={consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0}
-                max="100"
-              ></progress>
+              <div className="my-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label="Lifestyle score progress" aria-valuenow={consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0} aria-valuemin={0} aria-valuemax={100}>
+                <div className="h-full rounded-full bg-indigo-600" style={{ width: `${consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0}%` }}></div>
+              </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">{consistencyScore ? `${Math.round(consistencyScore.consistency_score)}/100 Lifestyle Score` : "No data yet"}</p>
             </Card>
 
@@ -253,7 +245,7 @@ function Dashboard() {
 
               <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
                 {trend
-                  ? `💰 Predicted savings next month: $${Math.round(
+                  ? `Predicted savings next month: $${Math.round(
                       trend.savings?.projected_savings?.[0]?.value ?? 0
                     ).toLocaleString()} (confidence ${Math.round((trend.savings?.confidence_score ?? 0) * 100)}%).`
                   : "Log a few transactions on the Finance page to get a personalized savings prediction."}
@@ -261,7 +253,7 @@ function Dashboard() {
 
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
                 {trend
-                  ? `📚 Predicted study score next week: ${Math.round(
+                  ? `Predicted study score next week: ${Math.round(
                       trend.study?.projected_productivity?.[0]?.value ?? 0
                     )}% (confidence ${Math.round((trend.study?.productivity_confidence_score ?? 0) * 100)}%).`
                   : "Log a few study sessions to get a personalized study prediction."}
@@ -294,6 +286,13 @@ function Dashboard() {
 
           </div>
 
+          {/* Digital Twin State — the composite snapshot computed by the
+              backend and returned on every GET /users/me, previously fetched
+              here but never rendered anywhere in the app. */}
+          <div className="mb-8">
+            <DigitalTwinCard twinState={userData?.digital_twin_state} />
+          </div>
+
           {/* Recent Activity — live feed from the /activity endpoint, replacing
               the previous 5 hardcoded rows */}
 
@@ -310,9 +309,9 @@ function Dashboard() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 p-4 text-left font-semibold text-slate-600 dark:text-slate-400">Time</th>
-                    <th className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 p-4 text-left font-semibold text-slate-600 dark:text-slate-400">Action</th>
-                    <th className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 p-4 text-left font-semibold text-slate-600 dark:text-slate-400">Description</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 p-4 text-left font-semibold text-slate-500 dark:text-slate-400">Time</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 p-4 text-left font-semibold text-slate-500 dark:text-slate-400">Action</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 p-4 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
                   </tr>
                 </thead>
                 <tbody>

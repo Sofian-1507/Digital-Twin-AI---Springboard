@@ -10,6 +10,7 @@ import {
 } from "recharts";
 
 import EmptyState from "./ui/EmptyState";
+import { CHART_COLORS } from "../utils/chartColors";
 
 function FutureChart({ data }) {
   const chartData = data || [];
@@ -53,7 +54,7 @@ function FutureChart({ data }) {
           <Line
             type="monotone"
             dataKey="score"
-            stroke="#4F46E5"
+            stroke={CHART_COLORS.action}
             strokeWidth={3}
           />
 

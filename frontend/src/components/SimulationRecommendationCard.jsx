@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 
 function formatStatValue(value, unit) {
   const formatted = Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -29,7 +30,7 @@ function SimulationRecommendationCard({ recommendation, onFeedback }) {
   return (
     <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-6 shadow-sm dark:border-indigo-500/30 dark:bg-indigo-500/10">
       <div className="mb-4 flex items-start gap-3">
-        <span className="text-2xl">🤖</span>
+        <Sparkles size={22} strokeWidth={1.8} className="mt-0.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
 
         <div>
           <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">AI Recommendation</h3>
@@ -54,8 +55,8 @@ function SimulationRecommendationCard({ recommendation, onFeedback }) {
       {onFeedback && (
         <div className="mt-4">
           {submitted ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Thanks for your feedback ({submitted === "HELPFUL" ? "👍 Helpful" : "👎 Not helpful"}).
+            <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              Thanks for your feedback ({submitted === "HELPFUL" ? "Helpful" : "Not helpful"}).
             </p>
           ) : (
             <div className="flex gap-2">
@@ -63,17 +64,17 @@ function SimulationRecommendationCard({ recommendation, onFeedback }) {
                 type="button"
                 onClick={() => handleFeedback("HELPFUL")}
                 disabled={submitting}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                👍 Helpful
+                <ThumbsUp size={14} /> Helpful
               </button>
               <button
                 type="button"
                 onClick={() => handleFeedback("UNHELPFUL")}
                 disabled={submitting}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                👎 Not helpful
+                <ThumbsDown size={14} /> Not helpful
               </button>
             </div>
           )}

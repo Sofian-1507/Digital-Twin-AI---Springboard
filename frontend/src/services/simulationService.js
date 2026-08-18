@@ -71,6 +71,19 @@ export const getSimulationHistory = async (params = {}) => {
 };
 
 /**
+ * Get one persisted simulation's full input parameters and scenario results.
+ * Note: unlike the scenario POST endpoints, this does not include a
+ * `recommendation` — recommendations aren't persisted standalone.
+ * GET /api/v1/simulation/{simulationId}
+ * @param {string} simulationId
+ * @returns {Promise<SimulationDetailResponse>}
+ */
+export const getSimulationById = async (simulationId) => {
+  const response = await api.get(`/simulation/${simulationId}`);
+  return response.data;
+};
+
+/**
  * Record user feedback (helpful/unhelpful/irrelevant) on a recommendation.
  * PATCH /api/v1/simulation/recommendations/{recommendationId}/feedback
  * @param {string} recommendationId

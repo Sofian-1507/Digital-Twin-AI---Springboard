@@ -1,25 +1,62 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, ui-serif, serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
 
-  /* Exact design-system hex values from the approved redesign strategy,
-     applied by overriding Tailwind's own scale rather than renaming every
-     class in the app: every existing bg-slate-50 / text-slate-800 /
-     border-violet-500 / etc. now resolves to the literal spec color. */
-  --color-slate-50: #F6F7F9;   /* canvas */
-  --color-slate-100: #EEF0F4;  /* surface-2 */
-  --color-slate-200: #E1E4EA;  /* border */
-  --color-slate-300: #C7CCD6;  /* border-strong */
-  --color-slate-400: #7B8494;  /* ink-3 — muted labels only */
-  --color-slate-600: #4A5160;  /* ink-2 — secondary text, 7.2:1 */
-  --color-slate-800: #1C2129;  /* ink — primary text */
+  /* "Field Notes" design system — warm paper/ink palette, applied by
+     overriding Tailwind's own scale rather than renaming every class in the
+     app: every existing bg-slate-50 / text-slate-800 / border-violet-500 /
+     etc. now resolves to the literal spec color. Unlike the previous
+     override, every shade actually used anywhere in the app (50-900, plus
+     the -100/-700 tone shades Badge needs) is defined — before this, slate
+     500/700/900 and every family's -100/-700 fell through to Tailwind's
+     stock cool gray, which is why dark mode and Sidebar never matched. */
+  --color-slate-50:  #F6F1E7; /* paper */
+  --color-slate-100: #EFE7D8; /* surface-2 */
+  --color-slate-200: #E4DACB; /* border */
+  --color-slate-300: #CBBBA0; /* border-strong */
+  --color-slate-400: #A69A87; /* ink-4 — placeholders, disabled */
+  --color-slate-500: #8A7F72; /* ink-3 — muted labels */
+  --color-slate-600: #6E6355; /* ink-2 — secondary text */
+  --color-slate-700: #4A4033; /* dark-mode surface/border */
+  --color-slate-800: #2B2521; /* ink — primary text / dark-mode surface */
+  --color-slate-900: #1C1712; /* Sidebar + dark-mode base */
 
-  --color-indigo-600: #4F46E5; /* action accent (unchanged from the app's existing brand) */
-  --color-violet-500: #7C6AE6; /* the one accent reserved for AI-predicted content */
-  --color-emerald-600: #0F9D63;
-  --color-amber-600: #C97A12;
-  --color-red-600: #DC3545;
+  --color-indigo-100: #D3E6DF; /* action accent, soft tint (Badge "info") */
+  --color-indigo-600: #2F6F5E; /* action accent — teal */
+  --color-indigo-700: #234F42; /* action accent — hover */
+
+  --color-violet-100: #E8E1F2;
+  --color-violet-300: #B7A8DE;
+  --color-violet-500: #8267C4; /* the one accent reserved for AI-predicted content */
+  --color-violet-600: #6B54B0;
+  --color-violet-700: #543F91;
+
+  --color-emerald-100: #DCEEE0;
+  --color-emerald-600: #1F7A52;
+  --color-emerald-700: #175E3F;
+
+  --color-amber-100: #F3E6C9;
+  --color-amber-600: #B5780F;
+  --color-amber-700: #8F5E0B;
+
+  --color-red-100: #F4DAD7;
+  --color-red-600: #B23A34;
+  --color-red-700: #8C2C27;
+
+  /* Small, uniform corner radius — notebook/ledger feel instead of the
+     soft, heavily-rounded "SaaS card" look. Cascades to every rounded-lg /
+     rounded-xl / rounded-2xl usage app-wide with no component edits. */
+  --radius-lg:  6px;
+  --radius-xl:  6px;
+  --radius-2xl: 4px;
+
+  /* Subtle warm-tinted shadows in place of Tailwind's neutral defaults —
+     same zero-edit cascade to every shadow-sm/md/xl usage. */
+  --shadow-sm: 0 1px 2px 0 rgb(43 37 33 / 0.07);
+  --shadow-md: 0 4px 8px -2px rgb(43 37 33 / 0.09), 0 2px 4px -2px rgb(43 37 33 / 0.06);
+  --shadow-xl: 0 20px 25px -5px rgb(43 37 33 / 0.15), 0 8px 10px -6px rgb(43 37 33 / 0.1);
 }
 
 /* Manual dark mode: driven by data-theme="dark" on <html> (see AuthContext,
@@ -49,13 +86,20 @@
 /* Wrapped in Tailwind's base layer (not left as a plain unlayered rule) —
    unlayered CSS always wins over ANY layered CSS regardless of specificity,
    so a bare `* { margin:0; padding:0 }` here was silently overriding every
-   p-*/m-*/px-*/py-*/space-y-* utility class in the entire app. */
+   p, m, px, py, space-y utility class in the entire app. (Note: this comment
+   must never contain a literal star-slash sequence — that closes a CSS
+   comment early and corrupts whatever rule follows it, which is exactly
+   what broke the h1-h4 rule below until this was reworded.) */
 @layer base {
   * {
     margin: 0;
     padding: 0;
 
     box-sizing: border-box;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
   }
 }
 

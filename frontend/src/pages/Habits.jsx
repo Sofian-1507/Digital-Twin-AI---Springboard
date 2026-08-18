@@ -52,20 +52,20 @@ function buildHabitChartData(dailyTrend) {
 function buildLifestyleInsights(summary) {
   if (!summary) return [];
 
-  const streakInsight = `🔥 Current streak: ${summary.habit_streak.current_streak} day${
+  const streakInsight = `Current streak: ${summary.habit_streak.current_streak} day${
     summary.habit_streak.current_streak === 1 ? "" : "s"
   } (longest: ${summary.habit_streak.longest_streak})`;
 
   const negativeInsights = summary.negative_habits.habits.map(
-    (h) => `⚠️ ${capitalize(h.habit.replace("_", " "))}: avg ${h.average_value} ${h.unit}. ${h.detail}`
+    (h) => `${capitalize(h.habit.replace("_", " "))}: avg ${h.average_value} ${h.unit}. ${h.detail}`
   );
 
   const positiveInsights = summary.positive_habits.habits.map(
-    (h) => `✅ ${capitalize(h.habit.replace("_", " "))} is on track — avg ${h.average_value} ${h.unit}.`
+    (h) => `${capitalize(h.habit.replace("_", " "))} is on track — avg ${h.average_value} ${h.unit}.`
   );
 
   const missedInsight = summary.missed_habits.missed_days > 0
-    ? [`📅 Missed logging on ${summary.missed_habits.missed_days} of the last ${summary.missed_habits.window_days} days.`]
+    ? [`Missed logging on ${summary.missed_habits.missed_days} of the last ${summary.missed_habits.window_days} days.`]
     : [];
 
   return [streakInsight, ...missedInsight, ...negativeInsights, ...positiveInsights].slice(0, 6);

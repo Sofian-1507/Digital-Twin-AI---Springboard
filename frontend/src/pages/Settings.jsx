@@ -16,8 +16,8 @@ import { useAuth } from "../context/useAuth";
 /**
  * Settings — split out of Profile.jsx. Preferences and account deletion are a
  * different concern from identity/goals (which stay on /profile), so they get
- * their own page, reachable via the gear icon next to the Navbar avatar rather
- * than the main sidebar (used far less often than the 8 primary sections).
+ * their own page, reachable via the gear icon in the sidebar's profile block
+ * rather than the main nav (used far less often than the 8 primary sections).
  */
 function Settings() {
   const [user, setUser] = useState(null);

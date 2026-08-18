@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from "recharts";
 import EmptyState from "./ui/EmptyState";
+import { CHART_COLORS } from "../utils/chartColors";
 
 /**
  * StudyChart — renders a weekly study hours bar chart.
@@ -47,7 +48,7 @@ function StudyChart({ data = [] }) {
 
           <Bar
             dataKey="hours"
-            fill="#4F46E5"
+            fill={CHART_COLORS.action}
             radius={[8, 8, 0, 0]}
           />
 

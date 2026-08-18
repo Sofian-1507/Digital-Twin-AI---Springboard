@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from "recharts";
 import { formatCurrency } from "../utils/currency";
+import { CHART_COLORS } from "../utils/chartColors";
 
 function ExpenseChart({ data, currency = "USD" }) {
   const latest = data?.[data.length - 1];
@@ -33,7 +34,7 @@ function ExpenseChart({ data, currency = "USD" }) {
           <Line
             type="monotone"
             dataKey="expense"
-            stroke="#4F46E5"
+            stroke={CHART_COLORS.action}
             strokeWidth={3}
           />
         </LineChart>

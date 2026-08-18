@@ -136,19 +136,19 @@ function Prediction() {
 
   const aiInsights = trend
     ? [
-        `💰 Predicted savings next month: $${Math.round(
+        `Predicted savings next month: $${Math.round(
           trend.savings?.projected_savings?.[0]?.value ?? 0
         ).toLocaleString()} (confidence ${Math.round((trend.savings?.confidence_score ?? 0) * 100)}%)`,
-        `📚 Predicted study score next week: ${Math.round(
+        `Predicted study score next week: ${Math.round(
           clampPct(trend.study?.projected_productivity?.[0]?.value ?? 0)
         )}% (confidence ${Math.round((trend.study?.productivity_confidence_score ?? 0) * 100)}%)`,
-        `🏃 Predicted fitness score next week: ${Math.round(
+        `Predicted fitness score next week: ${Math.round(
           clampPct(trend.fitness?.projected_fitness_score?.[0]?.value ?? 0)
         )}% (confidence ${Math.round((trend.fitness?.confidence_score ?? 0) * 100)}%)`,
         ...(trend.study?.predicted_exam_score != null
-          ? [`🎓 Predicted exam score: ${Math.round(clampPct(trend.study.predicted_exam_score))}%`]
+          ? [`Predicted exam score: ${Math.round(clampPct(trend.study.predicted_exam_score))}%`]
           : []),
-        `📈 Overall prediction confidence: ${Math.round((trend.overall_confidence_score ?? 0) * 100)}%`,
+        `Overall prediction confidence: ${Math.round((trend.overall_confidence_score ?? 0) * 100)}%`,
       ]
     : [];
 

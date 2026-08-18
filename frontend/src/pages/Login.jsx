@@ -48,7 +48,7 @@ function Login() {
       <div className="w-full max-w-md rounded-2xl border-t-4 border-t-indigo-600 bg-white p-8 shadow-xl sm:p-9 dark:bg-slate-800">
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Digital Twin AI</p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-800 dark:text-slate-100">Welcome Back 👋</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-800 dark:text-slate-100">Welcome Back</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Login to continue</p>
         </div>
 

@@ -9,6 +9,7 @@ import {
   CartesianGrid
 } from "recharts";
 import EmptyState from "./ui/EmptyState";
+import { CHART_COLORS } from "../utils/chartColors";
 
 /**
  * FinanceChart — renders a monthly savings/cashflow line chart.
@@ -43,7 +44,7 @@ function FinanceChart({ data = [] }) {
         <Line
           type="monotone"
           dataKey="savings"
-          stroke="#4F46E5"
+          stroke={CHART_COLORS.action}
           strokeWidth={3}
         />
 

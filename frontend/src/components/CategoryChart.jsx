@@ -8,12 +8,13 @@ import {
   Legend,
 } from "recharts";
 import { formatCurrency } from "../utils/currency";
+import { CHART_COLORS } from "../utils/chartColors";
 
 const COLORS = [
-  "#4F46E5",
-  "#10B981",
-  "#F59E0B",
-  "#EF4444",
+  CHART_COLORS.action,
+  CHART_COLORS.positive,
+  CHART_COLORS.warning,
+  CHART_COLORS.danger,
 ];
 
 function CategoryChart({ data, currency = "USD" }) {
@@ -34,7 +35,7 @@ function CategoryChart({ data, currency = "USD" }) {
             cx="50%"
             cy="50%"
             outerRadius={90}
-            fill="#8884d8"
+            fill={CHART_COLORS.action}
             dataKey="value"
             label
           >

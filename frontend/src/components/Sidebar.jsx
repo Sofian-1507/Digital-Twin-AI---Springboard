@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
   User,
@@ -7,8 +7,12 @@ import {
   CheckSquare,
   BrainCircuit,
   MessageSquare,
-  Activity
+  Activity,
+  Bell,
+  Settings,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "../context/useAuth";
 
 // Grouped by purpose rather than one flat list: Overview (glance at everything),
 // Track (log/review data), Foresight (what the model predicts), You (identity).
@@ -53,6 +57,22 @@ function navLinkClasses({ isActive }) {
 }
 
 function Sidebar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const name     = user?.profile?.name ?? "Digital Twin User";
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <aside className="fixed left-0 top-0 z-20 flex h-screen w-16 flex-col overflow-y-auto bg-slate-900 text-white md:w-64">
       <div className="flex items-center gap-3 border-b border-white/10 px-3 py-6 md:px-5">
@@ -99,7 +119,46 @@ function Sidebar() {
         </div>
       </nav>
 
-      
+      <div className="border-t border-white/10 px-2 py-4 md:px-3.5">
+        <div className="mb-3 flex items-center justify-center gap-3 px-1 md:justify-start">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[13px] font-bold text-white">
+            {initials}
+          </div>
+          <div className="hidden min-w-0 md:block">
+            <h4 className="truncate text-[13px] font-medium text-slate-100">{name}</h4>
+            <p className="mt-0.5 text-[11px] text-slate-400">Digital Twin User</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-3 md:gap-2">
+          <button
+            type="button"
+            aria-label="Notifications (coming soon)"
+            title="Notifications aren't available yet"
+            disabled
+            className="flex h-10 items-center justify-center rounded-lg text-slate-500 disabled:cursor-not-allowed"
+          >
+            <Bell size={18} strokeWidth={1.8} />
+          </button>
+
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            className="flex h-10 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <Settings size={18} strokeWidth={1.8} />
+          </Link>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="Log out"
+            className="flex h-10 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <LogOut size={18} strokeWidth={1.8} />
+          </button>
+        </div>
+      </div>
     </aside>
   );
 }

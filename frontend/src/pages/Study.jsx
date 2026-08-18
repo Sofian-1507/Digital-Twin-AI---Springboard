@@ -22,23 +22,23 @@ function buildStudyInsights(summary) {
   if (!summary) return [];
 
   const insights = [
-    `📊 Current productivity score: ${Math.round(summary.productivity_score.productivity_score)}%`,
-    `🎯 Focus score: ${Math.round(summary.focus_score.focus_score)}% (${
+    `Current productivity score: ${Math.round(summary.productivity_score.productivity_score)}%`,
+    `Focus score: ${Math.round(summary.focus_score.focus_score)}% (${
       summary.focus_score.method_used === "recorded_average"
         ? "based on logged focus ratings"
         : "estimated from attendance"
     })`,
-    `✅ Studied ${Math.round(summary.completion_percentage.completion_percentage)}% of days in the last ${
+    `Studied ${Math.round(summary.completion_percentage.completion_percentage)}% of days in the last ${
       summary.completion_percentage.window_days
     } days`,
   ];
 
   const predicted = summary.performance_prediction?.predicted_productivity?.[0]?.projected_score;
   if (predicted != null) {
-    insights.push(`🚀 Predicted productivity next week: ${Math.round(predicted)}%`);
+    insights.push(`Predicted productivity next week: ${Math.round(predicted)}%`);
   }
   if (summary.performance_prediction?.predicted_exam_score != null) {
-    insights.push(`🎓 Predicted exam score: ${Math.round(summary.performance_prediction.predicted_exam_score)}%`);
+    insights.push(`Predicted exam score: ${Math.round(summary.performance_prediction.predicted_exam_score)}%`);
   }
 
   return insights;

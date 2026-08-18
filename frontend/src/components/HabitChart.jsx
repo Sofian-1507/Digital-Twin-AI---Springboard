@@ -8,6 +8,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { CHART_COLORS } from "../utils/chartColors";
 
 function HabitChart({ data }) {
   const latest = data?.[data.length - 1];
@@ -39,7 +40,7 @@ function HabitChart({ data }) {
 
           <Bar
             dataKey="score"
-            fill="#10B981"
+            fill={CHART_COLORS.positive}
             radius={[8, 8, 0, 0]}
           />
 

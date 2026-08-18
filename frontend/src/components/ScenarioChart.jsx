@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+import { CHART_COLORS } from "../utils/chartColors";
 
 function ScenarioChart({ scenarios }) {
   if (!scenarios || scenarios.length === 0) {
@@ -31,7 +32,7 @@ function ScenarioChart({ scenarios }) {
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip />
-          <Bar dataKey="value" name={primaryLabel} fill="#4f46e5" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="value" name={primaryLabel} fill={CHART_COLORS.action} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
