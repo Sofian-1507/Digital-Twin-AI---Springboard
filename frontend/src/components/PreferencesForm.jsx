@@ -8,6 +8,8 @@ import { getApiErrorMessage } from "../utils/apiError";
  * PreferencesForm — edits the user's embedded preferences sub-document.
  * Maps to PATCH /api/v1/users/me/preferences (PreferencesUpdateRequest).
  * Backend fields: currency, language, dark_mode, email_notifications, weekly_report_enabled.
+ * dark_mode isn't edited here — it's toggled from the sidebar's sun/moon
+ * button (see AuthContext's toggleDarkMode), which PATCHes the same field.
  */
 function PreferencesForm({ user, onSave }) {
   const preferences = user?.preferences ?? {};
@@ -15,7 +17,6 @@ function PreferencesForm({ user, onSave }) {
   const [formData, setFormData] = useState({
     currency:               preferences.currency               ?? "USD",
     language:               preferences.language               ?? "en",
-    dark_mode:              preferences.dark_mode              ?? false,
     email_notifications:    preferences.email_notifications    ?? true,
     weekly_report_enabled:  preferences.weekly_report_enabled  ?? true,
   });
@@ -61,17 +62,6 @@ function PreferencesForm({ user, onSave }) {
       </div>
 
       <div className="mt-5 flex flex-col gap-3">
-        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700 dark:text-slate-300">
-          <input
-            type="checkbox"
-            name="dark_mode"
-            checked={formData.dark_mode}
-            onChange={handleChange}
-            className="h-4.5 w-4.5 cursor-pointer accent-indigo-600"
-          />
-          Dark mode
-        </label>
-
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700 dark:text-slate-300">
           <input
             type="checkbox"

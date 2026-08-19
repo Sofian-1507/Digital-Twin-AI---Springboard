@@ -7,7 +7,7 @@
  * and treats a 401 as logged-out.
  */
 import { useState, useEffect } from "react";
-import { getUser } from "../services/userService";
+import { getUser, updatePreferences } from "../services/userService";
 import { logoutUser } from "../services/authService";
 import { AuthContext } from "./authContextInstance";
 
@@ -70,8 +70,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  /**
+   * Flips the saved dark-mode preference (sidebar sun/moon toggle) and
+   * persists it via the same PATCH /users/me/preferences the old Settings
+   * checkbox used — dark mode is still a per-account preference, just
+   * toggled from the sidebar now instead of a form field.
+   */
+  const toggleDarkMode = async () => {
+    const updated = await updatePreferences({ dark_mode: !user?.preferences?.dark_mode });
+    setUser(updated);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, toggleDarkMode }}>
       {children}
     </AuthContext.Provider>
   );

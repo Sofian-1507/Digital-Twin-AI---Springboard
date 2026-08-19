@@ -1,4 +1,6 @@
+import { PieChart, Pie, Cell } from "recharts";
 import { formatCurrency } from "../utils/currency";
+import { CHART_COLORS } from "../utils/chartColors";
 
 function SavingsProgress({ transactions, goal: activeGoal, currency = "USD" }) {
 
@@ -36,35 +38,62 @@ function SavingsProgress({ transactions, goal: activeGoal, currency = "USD" }) {
 
   const goal = Number(activeGoal.target_value);
 
-  // Bug fix: Math.min alone let a negative `savings` value (more spent than
-  // earned) produce a negative percentage, which the browser renders as an
-  // invalid CSS width — falling back to the fill div's default 100%, i.e. a
-  // NEGATIVE savings rate visually showed as a COMPLETE progress bar.
+  // Bug fix (kept from the bar version): Math.min alone let a negative
+  // `savings` value (more spent than earned) produce a negative percentage,
+  // which the donut can't render either — clamp to 0 first.
   const percentage = Math.max(
     0,
     Math.min(Math.round((savings / goal) * 100), 100)
   );
   const isNegative = savings < 0;
+  const fillColor = isNegative ? CHART_COLORS.danger : CHART_COLORS.positive;
+
+  const donutData = [
+    { name: "completed", value: percentage },
+    { name: "remaining", value: 100 - percentage },
+  ];
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
 
       <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{activeGoal.title}</h3>
 
-      <h2 className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${isNegative ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`}>
-        {formatCurrency(savings, currency)} / {formatCurrency(goal, currency)}
-      </h2>
+      <div className="mt-4 flex items-center gap-5">
+        <div className="relative h-28 w-28 shrink-0">
+          <PieChart width={112} height={112}>
+            <Pie
+              data={donutData}
+              dataKey="value"
+              cx="50%"
+              cy="50%"
+              innerRadius={38}
+              outerRadius={52}
+              startAngle={90}
+              endAngle={-270}
+              stroke="none"
+              isAnimationActive={false}
+            >
+              <Cell fill={fillColor} />
+              <Cell fill={CHART_COLORS.grid} />
+            </Pie>
+          </PieChart>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className={`font-mono text-lg font-semibold tabular-nums ${isNegative ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`}>
+              {percentage}%
+            </span>
+          </div>
+        </div>
 
-      <div className="my-5 h-4 w-full overflow-hidden rounded-full bg-slate-200">
-
-        <div
-          className={`h-full rounded-full bg-linear-to-r ${isNegative ? "from-red-500 to-red-600" : "from-emerald-500 to-emerald-600"}`}
-          style={{ width: `${percentage}%` }}
-        ></div>
-
+        <div className="min-w-0">
+          <p className={`font-mono text-xl font-semibold tabular-nums ${isNegative ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`}>
+            {formatCurrency(savings, currency)}
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">of {formatCurrency(goal, currency)} goal</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {isNegative ? "Spending more than you earn" : `${percentage}% Completed`}
+          </p>
+        </div>
       </div>
-
-      <p className="text-sm text-slate-500 dark:text-slate-400">{isNegative ? "Spending more than you earn" : `${percentage}% Completed`}</p>
 
     </div>
   );

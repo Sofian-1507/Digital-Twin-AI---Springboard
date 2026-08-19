@@ -60,7 +60,7 @@ Tailwind's cool default gray for everything else.
 | `slate-600` | `#6E6355` | secondary text |
 | `slate-700` | `#4A4033` | dark-mode surface/border |
 | `slate-800` | `#2B2521` | primary text (light mode) / surface (dark mode) |
-| `slate-900` | `#1C1712` | Sidebar background, dark-mode base |
+| `slate-900` | `#1C1712` | Sidebar background in dark mode; dark-mode base elsewhere |
 | `indigo-100/600/700` | `#D3E6DF` / `#2F6F5E` / `#234F42` | **primary action accent** (teal) — buttons, links, active nav state |
 | `violet-100/300/500/600/700` | … / `#8267C4` / … | **predicted-value accent** — reserved *only* for model/forecast output, never user-entered data (see "Predicted values" below) |
 | `emerald-100/600/700` | … / `#1F7A52` / … | positive semantic (income, on-track, success) |
@@ -182,16 +182,26 @@ throughout). There is no separate top navbar. Structure, top to bottom:
 
 1. **Brand header** — logo mark + app name (hidden on the collapsed
    width).
-2. **Nav groups** (`Overview` / `Track` / `Foresight` / `You`), each a
-   labeled cluster of `NavLink`s — grouped by purpose, not flattened.
+2. **Nav groups** (`Overview` / `Track` / `Foresight`), each a labeled
+   cluster of `NavLink`s — grouped by purpose, not flattened. There is no
+   separate "You" group — identity lives in the profile dropdown below.
 3. **AI Assistant** — visually separated below the groups with its own
    divider, since it's a preview feature, not a core section.
-4. **Profile block** (bottom, pinned via being the last flex child) —
-   avatar + name/role (name hidden on the collapsed width), then a row of
-   three equally-spaced action icons: notifications (disabled — no backend
-   yet), settings (`Link` to `/settings`), logout. The row uses
-   `grid-cols-1` (stacked, centered) below `md` and `grid-cols-3` (a single
-   even row) from `md` up, matching how the rest of the sidebar collapses.
+4. **Theme toggle** (bottom) — a sun/moon button that flips the saved
+   `preferences.dark_mode` via `AuthContext`'s `toggleDarkMode` (same
+   `PATCH /users/me/preferences` the old Settings checkbox used — dark
+   mode is still a per-account, backend-persisted preference, just
+   toggled from here now). Shows `Moon` in light mode ("switch to dark")
+   and `Sun` in dark mode ("switch to light"). There is no notifications
+   affordance — removed as unneeded rather than shipped as a disabled
+   placeholder.
+5. **Profile dropdown** (`ProfileMenu`, inside `Sidebar.jsx`) — avatar +
+   name/role trigger (name hidden on the collapsed width) that opens a
+   menu *upward* (`bottom-full`, since it's pinned to the bottom of the
+   screen) containing My Profile, Settings, and Logout. Uses the same
+   click-outside/Escape-to-close pattern as `Dashboard.jsx`'s
+   `AddRecordMenu` — reuse that pattern for any future dropdown rather
+   than inventing a new one.
 
 A page-level top navbar existed earlier in the app (`components/Navbar.jsx`)
 duplicating the greeting/avatar/settings/logout affordances already present

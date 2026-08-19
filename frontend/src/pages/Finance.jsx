@@ -12,7 +12,6 @@ import SavingsProgress from "../components/SavingsProgress";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Pagination from "../components/Pagination";
 import IncomeProjectionCard from "../components/IncomeProjectionCard";
-import { Select } from "../components/ui/Field";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import Drawer from "../components/ui/Drawer";
@@ -64,11 +63,15 @@ function buildExpenseChartData(transactions, forecast) {
 
 function Finance() {
   const { user } = useAuth();
-  // First FINANCE-category goal the user has set — used as the real savings
-  // target instead of a hardcoded placeholder. null if they haven't set one.
-  const savingsGoal = user?.active_goals?.find((g) => g.category === "FINANCE") ?? null;
+  // Every FINANCE-category goal the user has set — used as real savings
+  // targets instead of a hardcoded placeholder. Previously only the first
+  // one (via .find()) ever got a card here; now every finance goal gets one,
+  // live off the same active_goals the rest of the page already reacts to.
+  const financeGoals = user?.active_goals?.filter((g) => g.category === "FINANCE") ?? [];
   const currency = user?.preferences?.currency ?? "USD";
 
+  // The dashboard summary/charts/goal cards' data — always the most recent
+  // ~50 transactions, unaffected by the table's own filters below.
   const [transactions, setTransactions] = useState([]);
   const [expenseChartData, setExpenseChartData] = useState([]);
   const [categoryChartData, setCategoryChartData] = useState([]);
@@ -78,8 +81,11 @@ function Finance() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
 
-  // Filtered + paginated transaction table state (independent of the
-  // dashboard summary/charts above, which always reflect recent activity).
+  // Filtered + paginated transaction table state — genuinely its own state
+  // now (previously this reused `transactions`, so applying a Transaction
+  // History filter silently swapped the data FinanceSummary/SavingsProgress
+  // above were reading too; that was the bug).
+  const [tableTransactions, setTableTransactions] = useState([]);
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -97,6 +103,7 @@ function Finance() {
         ]);
         const txns = result.data || [];
         setTransactions(txns);
+        setTableTransactions(txns);
         setTotalPages(result.total_pages || 1);
         setExpenseChartData(buildExpenseChartData(txns, forecast));
         setCategoryChartData(
@@ -130,7 +137,7 @@ function Finance() {
           ...(categoryFilter ? { category: categoryFilter } : {}),
         });
         if (cancelled) return;
-        setTransactions(result.data || []);
+        setTableTransactions(result.data || []);
         setTotalPages(result.total_pages || 1);
       } catch (err) {
         if (cancelled) return;
@@ -181,6 +188,7 @@ function Finance() {
       };
       const newRecord = await createTransaction(payload);
       setTransactions((prev) => [newRecord, ...prev]);
+      setTableTransactions((prev) => [newRecord, ...prev]);
       toast.success("Transaction added successfully.");
       setAddDrawerOpen(false);
     } catch (err) {
@@ -203,6 +211,7 @@ function Finance() {
       };
       const updatedRecord = await updateTransaction(id, payload);
       setTransactions((prev) => prev.map(t => t.id === id ? updatedRecord : t));
+      setTableTransactions((prev) => prev.map(t => t.id === id ? updatedRecord : t));
       toast.success("Transaction updated successfully.");
       setEditingRecord(null);
     } catch (err) {
@@ -220,6 +229,7 @@ function Finance() {
     try {
       await deleteTransaction(id);
       setTransactions((prev) => prev.filter(t => t.id !== id));
+      setTableTransactions((prev) => prev.filter(t => t.id !== id));
       toast.success("Transaction deleted.");
     } catch (err) {
       console.error("Failed to delete transaction:", err);
@@ -268,40 +278,33 @@ function Finance() {
 
           <IncomeProjectionCard projection={incomeProjection} currency={currency} />
 
-          <SavingsProgress transactions={transactions} goal={savingsGoal} currency={currency} />
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={typeFilter} onChange={handleTypeFilterChange} aria-label="Filter by type" className="w-auto">
-              <option value="">All types</option>
-              {TRANSACTION_TYPES.map((t) => (
-                <option key={t} value={t}>{t.replace("_", " ")}</option>
+          {financeGoals.length > 0 ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {financeGoals.map((goal) => (
+                <SavingsProgress key={goal.goal_id} transactions={transactions} goal={goal} currency={currency} />
               ))}
-            </Select>
-
-            <Select value={categoryFilter} onChange={handleCategoryFilterChange} aria-label="Filter by category" className="w-auto">
-              <option value="">All categories</option>
-              {FINANCIAL_CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </Select>
-
-            {(typeFilter || categoryFilter) && (
-              <Button type="button" variant="secondary" onClick={clearFilters}>
-                Clear filters
-              </Button>
-            )}
-          </div>
-
-          {isTableLoading ? (
-            <SkeletonTable rows={6} cols={5} />
+            </div>
           ) : (
-            <TransactionTable
-              transactions={transactions}
-              onEdit={startEdit}
-              onDelete={handleDelete}
-              currency={currency}
-            />
+            <SavingsProgress transactions={transactions} goal={null} currency={currency} />
           )}
+
+          {/* Stays mounted across filter/page changes — only its own isLoading
+              state (a small in-card spinner) reflects a refetch, so applying a
+              filter never swaps out or reloads anything outside this card. */}
+          <TransactionTable
+            transactions={tableTransactions}
+            onEdit={startEdit}
+            onDelete={handleDelete}
+            currency={currency}
+            isLoading={isTableLoading}
+            typeFilter={typeFilter}
+            categoryFilter={categoryFilter}
+            onTypeFilterChange={handleTypeFilterChange}
+            onCategoryFilterChange={handleCategoryFilterChange}
+            onClearFilters={clearFilters}
+            transactionTypes={TRANSACTION_TYPES}
+            financialCategories={FINANCIAL_CATEGORIES}
+          />
 
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
         </div>
