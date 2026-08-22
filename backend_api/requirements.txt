@@ -24,6 +24,13 @@ python-multipart==0.0.9
 # ─── Utilities ────────────────────────────────────────────────────────────────
 python-dotenv==1.0.1
 
+# ─── AI Assistant (Milestone 4) ────────────────────────────────────────────────
+# google-generativeai: Gemini, the primary provider.
+# openai: also used for the Groq fallback (Groq's API is OpenAI-compatible) —
+# no OpenAI account/key involved for that path, just this client's request shape.
+google-generativeai==0.8.3
+openai==1.51.2
+
 # ─── Testing (dev) ─────────────────────────────────────────────────────────────
 pytest==8.2.2
 pytest-asyncio==0.23.7

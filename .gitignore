@@ -1,0 +1,7 @@
+# Environment variables — real secrets live only in the root .env (gitignored);
+# .env.example files document the shape and are meant to be committed.
+.env
+.env.*
+!.env.example
+
+.DS_Store

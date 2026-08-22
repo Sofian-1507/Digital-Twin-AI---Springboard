@@ -39,6 +39,15 @@ class AuthenticationError(Exception):
         super().__init__(message)
 
 
+class AIProviderUnavailableError(Exception):
+    """Raised when every configured LLM provider (Gemini, then Groq) fails or
+    none is configured — an upstream dependency being down, not our bug, so
+    this maps to 503 rather than 500."""
+    def __init__(self, message: str = "The AI assistant is temporarily unavailable. Please try again shortly."):
+        self.message = message
+        super().__init__(message)
+
+
 # ─── Exception Handlers ───────────────────────────────────────────────────────
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -71,6 +80,13 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"error": "AUTHENTICATION_FAILED", "message": exc.message},
             headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    @app.exception_handler(AIProviderUnavailableError)
+    async def ai_provider_unavailable_handler(request: Request, exc: AIProviderUnavailableError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"error": "AI_PROVIDER_UNAVAILABLE", "message": exc.message},
         )
 
     @app.exception_handler(DuplicateKeyError)

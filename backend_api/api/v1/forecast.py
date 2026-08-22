@@ -6,6 +6,7 @@ GET /api/v1/forecast/expenses                  → expense projection
 GET /api/v1/forecast/goals/{goal_id}           → single goal completion estimate
 GET /api/v1/forecast/goals                     → all finance-category goal estimates
 GET /api/v1/forecast/summary                   → bundled forecast + overall confidence
+GET /api/v1/forecast/accuracy                  → backtested accuracy (retrospective, not confidence)
 """
 import logging
 
@@ -14,6 +15,7 @@ from fastapi import APIRouter, Query
 from api.dependencies import CurrentUser
 from schemas.forecast_schema import (
     ExpenseProjectionResponse,
+    ForecastAccuracyResponse,
     ForecastSummaryResponse,
     GoalCompletionResponse,
     IncomeProjectionResponse,
@@ -98,3 +100,17 @@ async def forecast_summary(current_user: CurrentUser) -> ForecastSummaryResponse
     """Bundles the savings forecast, income/expense projections, and finance-goal
     completion estimates into one response with an averaged overall confidence score."""
     return await forecast_service.get_forecast_summary(str(current_user.id))
+
+
+@router.get(
+    "/accuracy",
+    response_model=ForecastAccuracyResponse,
+    summary="Backtested financial forecasting accuracy",
+)
+async def forecast_accuracy(current_user: CurrentUser) -> ForecastAccuracyResponse:
+    """Retrospective accuracy via walk-forward backtesting over this user's real
+    transaction history — distinct from confidence_score (a live, forward-looking
+    heuristic on the other endpoints). At each past month, forecasts one step ahead
+    using only data available up to that point, then scores it against what actually
+    happened."""
+    return await forecast_service.backtest_accuracy(str(current_user.id))

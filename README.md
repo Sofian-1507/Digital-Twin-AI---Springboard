@@ -42,24 +42,31 @@ Digital-Twin-AI---Springboard/
 - Python 3.10+
 - A MongoDB Atlas cluster (or local MongoDB 7.0+)
 
-### 1. Backend (FastAPI)
+### 0. Environment variables (shared)
+
+Both apps read from a **single `.env` at the repo root** — copy the template and fill in real values:
 
 ```bash
-cd backend_api
-pip install -r requirements.txt
+cp .env.example .env
 ```
-
-Create `backend_api/.env`:
 
 ```env
 MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
 MONGODB_DB_NAME=digital_twin_ai_prod
 JWT_SECRET_KEY=<a-securely-generated-secret>
+VITE_API_URL=/api/v1
+# Optional — AI assistant (Gemini primary, Groq fallback)
+GEMINI_API_KEY=
+GROQ_API_KEY=
 ```
 
-Run it:
+`backend_api/core/config.py` resolves this file's path relative to its own location, and `frontend/vite.config.js` sets `envDir` to the repo root — so this works regardless of which directory you run either app from. There's no per-app `.env`/`.env.example` anymore; only `VITE_`-prefixed vars ever reach client-side code, so backend secrets stay server-only even though the file is shared.
+
+### 1. Backend (FastAPI)
 
 ```bash
+cd backend_api
+pip install -r requirements.txt
 export PYTHONPATH=$(pwd)
 python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -71,17 +78,6 @@ python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 cd frontend
 npm install
-```
-
-Create `frontend/.env` (see `.env.example`):
-
-```env
-VITE_API_URL=http://127.0.0.1:8000/api/v1
-```
-
-Run it:
-
-```bash
 npm run dev
 ```
 

@@ -17,6 +17,7 @@ from beanie import PydanticObjectId
 from core.exceptions import AuthenticationError, ConflictError
 from core.security import hash_password
 from models.activity import UserActivity
+from models.feedback import AssistantFeedback
 from models.finance import FinancialRecord
 from models.habit import HabitTracking
 from models.simulation import Recommendation, Simulation
@@ -177,9 +178,10 @@ async def test_authenticate_user_nonexistent_email_rejected():
 # ─── delete_user ───────────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_delete_user_removes_all_six_associated_collections():
-    """Regression test for this session's cascading-delete fix: Simulation and
-    Recommendation must be cleaned up alongside finance/study/habit/activity records."""
+async def test_delete_user_removes_all_seven_associated_collections():
+    """Regression test for this session's cascading-delete fix: Simulation,
+    Recommendation, and AssistantFeedback must be cleaned up alongside
+    finance/study/habit/activity records."""
     user = User.model_construct(email="todelete@example.com", password_hash="x", profile=Profile(name="Del", age=30))
     user.id = PydanticObjectId("507f1f77bcf86cd799439013")
 
@@ -189,7 +191,7 @@ async def test_delete_user_removes_all_six_associated_collections():
         return patch.object(model, "find", return_value=query), query
 
     patches_and_queries = [_mock_find(m) for m in (
-        FinancialRecord, StudyActivity, HabitTracking, UserActivity, Simulation, Recommendation
+        FinancialRecord, StudyActivity, HabitTracking, UserActivity, Simulation, Recommendation, AssistantFeedback
     )]
 
     ctx_managers = [p for p, _ in patches_and_queries]

@@ -21,6 +21,7 @@ from schemas.finance_schema import MonthlyCashflowItem
 from schemas.forecast_schema import ForecastMethod
 from services.forecast_service import (
     ForecastService,
+    _backtest_series,
     _build_monthly_series,
     _compute_confidence,
     _estimate_months_to_goal,
@@ -409,3 +410,70 @@ async def test_get_forecast_summary_bundles_and_averages_confidence():
     assert summary.overall_confidence_score == pytest.approx(expected_avg)
     assert summary.user_id == VALID_USER_ID
     assert len(summary.goal_completions) == 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Backtest accuracy (Milestone 2 "≥85%" evaluation criterion)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_backtest_series_too_short_returns_empty():
+    result = _backtest_series([500.0])
+    assert result.points == []
+    assert result.overall_accuracy_pct == 0.0
+
+
+def test_backtest_series_flat_series_scores_perfectly():
+    # Every method predicts the same flat value exactly -> 100% at every point.
+    result = _backtest_series([500.0] * 8)
+    assert len(result.points) == 7
+    assert result.overall_accuracy_pct == pytest.approx(100.0, abs=0.01)
+
+
+def test_backtest_series_perfect_linear_trend_scores_high_once_regression_kicks_in():
+    values = [100.0 + 100.0 * i for i in range(10)]  # 100, 200, ..., 1000
+    result = _backtest_series(values)
+    regression_points = [p for p in result.points if p.method == ForecastMethod.LINEAR_REGRESSION]
+    assert regression_points  # the later points should have graduated to linear_regression
+    for p in regression_points:
+        assert p.accuracy_pct > 95.0
+
+
+def test_backtest_series_wildly_oscillating_scores_low():
+    values = [100.0, 900.0, 50.0, 950.0, 80.0, 920.0, 60.0, 940.0]
+    result = _backtest_series(values)
+    assert result.overall_accuracy_pct < 60.0
+
+
+def test_backtest_series_near_zero_actual_does_not_crash_and_stays_bounded():
+    values = [1000.0, 1000.0, 1000.0, 0.01, 1000.0]
+    result = _backtest_series(values)
+    assert len(result.points) == 4
+    for p in result.points:
+        assert 0.0 <= p.accuracy_pct <= 100.0
+
+
+@pytest.mark.asyncio
+async def test_backtest_accuracy_returns_structured_response():
+    items = _cashflow_items([(2026, m, 2000 + m * 10, 1500) for m in range(3, 9)])
+    service = ForecastService(lookback_months=6)
+    with _patch_cashflow(items):
+        result = await service.backtest_accuracy(VALID_USER_ID)
+
+    assert result.user_id == VALID_USER_ID
+    assert 0.0 <= result.overall_accuracy_pct <= 100.0
+    assert result.income_accuracy.points_evaluated > 0
+    assert result.expense_accuracy.points_evaluated > 0
+    assert result.savings_accuracy.points_evaluated > 0
+    assert result.by_method  # at least one method tier was exercised
+    assert all(0.0 <= v <= 100.0 for v in result.by_method.values())
+
+
+@pytest.mark.asyncio
+async def test_backtest_accuracy_handles_no_history_without_crashing():
+    service = ForecastService(lookback_months=6)
+    with _patch_cashflow([]):
+        result = await service.backtest_accuracy(VALID_USER_ID)
+
+    assert result.overall_accuracy_pct == 0.0
+    assert result.income_accuracy.points_evaluated == 0
+    assert result.by_method == {}

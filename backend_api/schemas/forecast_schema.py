@@ -81,3 +81,24 @@ class ForecastSummaryResponse(BaseModel):
     goal_completions: list[GoalCompletionResponse]
     overall_confidence_score: float
     generated_at: datetime
+
+
+class SeriesAccuracy(BaseModel):
+    """Walk-forward backtest result for one series (income/expense/savings)."""
+    accuracy_pct: float
+    points_evaluated: int
+
+
+class ForecastAccuracyResponse(BaseModel):
+    """GET /forecast/accuracy — retrospective accuracy, not to be confused with
+    confidence_score (a live, forward-looking heuristic on the other endpoints).
+    Measured by walk-forward backtesting: at each past month, forecast one step
+    ahead using only data available up to that point, then compare against what
+    actually happened."""
+    user_id: str
+    income_accuracy: SeriesAccuracy
+    expense_accuracy: SeriesAccuracy
+    savings_accuracy: SeriesAccuracy
+    overall_accuracy_pct: float
+    by_method: dict[ForecastMethod, float]
+    generated_at: datetime

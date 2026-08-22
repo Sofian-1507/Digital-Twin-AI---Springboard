@@ -23,6 +23,7 @@ from models.study import StudyActivity
 from models.habit import HabitTracking
 from models.activity import UserActivity
 from models.simulation import Recommendation, Simulation
+from models.feedback import AssistantFeedback
 
 from schemas.auth_schema import RegisterRequest, ChangePasswordRequest
 from schemas.user_schema import ProfileUpdateRequest, ActiveGoalCreateRequest, ActiveGoalUpdateRequest, PreferencesUpdateRequest
@@ -349,6 +350,7 @@ async def delete_user(user: User) -> None:
     await UserActivity.find(UserActivity.user_id == uid).delete()
     await Simulation.find(Simulation.user_id == uid).delete()
     await Recommendation.find(Recommendation.user_id == uid).delete()
+    await AssistantFeedback.find(AssistantFeedback.user_id == uid).delete()
 
     await user.delete()
     logger.info("User %s and all associated records deleted.", uid)

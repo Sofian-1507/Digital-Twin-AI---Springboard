@@ -38,12 +38,14 @@ from models.user import ActiveGoal, User
 from schemas.finance_schema import MonthlyCashflowItem
 from schemas.forecast_schema import (
     ExpenseProjectionResponse,
+    ForecastAccuracyResponse,
     ForecastMethod,
     ForecastSummaryResponse,
     GoalCompletionResponse,
     IncomeProjectionResponse,
     MonthlyProjectionPoint,
     SavingsForecastResponse,
+    SeriesAccuracy,
 )
 import services.finance_service as finance_service
 
@@ -180,6 +182,53 @@ def _forecast_series(
         return method, _moving_average_forecast(values, periods_ahead), None
     forecast, r_squared = _linear_regression_forecast(values, periods_ahead)
     return method, forecast, r_squared
+
+
+@dataclass
+class BacktestPoint:
+    method: ForecastMethod
+    actual: float
+    predicted: float
+    accuracy_pct: float
+
+
+@dataclass
+class BacktestResult:
+    points: list[BacktestPoint] = field(default_factory=list)
+    overall_accuracy_pct: float = 0.0
+
+
+def _backtest_series(values: list[float]) -> BacktestResult:
+    """
+    Walk-forward backtest: for each cutoff k (1..n-1), forecasts one step ahead using
+    only values[:k] — the exact method-selection logic a live forecast would have used
+    at that point in time — then scores it against the real values[k].
+
+    Error is absolute percentage error against a magnitude-scaled floor (not a fixed
+    constant), because a `savings` series can legitimately sit at/near zero some
+    months, which would otherwise make a raw percentage error blow up or become
+    meaningless. Per-point accuracy is 1 - ape, clamped to [0, 100]%.
+    """
+    n = len(values)
+    if n < 2:
+        return BacktestResult()
+
+    mean_abs = sum(abs(v) for v in values) / n
+    floor = max(1.0, 0.01 * mean_abs)
+
+    points: list[BacktestPoint] = []
+    for k in range(1, n):
+        method, forecast_values, _ = _forecast_series(values[:k], periods_ahead=1)
+        if method == ForecastMethod.INSUFFICIENT_DATA:
+            continue
+        predicted = forecast_values[0]
+        actual = values[k]
+        ape = abs(actual - predicted) / max(abs(actual), floor)
+        accuracy_pct = max(0.0, min(100.0, (1 - ape) * 100))
+        points.append(BacktestPoint(method=method, actual=actual, predicted=predicted, accuracy_pct=accuracy_pct))
+
+    overall = round(sum(p.accuracy_pct for p in points) / len(points), 2) if points else 0.0
+    return BacktestResult(points=points, overall_accuracy_pct=overall)
 
 
 def _compute_confidence(
@@ -416,6 +465,39 @@ class ForecastService:
             expense_projection=expenses,
             goal_completions=goals,
             overall_confidence_score=overall_confidence,
+            generated_at=datetime.now(timezone.utc),
+        )
+
+    async def backtest_accuracy(self, user_id: str) -> ForecastAccuracyResponse:
+        """Retrospective accuracy (Milestone 2's '≥85%' evaluation criterion) — distinct
+        from confidence_score, which is a live, forward-looking heuristic. Walk-forward
+        backtests income/expense/savings against this user's real transaction history."""
+        series = await self._get_monthly_series(user_id)
+        income_result = _backtest_series(series.income)
+        expense_result = _backtest_series(series.expense)
+        savings_result = _backtest_series(series.savings)
+
+        all_points = income_result.points + expense_result.points + savings_result.points
+        overall = round(sum(p.accuracy_pct for p in all_points) / len(all_points), 2) if all_points else 0.0
+
+        by_method: dict[ForecastMethod, list[float]] = {}
+        for p in all_points:
+            by_method.setdefault(p.method, []).append(p.accuracy_pct)
+        by_method_avg = {method: round(sum(vals) / len(vals), 2) for method, vals in by_method.items()}
+
+        return ForecastAccuracyResponse(
+            user_id=user_id,
+            income_accuracy=SeriesAccuracy(
+                accuracy_pct=income_result.overall_accuracy_pct, points_evaluated=len(income_result.points)
+            ),
+            expense_accuracy=SeriesAccuracy(
+                accuracy_pct=expense_result.overall_accuracy_pct, points_evaluated=len(expense_result.points)
+            ),
+            savings_accuracy=SeriesAccuracy(
+                accuracy_pct=savings_result.overall_accuracy_pct, points_evaluated=len(savings_result.points)
+            ),
+            overall_accuracy_pct=overall,
+            by_method=by_method_avg,
             generated_at=datetime.now(timezone.utc),
         )
 

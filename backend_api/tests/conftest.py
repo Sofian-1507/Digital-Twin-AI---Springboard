@@ -18,6 +18,7 @@ from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from models.activity import UserActivity
+from models.feedback import AssistantFeedback
 from models.finance import FinancialRecord
 from models.habit import HabitTracking
 from models.simulation import Recommendation, Simulation
@@ -31,6 +32,7 @@ async def _init():
         database=client.test_db,
         document_models=[
             User, FinancialRecord, StudyActivity, HabitTracking, UserActivity, Simulation, Recommendation,
+            AssistantFeedback,
         ],
     )
 

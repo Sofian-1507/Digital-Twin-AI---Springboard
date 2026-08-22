@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { toast } from "react-toastify";
 
 import PredictionSummary from "../components/PredictionSummary";
@@ -18,6 +18,11 @@ import { SkeletonStatGrid, SkeletonChart } from "../components/ui/Skeleton";
 import { getTrendSummary } from "../services/trendService";
 import { getProductivityScore, getWeeklyProductivityTrend } from "../services/productivityService";
 import { getConsistencyScore } from "../services/habitAnalyticsService";
+
+// Lazy-loaded: pulls in the Plotly cartesian bundle, which is sizeable even
+// trimmed down — no reason to pay for it until the "Compare All" subtab
+// (the only place it's used) is actually opened.
+const ScenarioExplorer = lazy(() => import("../components/ScenarioExplorer"));
 
 // Short "Aug 3" style label for chart x-axes, from an ISO date/period string.
 function formatShortDate(value) {
@@ -220,7 +225,14 @@ function Prediction() {
           {whatIfSubtab === "study" && <StudySimulationForm />}
           {whatIfSubtab === "fitness" && <FitnessSimulationForm />}
           {whatIfSubtab === "hybrid" && <HybridSimulationForm />}
-          {whatIfSubtab === "compare" && <DomainComparison />}
+          {whatIfSubtab === "compare" && (
+            <div className="flex flex-col gap-6">
+              <DomainComparison />
+              <Suspense fallback={<SkeletonChart />}>
+                <ScenarioExplorer />
+              </Suspense>
+            </div>
+          )}
 
           <SimulationHistoryList />
         </div>

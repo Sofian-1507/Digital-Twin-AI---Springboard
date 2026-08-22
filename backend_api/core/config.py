@@ -2,16 +2,25 @@
 core/config.py — Type-safe environment variable loader for the FastAPI backend.
 Mirrors the intent of backend/database/config/db_settings.ts, adapted for Python/Pydantic-Settings.
 """
+from pathlib import Path
+from typing import Optional
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
 _INSECURE_JWT_SECRET_PLACEHOLDER = "CHANGE-THIS-SECRET-IN-PRODUCTION"
 
+# The common .env lives at the repo root (shared with the frontend — see
+# frontend/vite.config.js's envDir), not inside backend_api/. Resolved from
+# this file's own location rather than a bare relative ".env" so it's found
+# correctly regardless of the CWD the server is launched from.
+_ROOT_ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ROOT_ENV_FILE),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -56,6 +65,14 @@ class Settings(BaseSettings):
     # ── Pagination ────────────────────────────────────────────────────────────
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
+
+    # ── AI Assistant (Milestone 4) ───────────────────────────────────────────
+    # Gemini is the primary provider; Groq (an OpenAI-compatible API) is the
+    # fallback if Gemini is unset or a call to it fails. Both optional so the
+    # app still starts without them — ai_assistant_service raises a clean
+    # AIProviderUnavailableError at call time instead if neither is configured.
+    GEMINI_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
 
     @property
     def is_production(self) -> bool:
