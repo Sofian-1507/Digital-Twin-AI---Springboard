@@ -13,6 +13,7 @@ import { Input } from "../components/ui/Field";
 import Button from "../components/ui/Button";
 import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
 import Modal from "../components/ui/Modal";
+import Drawer from "../components/ui/Drawer";
 
 import { getSessions, createSession, updateSession, deleteSession, getSubjectPerformance } from "../services/studyService";
 import { getProductivitySummary } from "../services/productivityService";
@@ -75,6 +76,7 @@ function Study() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [addDrawerOpen, setAddDrawerOpen] = useState(false);
 
   const [subjectFilter, setSubjectFilter] = useState("");
   const [subjectInput, setSubjectInput] = useState("");
@@ -171,6 +173,7 @@ function Study() {
         return updated;
       });
       toast.success("Study session logged successfully.");
+      setAddDrawerOpen(false);
     } catch (err) {
       console.error("Failed to add study session:", err);
       toast.error("Failed to log study session. Please try again.");
@@ -238,7 +241,10 @@ function Study() {
   return (
     <div>
 
-      <h2 className="mb-6 text-2xl font-semibold text-slate-800 dark:text-slate-100">Study Dashboard</h2>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">Study Dashboard</h2>
+        <Button onClick={() => setAddDrawerOpen(true)}>+ Add Study Session</Button>
+      </div>
 
       {isLoading ? (
         <div className="flex flex-col gap-5">
@@ -249,8 +255,6 @@ function Study() {
       ) : (
         <div className="flex flex-col gap-6">
           <StudySummary sessions={sessions} productivitySummary={productivitySummary} />
-
-          <StudyForm addSession={addSession} />
 
           <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
             <StudyChart data={chartData} />
@@ -292,6 +296,10 @@ function Study() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
         </div>
       )}
+
+      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} title="Add Study Session">
+        <StudyForm addSession={addSession} />
+      </Drawer>
 
       <Modal open={!!editingRecord} onClose={() => setEditingRecord(null)} title="Edit Study Session" maxWidth="max-w-xl">
         <StudyForm

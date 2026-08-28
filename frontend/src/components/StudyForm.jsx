@@ -64,14 +64,11 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
   };
 
   return (
-    <form className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm" onSubmit={submitHandler}>
-      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Add Study Session</h3>
-
-      {/* Capped at 2 columns (not 4) since this form renders both inline on
-          the Study page (viewport-width) and inside the Edit modal (fixed
-          ~576px) — 4 columns was fine on the page but crushed the 4 fields
-          into unreadable slivers inside the narrower modal. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <form onSubmit={submitHandler}>
+      {/* @container query, not a viewport breakpoint — this form only ever
+          renders inside a Drawer (add) or Modal (edit), both fixed-width
+          panels with @container already set, narrower than a full page. */}
+      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
 
         <Input
           type="date"

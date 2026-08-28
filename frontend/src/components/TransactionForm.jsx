@@ -66,15 +66,13 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
   };
 
   return (
-    <form className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm" onSubmit={submitHandler}>
-      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">{initialData ? "Edit Transaction" : "Add Transaction"}</h3>
-
-      {/* Bug fix: this form only ever renders inside Drawer/Modal, both fixed-
-          width containers — sm:/lg: are VIEWPORT breakpoints, so at a wide
-          browser window they forced a 5-column grid into a ~450px-wide
-          drawer regardless of the drawer's actual size, crushing every field
-          into an unreadable sliver. @container queries respond to the
-          drawer/modal's own width instead. */}
+    <form onSubmit={submitHandler}>
+      {/* This form only ever renders inside Drawer/Modal, both fixed-width
+          containers — sm:/lg: are VIEWPORT breakpoints, so at a wide browser
+          window they forced a 5-column grid into a ~450px-wide drawer
+          regardless of the drawer's actual size, crushing every field into
+          an unreadable sliver. @container queries respond to the
+          drawer/modal's own width instead (both already have @container set). */}
       <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-5">
         <Input
           type="date"

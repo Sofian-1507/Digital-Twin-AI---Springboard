@@ -18,7 +18,7 @@ export default defineConfig({
     // cookie to work without cross-origin SameSite=None/Secure (HTTPS) locally.
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8001",
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
     },

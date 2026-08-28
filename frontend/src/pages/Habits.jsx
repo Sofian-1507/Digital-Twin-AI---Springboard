@@ -9,6 +9,8 @@ import HabitTable from "../components/HabitTable";
 import LifestyleRecommendation from "../components/LifestyleRecommendation";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Pagination from "../components/Pagination";
+import Button from "../components/ui/Button";
+import Drawer from "../components/ui/Drawer";
 import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
 
 import { getHabitLogs, logDailyHabit, deleteHabitLog } from "../services/habitService";
@@ -77,6 +79,7 @@ function Habits() {
   const [habitAnalyticsSummary, setHabitAnalyticsSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [addDrawerOpen, setAddDrawerOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -162,6 +165,7 @@ function Habits() {
         return [newRecord, ...prev];
       });
       toast.success("Habit log saved successfully.");
+      setAddDrawerOpen(false);
     } catch (err) {
       console.error("Failed to add habit log:", err);
       toast.error(getApiErrorMessage(err, "Failed to log habit. Please try again."));
@@ -186,6 +190,11 @@ function Habits() {
 
   return (
     <>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">Habit Dashboard</h2>
+        <Button onClick={() => setAddDrawerOpen(true)}>+ Add Today's Habits</Button>
+      </div>
+
       {isLoading ? (
         <div className="flex flex-col gap-5">
           <SkeletonStatGrid count={4} />
@@ -195,8 +204,6 @@ function Habits() {
       ) : (
         <div className="flex flex-col gap-6">
           <HabitSummary habits={habitList} />
-
-          <HabitForm addHabit={addHabit} />
 
           <HabitChart data={habitChartData} />
 
@@ -213,6 +220,10 @@ function Habits() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
         </div>
       )}
+
+      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} title="Add Today's Habits">
+        <HabitForm addHabit={addHabit} />
+      </Drawer>
 
       <ConfirmDialog
         open={confirmDeleteId !== null}

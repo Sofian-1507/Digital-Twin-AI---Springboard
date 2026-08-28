@@ -52,11 +52,14 @@ function HabitForm({ addHabit }) {
   };
 
   return (
-    <form className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm" onSubmit={submitHandler}>
+    <form onSubmit={submitHandler}>
 
-      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Add Today's Habit</h3>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+      {/* @container query, not a viewport breakpoint — this form only ever
+          renders inside a Drawer (a fixed ~448px panel regardless of window
+          width, and already has @container set), so sm:/lg: viewport
+          breakpoints would respond to the browser window instead of the
+          drawer's actual width. */}
+      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
 
         <Input
           type="date"
