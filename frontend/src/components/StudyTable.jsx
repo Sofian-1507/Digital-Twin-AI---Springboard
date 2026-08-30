@@ -79,10 +79,11 @@ function StudyTable({ sessions, onEdit, onDelete }) {
           <Select value={sessionType} onChange={(e) => setSessionType(e.target.value)} className="w-auto">
             <option value="All">All Types</option>
             <option value="DEEP_WORK">Deep Work</option>
-            <option value="REVISION">Revision</option>
+            <option value="REVIEW">Review</option>
             <option value="LECTURE">Lecture</option>
-            <option value="GROUP_STUDY">Group Study</option>
-            <option value="PRACTICE">Practice</option>
+            <option value="PRACTICE_EXAM">Practice Exam</option>
+            <option value="ASSIGNMENT">Assignment</option>
+            <option value="RESEARCH">Research</option>
           </Select>
 
         </div>
@@ -121,7 +122,7 @@ function StudyTable({ sessions, onEdit, onDelete }) {
                   <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">{item.study_hours ?? item.hours ?? 0} hrs</td>
 
                   <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
-                    <Badge tone={item.session_type === "DEEP_WORK" || item.session_type === "REVISION" ? "success" : "warning"}>
+                    <Badge tone={item.session_type === "DEEP_WORK" || item.session_type === "REVIEW" ? "success" : "warning"}>
                       {item.session_type ? item.session_type.replace(/_/g, " ") : "-"}
                     </Badge>
                   </td>

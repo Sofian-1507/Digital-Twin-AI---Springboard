@@ -153,7 +153,7 @@ function Profile() {
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
               {goals.length > 0
-                ? goals.slice(0, 3).map((g) => (
+                ? goals.map((g) => (
                     <GoalCard
                       key={g.goal_id}
                       title={g.title}

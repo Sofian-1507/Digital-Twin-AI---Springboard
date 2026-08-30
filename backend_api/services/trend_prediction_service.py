@@ -27,7 +27,15 @@ from __future__ import annotations
 
 import asyncio
 from datetime import date, datetime, timedelta, timezone
+from beanie import PydanticObjectId
+from models.enums import GoalCategory
+from models.user import User
 from typing import Optional
+
+from beanie import PydanticObjectId
+
+from models.user import User
+from models.enums import GoalCategory
 
 from schemas.trend_prediction_schema import (
     FitnessTrendPrediction,
@@ -196,20 +204,59 @@ class TrendPredictionService:
         )
 
     async def predict_goal_completions(self, user_id: str) -> list[GoalTrendPrediction]:
-        goal_results = await forecast_service.estimate_all_goal_completions(user_id)
-        return [
-            GoalTrendPrediction(
-                goal_id=g.goal_id,
-                title=g.title,
-                category=g.category.value,
-                estimated_months_remaining=g.estimated_months_remaining,
-                estimated_completion_date=g.estimated_completion_date,
-                on_track=g.on_track,
-                method_used=g.method_used.value,
-                confidence_score=g.confidence_score,
-            )
-            for g in goal_results
-        ]
+        """
+        Returns goal predictions for all supported goal categories.
+
+        Finance goals use the existing financial completion estimator.
+        Study/Habit/Fitness goals are currently returned as unsupported rather
+        than being given an incorrect finance-based completion calculation.
+        """
+
+        user = await User.get(PydanticObjectId(user_id))
+        if not user:
+            raise ValueError(f"User not found: {user_id}")
+
+        finance_results = await forecast_service.estimate_all_goal_completions(user_id)
+        finance_by_id = {g.goal_id: g for g in finance_results}
+
+        predictions: list[GoalTrendPrediction] = []
+
+        for goal in user.active_goals:
+            if goal.category == GoalCategory.FINANCE:
+                g = finance_by_id.get(goal.goal_id)
+                if g is not None:
+                    predictions.append(
+                        GoalTrendPrediction(
+                            goal_id=g.goal_id,
+                            title=g.title,
+                            category=g.category.value,
+                            estimated_months_remaining=g.estimated_months_remaining,
+                            estimated_completion_date=g.estimated_completion_date,
+                            on_track=g.on_track,
+                            method_used=g.method_used.value,
+                            confidence_score=g.confidence_score,
+                        )
+                    )
+
+            elif goal.category in {
+                GoalCategory.STUDY,
+                GoalCategory.HABIT,
+                GoalCategory.FITNESS,
+            }:
+                predictions.append(
+                    GoalTrendPrediction(
+                        goal_id=goal.goal_id,
+                        title=goal.title,
+                        category=goal.category.value,
+                        estimated_months_remaining=None,
+                        estimated_completion_date=None,
+                        on_track=None,
+                        method_used="insufficient_data",
+                        confidence_score=0.0,
+                    )
+                )
+
+        return predictions
 
     async def predict_all_trends(
         self,

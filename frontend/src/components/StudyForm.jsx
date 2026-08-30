@@ -16,12 +16,28 @@ const DEFAULT_FORM = {
   date: "",
   subject: "",
   hours: "",
-  session_type: "DEEP_WORK",
-  attendance_pct: 100,
+  minutes: "",
+  session_type: "",
+  attendance_pct: "",
+  linked_goal_id: "",
 };
 
-function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel = null }) {
-  const [formData, setFormData] = useState(initialData || DEFAULT_FORM);
+function StudyForm({
+  addSession,
+  goals = [],
+  initialData = null,
+  onUpdate = null,
+  onCancel = null,
+}) {
+  const [formData, setFormData] = useState(
+    initialData
+      ? {
+          ...initialData,
+          linked_goal_id: initialData.linked_goal_id || "",
+        }
+      : DEFAULT_FORM
+  );
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -44,13 +60,24 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
       return;
     }
 
+    if (!formData.session_type) {
+      toast.error("Please select a session type.");
+      return;
+    }
+
     const attendance = Number(formData.attendance_pct);
-    if (Number.isNaN(attendance) || attendance < 0 || attendance > 100) {
+
+    if (
+      Number.isNaN(attendance) ||
+      attendance < 0 ||
+      attendance > 100
+    ) {
       toast.error("Attendance must be between 0 and 100.");
       return;
     }
 
     setIsSubmitting(true);
+
     try {
       if (initialData && onUpdate) {
         await onUpdate(initialData.id, formData);
@@ -65,9 +92,6 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
 
   return (
     <form onSubmit={submitHandler}>
-      {/* @container query, not a viewport breakpoint — this form only ever
-          renders inside a Drawer (add) or Modal (edit), both fixed-width
-          panels with @container already set, narrower than a full page. */}
       <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
 
         <Input
@@ -75,6 +99,7 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
           name="date"
           value={formData.date}
           onChange={handleChange}
+          required
         />
 
         <Input
@@ -83,22 +108,46 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
           placeholder="Subject"
           value={formData.subject}
           onChange={handleChange}
+          required
         />
 
         <Input
           type="number"
           name="hours"
-          placeholder="Hours (0.1–24)"
-          min="0.1"
+          placeholder="Hours"
+          min="0"
           max="24"
-          step="0.1"
+          step="1"
           value={formData.hours}
+          onChange={handleChange}
+          required
+        />
+
+        <Input
+          type="number"
+          name="minutes"
+          placeholder="Minutes (0–59)"
+          min="0"
+          max="59"
+          step="1"
+          value={formData.minutes}
           onChange={handleChange}
         />
 
-        <Select name="session_type" value={formData.session_type} onChange={handleChange}>
+        <Select
+          name="session_type"
+          value={formData.session_type}
+          onChange={handleChange}
+          required
+        >
+          <option value="" disabled>
+            Select Type
+          </option>
+
           {SESSION_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
           ))}
         </Select>
 
@@ -111,16 +160,41 @@ function StudyForm({ addSession, initialData = null, onUpdate = null, onCancel =
           step="1"
           value={formData.attendance_pct}
           onChange={handleChange}
+          required
         />
+
+        <Select
+          name="linked_goal_id"
+          value={formData.linked_goal_id}
+          onChange={handleChange}
+        >
+          <option value="">No Goal</option>
+
+          {goals.map((goal) => (
+            <option key={goal.goal_id} value={goal.goal_id}>
+              {goal.title}
+            </option>
+          ))}
+        </Select>
 
       </div>
 
       <div className="mt-5 flex gap-2.5">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : initialData ? "Update Session" : "Add Session"}
+          {isSubmitting
+            ? "Saving..."
+            : initialData
+            ? "Update Session"
+            : "Add Session"}
         </Button>
+
         {initialData && onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
         )}

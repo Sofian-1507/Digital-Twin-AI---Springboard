@@ -11,26 +11,35 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import Pagination from "../components/Pagination";
 import Button from "../components/ui/Button";
 import Drawer from "../components/ui/Drawer";
-import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
-
-import { getHabitLogs, logDailyHabit, deleteHabitLog } from "../services/habitService";
-import { getHabitTrend, getHabitAnalyticsSummary } from "../services/habitAnalyticsService";
+import {
+  SkeletonStatGrid,
+  SkeletonChart,
+  SkeletonTable,
+} from "../components/ui/Skeleton";
+import {
+  getHabitLogs,
+  logDailyHabit,
+  deleteHabitLog,
+} from "../services/habitService";
+import { getUser } from "../services/userService";
+import {
+  getHabitTrend,
+  getHabitAnalyticsSummary,
+} from "../services/habitAnalyticsService";
 import { getApiErrorMessage } from "../utils/apiError";
 
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const MOOD_LABELS = { 5: "Excellent", 4: "Happy", 3: "Normal", 2: "Sad", 1: "Sad" };
+const MOOD_LABELS = {
+  5: "Excellent",
+  4: "Happy",
+  3: "Normal",
+  2: "Sad",
+  1: "Sad",
+};
 
-/**
- * Bug fix: HabitSummary/HabitProgress/HabitTable read display fields
- * (date/water/sleep/exercise/mood) that don't exist on the raw
- * HabitRecordResponse (log_date/water_intake_liters/sleep_hours/
- * exercise_minutes/mood_rating) — they were rendering blank/undefined.
- * This maps the real API shape onto the fields those components expect,
- * without changing what those components (or the backend) look like.
- */
 function toDisplayHabit(record) {
   return {
     ...record,
@@ -42,41 +51,56 @@ function toDisplayHabit(record) {
   };
 }
 
-/** Builds HabitChart's [{ day, score }] series from the last 7 daily trend points. */
 function buildHabitChartData(dailyTrend) {
   return dailyTrend.map((point) => ({
-    day: new Date(point.date).toLocaleDateString(undefined, { weekday: "short" }),
+    day: new Date(point.date).toLocaleDateString(undefined, {
+      weekday: "short",
+    }),
     score: Math.round(point.habit_score),
   }));
 }
 
-/** Builds LifestyleRecommendation's insight strings from a HabitAnalyticsSummaryResponse. */
 function buildLifestyleInsights(summary) {
   if (!summary) return [];
 
-  const streakInsight = `Current streak: ${summary.habit_streak.current_streak} day${
+  const streakInsight = `Current streak: ${
+    summary.habit_streak.current_streak
+  } day${
     summary.habit_streak.current_streak === 1 ? "" : "s"
   } (longest: ${summary.habit_streak.longest_streak})`;
 
   const negativeInsights = summary.negative_habits.habits.map(
-    (h) => `${capitalize(h.habit.replace("_", " "))}: avg ${h.average_value} ${h.unit}. ${h.detail}`
+    (h) =>
+      `${capitalize(h.habit.replace("_", " "))}: avg ${h.average_value} ${h.unit}. ${h.detail}`
   );
 
   const positiveInsights = summary.positive_habits.habits.map(
-    (h) => `${capitalize(h.habit.replace("_", " "))} is on track — avg ${h.average_value} ${h.unit}.`
+    (h) =>
+      `${capitalize(h.habit.replace("_", " "))} is on track — avg ${h.average_value} ${h.unit}.`
   );
 
-  const missedInsight = summary.missed_habits.missed_days > 0
-    ? [`Missed logging on ${summary.missed_habits.missed_days} of the last ${summary.missed_habits.window_days} days.`]
-    : [];
+  const missedInsight =
+    summary.missed_habits.missed_days > 0
+      ? [
+          `Missed logging on ${summary.missed_habits.missed_days} of the last ${summary.missed_habits.window_days} days.`,
+        ]
+      : [];
 
-  return [streakInsight, ...missedInsight, ...negativeInsights, ...positiveInsights].slice(0, 6);
+  return [
+    streakInsight,
+    ...missedInsight,
+    ...negativeInsights,
+    ...positiveInsights,
+  ].slice(0, 6);
 }
 
 function Habits() {
+  const [user, setUser] = useState(null);
+
   const [habitList, setHabitList] = useState([]);
   const [habitChartData, setHabitChartData] = useState([]);
   const [habitAnalyticsSummary, setHabitAnalyticsSummary] = useState(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
@@ -85,105 +109,196 @@ function Habits() {
   const [totalPages, setTotalPages] = useState(1);
   const [isTableLoading, setIsTableLoading] = useState(false);
 
+  /*
+   * Get all active HABIT goals.
+   */
+  const habitGoals =
+    user?.active_goals?.filter(
+      (goal) => goal.category === "HABIT"
+    ) || [];
+
   useEffect(() => {
     async function fetchHabits() {
       try {
-        const [result, trend, summary] = await Promise.all([
-          getHabitLogs({ limit: 30 }),
-          getHabitTrend({ dailyDays: 7 }),
-          getHabitAnalyticsSummary(),
-        ]);
-        setHabitList((result.data || []).map(toDisplayHabit));
+        const [result, trend, summary, userData] =
+          await Promise.all([
+            getHabitLogs({ limit: 30 }),
+            getHabitTrend({ dailyDays: 7 }),
+            getHabitAnalyticsSummary(),
+            getUser(),
+          ]);
+
+        setHabitList(
+          (result.data || []).map(toDisplayHabit)
+        );
+
         setTotalPages(result.total_pages || 1);
-        setHabitChartData(buildHabitChartData(trend.daily || []));
+
+        setHabitChartData(
+          buildHabitChartData(trend.daily || [])
+        );
+
         setHabitAnalyticsSummary(summary);
+
+        setUser(userData);
       } catch (err) {
         console.error("Failed to fetch habit logs:", err);
-        toast.error("Could not load habit logs. Please try again later.");
+
+        toast.error(
+          "Could not load habit logs. Please try again later."
+        );
       } finally {
         setIsLoading(false);
       }
     }
+
     fetchHabits();
   }, []);
 
-  // Re-fetch the table page whenever the page changes (skips first render,
-  // which is already covered by the initial fetch above).
   useEffect(() => {
     if (isLoading) return;
-    // Guards against an older in-flight request resolving after a newer one (e.g. rapid
-    // page-clicks) and overwriting fresher data.
+
     let cancelled = false;
+
     async function fetchTablePage() {
       setIsTableLoading(true);
+
       try {
-        const result = await getHabitLogs({ page, limit: 30 });
+        const result = await getHabitLogs({
+          page,
+          limit: 30,
+        });
+
         if (cancelled) return;
-        setHabitList((result.data || []).map(toDisplayHabit));
+
+        setHabitList(
+          (result.data || []).map(toDisplayHabit)
+        );
+
         setTotalPages(result.total_pages || 1);
       } catch (err) {
         if (cancelled) return;
+
         console.error("Failed to fetch habit logs:", err);
-        toast.error("Could not load habit logs. Please try again later.");
+
+        toast.error(
+          "Could not load habit logs. Please try again later."
+        );
       } finally {
-        if (!cancelled) setIsTableLoading(false);
+        if (!cancelled) {
+          setIsTableLoading(false);
+        }
       }
     }
+
     fetchTablePage();
+
     return () => {
       cancelled = true;
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  /**
-   * Posts today's habit log to the backend (upsert) and updates local state.
-   * HabitForm passes { date, water, sleep, exercise, mood }.
-   */
   async function addHabit(formData) {
     try {
-      const moodMap = { Excellent: 5, Happy: 4, Normal: 3, Sad: 2 };
+      const moodMap = {
+        Excellent: 5,
+        Happy: 4,
+        Normal: 3,
+        Sad: 2,
+      };
+
       const payload = {
-        sleep_hours:         Number(formData.sleep),
-        exercise_minutes:    Number(formData.exercise),
+        sleep_hours: Number(formData.sleep),
+
+        exercise_minutes: Number(formData.exercise),
+
         water_intake_liters: Number(formData.water),
-        screen_time_hours:   Number(formData.screenTime || 0),
-        mood_rating:         moodMap[formData.mood] ?? 3,
+
+        screen_time_hours: Number(
+          formData.screenTime || 0
+        ),
+
+        mood_rating: moodMap[formData.mood] ?? 3,
+
+        /*
+         * Habit Goal
+         */
+        linked_goal_id:
+          formData.linked_goal_id || undefined,
+
         log_date: formData.date
           ? new Date(formData.date).toISOString()
           : undefined,
       };
-      const newRecord = toDisplayHabit(await logDailyHabit(payload));
-      // Upsert: replace if same date, else prepend
+
+      const newRecord = toDisplayHabit(
+        await logDailyHabit(payload)
+      );
+
+      const trend = await getHabitTrend({
+        dailyDays: 7,
+      });
+
+      setHabitChartData(
+        buildHabitChartData(trend.daily || [])
+      );
+
       setHabitList((prev) => {
         const sameDay = (h) =>
           new Date(h.log_date).toDateString() ===
           new Date(newRecord.log_date).toDateString();
+
         if (prev.some(sameDay)) {
-          return prev.map((h) => (sameDay(h) ? newRecord : h));
+          return prev.map((h) =>
+            sameDay(h) ? newRecord : h
+          );
         }
+
         return [newRecord, ...prev];
       });
+
       toast.success("Habit log saved successfully.");
+
       setAddDrawerOpen(false);
     } catch (err) {
       console.error("Failed to add habit log:", err);
-      toast.error(getApiErrorMessage(err, "Failed to log habit. Please try again."));
+
+      toast.error(
+        getApiErrorMessage(
+          err,
+          "Failed to log habit. Please try again."
+        )
+      );
+
       throw err;
     }
   }
 
-  const handleDelete = (id) => setConfirmDeleteId(id);
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id);
+  };
 
   const confirmDelete = async () => {
     const id = confirmDeleteId;
+
     setConfirmDeleteId(null);
+
     try {
       await deleteHabitLog(id);
-      setHabitList((prev) => prev.filter(h => h.id !== id));
+
+      setHabitList((prev) =>
+        prev.filter((h) => h.id !== id)
+      );
+
       toast.success("Habit log deleted.");
     } catch (err) {
-      console.error("Failed to delete habit log:", err);
+      console.error(
+        "Failed to delete habit log:",
+        err
+      );
+
       toast.error("Failed to delete habit log.");
     }
   };
@@ -191,8 +306,15 @@ function Habits() {
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">Habit Dashboard</h2>
-        <Button onClick={() => setAddDrawerOpen(true)}>+ Add Today's Habits</Button>
+        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+          Habit Dashboard
+        </h2>
+
+        <Button
+          onClick={() => setAddDrawerOpen(true)}
+        >
+          + Add Today's Habits
+        </Button>
       </div>
 
       {isLoading ? (
@@ -207,22 +329,75 @@ function Habits() {
 
           <HabitChart data={habitChartData} />
 
+          {habitGoals.length > 0 && (
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-slate-800">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                Habit Goals
+              </h3>
+
+              <div className="mt-3 flex flex-col gap-3">
+                {habitGoals.map((goal) => (
+                  <div
+                    key={goal.goal_id}
+                    className="rounded-xl bg-slate-50 p-4 dark:bg-slate-700/50"
+                  >
+                    <p className="font-medium text-slate-800 dark:text-slate-100">
+                      {goal.title}
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      Progress:{" "}
+                      {Number(
+                        goal.current_value
+                      ).toLocaleString()}{" "}
+                      /{" "}
+                      {Number(
+                        goal.target_value
+                      ).toLocaleString()}{" "}
+                      {goal.unit}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <HabitProgress habits={habitList} />
 
-          <LifestyleRecommendation insights={buildLifestyleInsights(habitAnalyticsSummary)} />
+          <LifestyleRecommendation
+            insights={buildLifestyleInsights(
+              habitAnalyticsSummary
+            )}
+          />
 
           {isTableLoading ? (
             <SkeletonTable rows={6} cols={5} />
           ) : (
-            <HabitTable habits={habitList} onDelete={handleDelete} />
+            <HabitTable
+              habits={habitList}
+              onDelete={handleDelete}
+            />
           )}
 
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            disabled={isTableLoading}
+          />
         </div>
       )}
 
-      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} title="Add Today's Habits">
-        <HabitForm addHabit={addHabit} />
+      <Drawer
+        open={addDrawerOpen}
+        onClose={() => setAddDrawerOpen(false)}
+        title="Add Today's Habits"
+      >
+        {/* Pass HABIT goals to HabitForm */}
+        <HabitForm
+          addHabit={addHabit}
+          goals={habitGoals}
+        />
       </Drawer>
 
       <ConfirmDialog

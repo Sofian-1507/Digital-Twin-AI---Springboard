@@ -6,6 +6,7 @@ Auto-percentage computation is handled at model validation (model_validator in S
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
@@ -149,7 +150,10 @@ async def list_sessions(
     uid = PydanticObjectId(user_id)
     query_filter: dict = {"user_id": uid}
     if subject_filter:
-        query_filter["subject"] = subject_filter
+        query_filter["subject"] = {
+            "$regex": f"^{re.escape(subject_filter)}$",
+            "$options": "i",
+    }
 
     skip = (page - 1) * limit
     records = await StudyActivity.find(

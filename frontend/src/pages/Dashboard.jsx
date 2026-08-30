@@ -90,7 +90,7 @@ function Dashboard() {
         setTrend(trendSummary);
         setProductivityScore(productivity);
         setConsistencyScore(consistency);
-        setRecentActivity(activity.items || []);
+        setRecentActivity(activity.data || []);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
         toast.error("Could not load your dashboard. Please try again later.");

@@ -60,6 +60,23 @@ async def create_transaction(
         transaction_date=payload.transaction_date or datetime.now(timezone.utc),
     )
     await record.insert()
+        # Update linked goal progress when a transaction is linked to a goal.
+    if payload.linked_goal_id:
+        from models.user import User
+
+        user = await User.get(PydanticObjectId(user_id))
+
+        if user:
+            for goal in user.active_goals:
+                if goal.goal_id == payload.linked_goal_id:
+                    goal.current_value += payload.amount
+                    await user.save()
+                    logger.info(
+                        "Updated goal '%s' progress to %.2f",
+                        goal.title,
+                        goal.current_value,
+                    )
+                    break
     logger.info("Transaction logged: %s %.2f for user %s", record.type, record.amount, user_id)
     await activity_service.log_activity(
         user_id=user_id,

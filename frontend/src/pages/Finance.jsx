@@ -15,18 +15,59 @@ import IncomeProjectionCard from "../components/IncomeProjectionCard";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
 import Drawer from "../components/ui/Drawer";
-import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
+import {
+  SkeletonStatGrid,
+  SkeletonChart,
+  SkeletonTable,
+} from "../components/ui/Skeleton";
 
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction, getCategoryBreakdown } from "../services/financeService";
-import { getExpenseProjection, getIncomeProjection } from "../services/forecastService";
+import {
+  getTransactions,
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  getCategoryBreakdown,
+} from "../services/financeService";
+import {
+  getExpenseProjection,
+  getIncomeProjection,
+} from "../services/forecastService";
 
-const TRANSACTION_TYPES = ["INCOME", "EXPENSE", "SAVINGS_DEPOSIT", "INVESTMENT"];
-const FINANCIAL_CATEGORIES = [
-  "HOUSING", "FOOD", "UTILITIES", "SALARY", "ENTERTAINMENT",
-  "HEALTH", "EDUCATION", "INVESTMENT", "TRANSPORT", "SAVINGS", "OTHER",
+const TRANSACTION_TYPES = [
+  "INCOME",
+  "EXPENSE",
+  "SAVINGS_DEPOSIT",
+  "INVESTMENT",
 ];
 
-const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const FINANCIAL_CATEGORIES = [
+  "HOUSING",
+  "FOOD",
+  "UTILITIES",
+  "SALARY",
+  "ENTERTAINMENT",
+  "HEALTH",
+  "EDUCATION",
+  "INVESTMENT",
+  "TRANSPORT",
+  "SAVINGS",
+  "OTHER",
+];
+
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function monthLabel(year, month) {
   return `${MONTH_NAMES[month - 1]} ${String(year).slice(-2)}`;
@@ -34,23 +75,35 @@ function monthLabel(year, month) {
 
 /**
  * Builds ExpenseChart's [{ month, expense }] series: last 6 months of actual
- * expenses (derived from already-loaded transactions) followed by the
- * Financial Forecasting Service's projected future months.
+ * expenses followed by projected future months.
  */
 function buildExpenseChartData(transactions, forecast) {
   const historicalMap = {};
+
   for (const t of transactions) {
     if (String(t.type).toUpperCase() !== "EXPENSE") continue;
+
     const d = new Date(t.transaction_date || t.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    historicalMap[key] = (historicalMap[key] || 0) + Number(t.amount || 0);
+
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
+
+    historicalMap[key] =
+      (historicalMap[key] || 0) + Number(t.amount || 0);
   }
+
   const historical = Object.entries(historicalMap)
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-6)
     .map(([key, expense]) => {
       const [year, month] = key.split("-").map(Number);
-      return { month: monthLabel(year, month), expense: Math.round(expense) };
+
+      return {
+        month: monthLabel(year, month),
+        expense: Math.round(expense),
+      };
     });
 
   const projected = (forecast?.projections || []).map((p) => ({
@@ -63,28 +116,36 @@ function buildExpenseChartData(transactions, forecast) {
 
 function Finance() {
   const { user } = useAuth();
-  // Every FINANCE-category goal the user has set — used as real savings
-  // targets instead of a hardcoded placeholder. Previously only the first
-  // one (via .find()) ever got a card here; now every finance goal gets one,
-  // live off the same active_goals the rest of the page already reacts to.
-  const financeGoals = user?.active_goals?.filter((g) => g.category === "FINANCE") ?? [];
+
+  /*
+   * Get every FINANCE goal created by the user.
+   *
+   * Example:
+   * Emergency Fund
+   * Laptop Savings
+   * New Phone
+   *
+   * These are NOT hardcoded. Whatever finance goals the user creates
+   * will automatically appear in the TransactionForm dropdown.
+   */
+  const financeGoals =
+    user?.active_goals?.filter(
+      (goal) => goal.category === "FINANCE"
+    ) ?? [];
+
   const currency = user?.preferences?.currency ?? "USD";
 
-  // The dashboard summary/charts/goal cards' data — always the most recent
-  // ~50 transactions, unaffected by the table's own filters below.
+  // Dashboard transaction data
   const [transactions, setTransactions] = useState([]);
   const [expenseChartData, setExpenseChartData] = useState([]);
   const [categoryChartData, setCategoryChartData] = useState([]);
   const [incomeProjection, setIncomeProjection] = useState(null);
-  const [isLoading, setIsLoading]       = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
 
-  // Filtered + paginated transaction table state — genuinely its own state
-  // now (previously this reused `transactions`, so applying a Transaction
-  // History filter silently swapped the data FinanceSummary/SavingsProgress
-  // above were reading too; that was the bug).
+  // Transaction table state
   const [tableTransactions, setTableTransactions] = useState([]);
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -95,62 +156,93 @@ function Finance() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        const [result, forecast, categoryBreakdown, income] = await Promise.all([
+        const [
+          result,
+          forecast,
+          categoryBreakdown,
+          income,
+        ] = await Promise.all([
           getTransactions({ limit: 50 }),
           getExpenseProjection(3),
           getCategoryBreakdown(1),
           getIncomeProjection(3),
         ]);
+
         const txns = result.data || [];
+
         setTransactions(txns);
         setTableTransactions(txns);
         setTotalPages(result.total_pages || 1);
-        setExpenseChartData(buildExpenseChartData(txns, forecast));
-        setCategoryChartData(
-          categoryBreakdown.map((c) => ({ name: c.category, value: Number(c.total_amount) }))
+
+        setExpenseChartData(
+          buildExpenseChartData(txns, forecast)
         );
+
+        setCategoryChartData(
+          categoryBreakdown.map((c) => ({
+            name: c.category,
+            value: Number(c.total_amount),
+          }))
+        );
+
         setIncomeProjection(income);
       } catch (err) {
         console.error("Failed to fetch transactions:", err);
-        toast.error("Could not load transactions. Please try again later.");
+        toast.error(
+          "Could not load transactions. Please try again later."
+        );
       } finally {
         setIsLoading(false);
       }
     }
+
     fetchDashboardData();
   }, []);
 
-  // Re-fetch the table page whenever filters or page change (skips the
-  // very first render, which is covered by the dashboard fetch above).
+  // Re-fetch transaction table when filters/page change
   useEffect(() => {
     if (isLoading) return;
-    // Guards against an older in-flight request resolving after a newer one (e.g. rapid
-    // page-clicks or a filter change fired mid-fetch) and overwriting fresher data.
+
     let cancelled = false;
+
     async function fetchTablePage() {
       setIsTableLoading(true);
+
       try {
         const result = await getTransactions({
           page,
           limit: 20,
           ...(typeFilter ? { type: typeFilter } : {}),
-          ...(categoryFilter ? { category: categoryFilter } : {}),
+          ...(categoryFilter
+            ? { category: categoryFilter }
+            : {}),
         });
+
         if (cancelled) return;
+
         setTableTransactions(result.data || []);
         setTotalPages(result.total_pages || 1);
       } catch (err) {
         if (cancelled) return;
+
         console.error("Failed to fetch transactions:", err);
-        toast.error("Could not load transactions. Please try again later.");
+
+        toast.error(
+          "Could not load transactions. Please try again later."
+        );
       } finally {
-        if (!cancelled) setIsTableLoading(false);
+        if (!cancelled) {
+          setIsTableLoading(false);
+        }
       }
     }
+
     fetchTablePage();
+
     return () => {
       cancelled = true;
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, typeFilter, categoryFilter]);
 
@@ -171,126 +263,235 @@ function Finance() {
   }
 
   /**
-   * Submits a new transaction to the backend and prepends it to the local list.
-   * TransactionForm now sends correctly-cased enum values (INCOME, EXPENSE, FOOD, etc.)
-   * matching the FinancialRecord model.
+   * Creates a new transaction.
+   *
+   * IMPORTANT:
+   * linked_goal_id connects the transaction to the goal selected
+   * in TransactionForm.
    */
   const addTransaction = async (formData) => {
     try {
       const payload = {
-        type:             formData.type,
-        amount:           Number(formData.amount),
-        category:         formData.category,
-        description:      formData.description || undefined,
+        type: formData.type,
+        amount: Number(formData.amount),
+        category: formData.category,
+        description: formData.description || undefined,
+
+        // Connect transaction to selected finance goal
+        linked_goal_id: formData.linked_goal_id || undefined,
+
         transaction_date: formData.date
           ? new Date(formData.date).toISOString()
           : undefined,
       };
+
       const newRecord = await createTransaction(payload);
+
       setTransactions((prev) => [newRecord, ...prev]);
       setTableTransactions((prev) => [newRecord, ...prev]);
+
       toast.success("Transaction added successfully.");
+
       setAddDrawerOpen(false);
     } catch (err) {
       console.error("Failed to add transaction:", err);
-      toast.error("Failed to add transaction. Please try again.");
-      throw err; // Re-throw to allow TransactionForm to handle loading state if necessary
-    }
-  };
 
-  const handleUpdate = async (id, formData) => {
-    try {
-      const payload = {
-        type:             formData.type,
-        amount:           Number(formData.amount),
-        category:         formData.category,
-        description:      formData.description || undefined,
-        transaction_date: formData.date
-          ? new Date(formData.date).toISOString()
-          : undefined,
-      };
-      const updatedRecord = await updateTransaction(id, payload);
-      setTransactions((prev) => prev.map(t => t.id === id ? updatedRecord : t));
-      setTableTransactions((prev) => prev.map(t => t.id === id ? updatedRecord : t));
-      toast.success("Transaction updated successfully.");
-      setEditingRecord(null);
-    } catch (err) {
-      console.error("Failed to update transaction:", err);
-      toast.error("Failed to update transaction. Please try again.");
+      toast.error(
+        "Failed to add transaction. Please try again."
+      );
+
       throw err;
     }
   };
 
-  const handleDelete = (id) => setConfirmDeleteId(id);
+  /**
+   * Updates an existing transaction.
+   */
+  const handleUpdate = async (id, formData) => {
+    try {
+      const payload = {
+        type: formData.type,
+        amount: Number(formData.amount),
+        category: formData.category,
+        description: formData.description || undefined,
+
+        // Keep the goal connection when editing
+        linked_goal_id: formData.linked_goal_id || undefined,
+
+        transaction_date: formData.date
+          ? new Date(formData.date).toISOString()
+          : undefined,
+      };
+
+      const updatedRecord = await updateTransaction(
+        id,
+        payload
+      );
+
+      setTransactions((prev) =>
+        prev.map((t) =>
+          t.id === id ? updatedRecord : t
+        )
+      );
+
+      setTableTransactions((prev) =>
+        prev.map((t) =>
+          t.id === id ? updatedRecord : t
+        )
+      );
+
+      toast.success(
+        "Transaction updated successfully."
+      );
+
+      setEditingRecord(null);
+    } catch (err) {
+      console.error(
+        "Failed to update transaction:",
+        err
+      );
+
+      toast.error(
+        "Failed to update transaction. Please try again."
+      );
+
+      throw err;
+    }
+  };
+
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id);
+  };
 
   const confirmDelete = async () => {
     const id = confirmDeleteId;
+
     setConfirmDeleteId(null);
+
     try {
       await deleteTransaction(id);
-      setTransactions((prev) => prev.filter(t => t.id !== id));
-      setTableTransactions((prev) => prev.filter(t => t.id !== id));
+
+      setTransactions((prev) =>
+        prev.filter((t) => t.id !== id)
+      );
+
+      setTableTransactions((prev) =>
+        prev.filter((t) => t.id !== id)
+      );
+
       toast.success("Transaction deleted.");
     } catch (err) {
-      console.error("Failed to delete transaction:", err);
-      toast.error("Failed to delete transaction.");
+      console.error(
+        "Failed to delete transaction:",
+        err
+      );
+
+      toast.error(
+        "Failed to delete transaction."
+      );
     }
   };
 
   const startEdit = (record) => {
-    // Map record to formData shape
-    const dateStr = record.transaction_date || record.date;
+    const dateStr =
+      record.transaction_date || record.date;
+
     const initialData = {
       id: record.id,
-      date: dateStr ? dateStr.substring(0, 10) : "",
-      type: (record.type || "EXPENSE").toUpperCase(), // Income -> INCOME
-      category: (record.category || "OTHER").toUpperCase(),
+
+      date: dateStr
+        ? dateStr.substring(0, 10)
+        : "",
+
+      type: (
+        record.type || "EXPENSE"
+      ).toUpperCase(),
+
+      category: (
+        record.category || "OTHER"
+      ).toUpperCase(),
+
       amount: record.amount,
+
       description: record.description || "",
+
+      // Preserve the linked goal when editing
+      linked_goal_id:
+        record.linked_goal_id || "",
     };
+
     setEditingRecord(initialData);
   };
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">Finance Dashboard</h2>
-        <Button onClick={() => setAddDrawerOpen(true)}>+ Add Transaction</Button>
+        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+          Finance Dashboard
+        </h2>
+
+        <Button
+          onClick={() => setAddDrawerOpen(true)}
+        >
+          + Add Transaction
+        </Button>
       </div>
 
       {isLoading ? (
         <div className="flex flex-col gap-5">
           <SkeletonStatGrid count={3} />
+
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
             <SkeletonChart />
             <SkeletonChart />
           </div>
+
           <SkeletonTable rows={6} cols={5} />
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <FinanceSummary transactions={transactions} currency={currency} />
+          <FinanceSummary
+            transactions={transactions}
+            currency={currency}
+          />
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
-            <ExpenseChart data={expenseChartData} currency={currency} />
-            <CategoryChart data={categoryChartData} currency={currency} />
+            <ExpenseChart
+              data={expenseChartData}
+              currency={currency}
+            />
+
+            <CategoryChart
+              data={categoryChartData}
+              currency={currency}
+            />
           </div>
 
-          <IncomeProjectionCard projection={incomeProjection} currency={currency} />
+          <IncomeProjectionCard
+            projection={incomeProjection}
+            currency={currency}
+          />
 
+          {/* Finance goals */}
           {financeGoals.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {financeGoals.map((goal) => (
-                <SavingsProgress key={goal.goal_id} transactions={transactions} goal={goal} currency={currency} />
+                <SavingsProgress
+                  key={goal.goal_id}
+                  transactions={transactions}
+                  goal={goal}
+                  currency={currency}
+                />
               ))}
             </div>
           ) : (
-            <SavingsProgress transactions={transactions} goal={null} currency={currency} />
+            <SavingsProgress
+              transactions={transactions}
+              goal={null}
+              currency={currency}
+            />
           )}
 
-          {/* Stays mounted across filter/page changes — only its own isLoading
-              state (a small in-card spinner) reflects a refetch, so applying a
-              filter never swaps out or reloads anything outside this card. */}
           <TransactionTable
             transactions={tableTransactions}
             onEdit={startEdit}
@@ -299,26 +500,52 @@ function Finance() {
             isLoading={isTableLoading}
             typeFilter={typeFilter}
             categoryFilter={categoryFilter}
-            onTypeFilterChange={handleTypeFilterChange}
-            onCategoryFilterChange={handleCategoryFilterChange}
+            onTypeFilterChange={
+              handleTypeFilterChange
+            }
+            onCategoryFilterChange={
+              handleCategoryFilterChange
+            }
             onClearFilters={clearFilters}
             transactionTypes={TRANSACTION_TYPES}
-            financialCategories={FINANCIAL_CATEGORIES}
+            financialCategories={
+              FINANCIAL_CATEGORIES
+            }
           />
 
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isTableLoading} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            disabled={isTableLoading}
+          />
         </div>
       )}
 
-      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} title="Add Transaction">
-        <TransactionForm addTransaction={addTransaction} />
+      {/* ADD TRANSACTION */}
+      <Drawer
+        open={addDrawerOpen}
+        onClose={() => setAddDrawerOpen(false)}
+        title="Add Transaction"
+      >
+        <TransactionForm
+          addTransaction={addTransaction}
+          goals={financeGoals}
+        />
       </Drawer>
 
-      <Modal open={!!editingRecord} onClose={() => setEditingRecord(null)} title="Edit Transaction" maxWidth="max-w-xl">
+      {/* EDIT TRANSACTION */}
+      <Modal
+        open={!!editingRecord}
+        onClose={() => setEditingRecord(null)}
+        title="Edit Transaction"
+        maxWidth="max-w-xl"
+      >
         <TransactionForm
           initialData={editingRecord}
           onUpdate={handleUpdate}
           onCancel={() => setEditingRecord(null)}
+          goals={financeGoals}
         />
       </Modal>
 

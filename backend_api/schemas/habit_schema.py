@@ -24,7 +24,10 @@ class HabitCreateRequest(BaseModel):
     screen_time_hours: Decimal = Field(..., ge=0, le=24)
     mood_rating: Optional[int] = Field(default=None, ge=1, le=5)
     meditation_minutes: Optional[int] = Field(default=None, ge=0, le=1440)
-    log_date: Optional[datetime] = None  # Defaults to today UTC midnight in service
+
+    linked_goal_id: Optional[str] = None
+
+    log_date: Optional[datetime] = None
 
 
 class HabitRecordResponse(BaseModel):
@@ -39,6 +42,7 @@ class HabitRecordResponse(BaseModel):
     productivity_score_computed: Optional[Decimal]
     lifestyle_score_computed: Optional[Decimal]
     burnout_risk_cluster: BurnoutRisk
+    linked_goal_id: Optional[str]
     log_date: datetime
     created_at: datetime
 
@@ -52,11 +56,11 @@ class PaginatedHabitResponse(BaseModel):
 
 
 class KMeansFeatureRow(BaseModel):
-    """4D biometric feature vector row for K-Means ML pipeline."""
+    """4D K-Means feature vector row for K-Means ML pipeline."""
     log_id: str
     user_id: str
     sleep_hours: float
     exercise_minutes: int
     water_intake_liters: float
     screen_time_hours: float
-    log_date: str   # ISO date string (YYYY-MM-DD)
+    log_date: str

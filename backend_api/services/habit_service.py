@@ -31,7 +31,13 @@ logger = logging.getLogger("digital_twin_ai.habit_service")
 def _midnight_utc(dt: Optional[datetime] = None) -> datetime:
     """Returns the given datetime (or now) normalized to 00:00:00.000 UTC."""
     base = dt or datetime.now(timezone.utc)
-    return base.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    return base.replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+        tzinfo=timezone.utc,
+    )
 
 
 def _to_response(record: HabitTracking) -> HabitRecordResponse:
@@ -47,6 +53,7 @@ def _to_response(record: HabitTracking) -> HabitRecordResponse:
         productivity_score_computed=record.productivity_score_computed,
         lifestyle_score_computed=record.lifestyle_score_computed,
         burnout_risk_cluster=record.burnout_risk_cluster,
+        linked_goal_id=record.linked_goal_id,
         log_date=record.log_date,
         created_at=record.created_at,
     )
@@ -75,48 +82,72 @@ async def upsert_daily_log(
         "screen_time_hours": Decimal128(payload.screen_time_hours),
         "mood_rating": payload.mood_rating,
         "meditation_minutes": payload.meditation_minutes,
+        "linked_goal_id": payload.linked_goal_id,
         "log_date": log_date,
     }
 
     collection = HabitTracking.get_motor_collection()
 
-    result = await collection.find_one_and_update(
-        {"user_id": uid, "log_date": log_date},
-        {"$set": update_fields, "$setOnInsert": {"created_at": datetime.now(timezone.utc), "burnout_risk_cluster": BurnoutRisk.UNKNOWN}},
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-    )
+    try:
+        result = await collection.find_one_and_update(
+            {"user_id": uid, "log_date": log_date},
+            {
+                "$set": update_fields,
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc),
+                    "burnout_risk_cluster": BurnoutRisk.UNKNOWN,
+                },
+            },
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+    except DuplicateKeyError:
+        raise ConflictError(
+            "A habit log already exists for this user on this date."
+        )
 
     record = HabitTracking(**result)
-    logger.info("Habit log upserted for user %s on %s", user_id, log_date.date())
+
+    logger.info(
+        "Habit log upserted for user %s on %s",
+        user_id,
+        log_date.date(),
+    )
+
     await activity_service.log_activity(
         user_id=user_id,
         action_type="UPSERTED_HABIT",
         entity_type="HABIT",
         entity_id=str(record.id),
-        description=f"Upserted habit log for {log_date.date()}"
+        description=f"Upserted habit log for {log_date.date()}",
     )
+
     return _to_response(record)
+
 
 async def delete_daily_log(user_id: str, log_id: str) -> None:
     uid = PydanticObjectId(user_id)
+
     try:
         lid = PydanticObjectId(log_id)
     except Exception:
         raise NotFoundError("Habit log", log_id)
 
-    record = await HabitTracking.find_one({"_id": lid, "user_id": uid})
+    record = await HabitTracking.find_one(
+        {"_id": lid, "user_id": uid}
+    )
+
     if not record:
         raise NotFoundError("Habit log", log_id)
-        
+
     await record.delete()
-    
+
     await activity_service.log_activity(
         user_id=user_id,
         action_type="DELETED_HABIT",
         entity_type="HABIT",
         entity_id=str(record.id),
-        description=f"Deleted habit log for {record.log_date.date()}"
+        description=f"Deleted habit log for {record.log_date.date()}",
     )
 
 
@@ -138,7 +169,9 @@ async def list_logs(
         limit=limit,
     ).to_list()
 
-    total = await HabitTracking.find({"user_id": uid}).count()
+    total = await HabitTracking.find(
+        {"user_id": uid}
+    ).count()
 
     return PaginatedHabitResponse(
         data=[_to_response(r) for r in records],
@@ -158,11 +191,16 @@ async def extract_kmeans_feature_space(
     Returns the 4D biometric feature matrix for K-Means burnout clustering.
     """
     uid = PydanticObjectId(user_id)
+
     from datetime import timedelta
+
     start_date = _midnight_utc() - timedelta(days=days)
 
     records = await HabitTracking.find(
-        {"user_id": uid, "log_date": {"$gte": start_date}},
+        {
+            "user_id": uid,
+            "log_date": {"$gte": start_date},
+        },
         sort=[("log_date", 1)],
     ).to_list()
 

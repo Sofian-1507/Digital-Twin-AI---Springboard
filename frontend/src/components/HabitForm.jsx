@@ -3,8 +3,7 @@ import { toast } from "react-toastify";
 import { Input, Select } from "./ui/Field";
 import Button from "./ui/Button";
 
-function HabitForm({ addHabit }) {
-
+function HabitForm({ addHabit, goals = [] }) {
   const [formData, setFormData] = useState({
     date: "",
     water: "",
@@ -12,7 +11,9 @@ function HabitForm({ addHabit }) {
     exercise: "",
     screenTime: "",
     mood: "Happy",
+    linked_goal_id: "",
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -25,14 +26,21 @@ function HabitForm({ addHabit }) {
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!formData.date || !formData.water || !formData.sleep || !formData.exercise) {
+    if (
+      !formData.date ||
+      !formData.water ||
+      !formData.sleep ||
+      !formData.exercise
+    ) {
       toast.error("Please fill in all habit fields.");
       return;
     }
 
     setIsSubmitting(true);
+
     try {
       await addHabit(formData);
+
       setFormData({
         date: "",
         water: "",
@@ -40,11 +48,9 @@ function HabitForm({ addHabit }) {
         exercise: "",
         screenTime: "",
         mood: "Happy",
+        linked_goal_id: "",
       });
-      // The parent handler (Habits.jsx) handles the success toast now
     } catch (err) {
-      // Parent (Habits.jsx) handles the error toast.
-      // Log here for debugging in case of unexpected errors.
       console.error("HabitForm submission error:", err);
     } finally {
       setIsSubmitting(false);
@@ -53,12 +59,6 @@ function HabitForm({ addHabit }) {
 
   return (
     <form onSubmit={submitHandler}>
-
-      {/* @container query, not a viewport breakpoint — this form only ever
-          renders inside a Drawer (a fixed ~448px panel regardless of window
-          width, and already has @container set), so sm:/lg: viewport
-          breakpoints would respond to the browser window instead of the
-          drawer's actual width. */}
       <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
 
         <Input
@@ -111,19 +111,44 @@ function HabitForm({ addHabit }) {
           onChange={handleChange}
         />
 
-        <Select name="mood" value={formData.mood} onChange={handleChange}>
-          <option>Excellent</option>
-          <option>Happy</option>
-          <option>Normal</option>
-          <option>Sad</option>
+        <Select
+          name="mood"
+          value={formData.mood}
+          onChange={handleChange}
+        >
+          <option value="Excellent">Excellent</option>
+          <option value="Happy">Happy</option>
+          <option value="Normal">Normal</option>
+          <option value="Sad">Sad</option>
+        </Select>
+
+        {/* Habit Goal */}
+        <Select
+          name="linked_goal_id"
+          value={formData.linked_goal_id}
+          onChange={handleChange}
+        >
+          <option value="">No Goal</option>
+
+          {goals.map((goal) => (
+            <option
+              key={goal.goal_id}
+              value={goal.goal_id}
+            >
+              {goal.title}
+            </option>
+          ))}
         </Select>
 
       </div>
 
-      <Button className="mt-5" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        className="mt-5"
+        disabled={isSubmitting}
+      >
         {isSubmitting ? "Saving..." : "Save Habit"}
       </Button>
-
     </form>
   );
 }

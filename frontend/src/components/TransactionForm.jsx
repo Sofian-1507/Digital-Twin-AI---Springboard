@@ -4,24 +4,27 @@ import { Input, Select } from "./ui/Field";
 import Button from "./ui/Button";
 
 /**
- * TransactionForm — creates a new financial record.
- * Maps to POST /api/v1/finance (FinanceCreateRequest).
- *
- * Backend enum values (must be uppercase):
- *   type:     INCOME | EXPENSE | SAVINGS_DEPOSIT | INVESTMENT
- *   category: HOUSING | FOOD | UTILITIES | SALARY | ENTERTAINMENT |
- *             HEALTH | EDUCATION | INVESTMENT | TRANSPORT | SAVINGS | OTHER
+ * TransactionForm — creates or updates a financial record.
+ * Maps to POST/PATCH /api/v1/finance/transactions.
  */
-function TransactionForm({ addTransaction, initialData = null, onUpdate = null, onCancel = null }) {
+function TransactionForm({
+  addTransaction,
+  initialData = null,
+  onUpdate = null,
+  onCancel = null,
+  goals = [],
+}) {
   const [formData, setFormData] = useState(
     initialData || {
-      date:        "",
-      type:        "EXPENSE",
-      category:    "OTHER",
-      amount:      "",
+      date: "",
+      type: "",
+      category: "",
+      amount: "",
       description: "",
+      linked_goal_id: "",
     }
   );
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -45,21 +48,22 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
     }
 
     setIsSubmitting(true);
+
     try {
       if (initialData && onUpdate) {
         await onUpdate(initialData.id, formData);
       } else {
         await addTransaction(formData);
+
         setFormData({
-          date:        "",
-          type:        "EXPENSE",
-          category:    "OTHER",
-          amount:      "",
+          date: "",
+          type: "",
+          category: "",
+          amount: "",
           description: "",
+          linked_goal_id: "",
         });
       }
-      // The parent handles the success toast for addTransaction now,
-      // but for onUpdate it can be handled here or parent. Let's let parent handle it.
     } finally {
       setIsSubmitting(false);
     }
@@ -67,13 +71,8 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
 
   return (
     <form onSubmit={submitHandler}>
-      {/* This form only ever renders inside Drawer/Modal, both fixed-width
-          containers — sm:/lg: are VIEWPORT breakpoints, so at a wide browser
-          window they forced a 5-column grid into a ~450px-wide drawer
-          regardless of the drawer's actual size, crushing every field into
-          an unreadable sliver. @container queries respond to the
-          drawer/modal's own width instead (both already have @container set). */}
       <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-5">
+
         <Input
           type="date"
           name="date"
@@ -82,14 +81,30 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
           required
         />
 
-        <Select name="type" value={formData.type} onChange={handleChange}>
+        <Select
+          name="type"
+          value={formData.type}
+          onChange={handleChange}
+          required
+        >
+          <option value="" disabled>
+            Select Type
+          </option>
           <option value="INCOME">Income</option>
           <option value="EXPENSE">Expense</option>
           <option value="SAVINGS_DEPOSIT">Savings Deposit</option>
           <option value="INVESTMENT">Investment</option>
         </Select>
 
-        <Select name="category" value={formData.category} onChange={handleChange}>
+        <Select
+          name="category"
+          value={formData.category}
+          onChange={handleChange}
+          required
+        >
+          <option value="" disabled>
+            Select Category
+          </option>
           <option value="SALARY">Salary</option>
           <option value="FOOD">Food</option>
           <option value="HOUSING">Housing</option>
@@ -107,12 +122,26 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
           type="number"
           name="amount"
           placeholder="Amount"
-          min="0.01"
+          min="1"
           step="0.01"
           value={formData.amount}
           onChange={handleChange}
           required
         />
+
+        <Select
+          name="linked_goal_id"
+          value={formData.linked_goal_id || ""}
+          onChange={handleChange}
+        >
+          <option value="">No Goal</option>
+
+          {goals.map((goal) => (
+            <option key={goal.goal_id} value={goal.goal_id}>
+              {goal.title}
+            </option>
+          ))}
+        </Select>
 
         <Input
           type="text"
@@ -121,14 +150,24 @@ function TransactionForm({ addTransaction, initialData = null, onUpdate = null, 
           value={formData.description}
           onChange={handleChange}
         />
+
       </div>
 
       <div className="mt-5 flex gap-2.5">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : initialData ? "Update Transaction" : "Add Transaction"}
+          {isSubmitting
+            ? "Saving..."
+            : initialData
+            ? "Update Transaction"
+            : "Add Transaction"}
         </Button>
+
         {initialData && onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onCancel}
+          >
             Cancel
           </Button>
         )}
