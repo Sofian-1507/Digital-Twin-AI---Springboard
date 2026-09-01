@@ -16,11 +16,13 @@ from bson import Decimal128
 from core.exceptions import NotFoundError
 from models.enums import FinancialCategory, TransactionType
 from models.finance import FinancialRecord
+from models.user import User
 from schemas.finance_schema import FinanceCreateRequest, FinanceUpdateRequest
 import services.finance_service as finance_service
 
 USER_ID = "507f1f77bcf86cd799439011"
 TXN_ID = "507f1f77bcf86cd799439022"
+GOAL_ID = "beb887d1-50ef-45cf-8c1f-5d00d3cdfe12"
 
 
 def _fake_insert():
@@ -36,6 +38,15 @@ def _patch_document_init():
     calls get_motor_collection(), which raises CollectionWasNotInitialized unless
     init_beanie() has run against a real DB. Patch it to a harmless mock for construction."""
     return patch.object(FinancialRecord, "get_motor_collection", return_value=MagicMock())
+
+
+def _patch_goal_update():
+    """Mocks the atomic $inc call _adjust_linked_goal_progress makes against
+    User's raw Motor collection — returns the mock so a test can assert on
+    the exact update_one(...) call it received."""
+    collection = MagicMock()
+    collection.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
+    return patch.object(User, "get_motor_collection", return_value=collection), collection
 
 
 # ─── create_transaction ─────────────────────────────────────────────────────────
@@ -56,16 +67,56 @@ async def test_create_transaction_normal_case():
 async def test_create_transaction_linked_goal_id_passed_through_as_str():
     """Regression check: linked_goal_id must survive as a plain str (ActiveGoal.goal_id
     is a UUID string, not a Mongo ObjectId — this used to be silently miscast)."""
-    goal_id = "beb887d1-50ef-45cf-8c1f-5d00d3cdfe12"
     payload = FinanceCreateRequest(
         type=TransactionType.SAVINGS_DEPOSIT, amount=Decimal("500"),
-        category=FinancialCategory.SAVINGS, linked_goal_id=goal_id,
+        category=FinancialCategory.SAVINGS, linked_goal_id=GOAL_ID,
     )
+    goal_patch, _ = _patch_goal_update()
     with _patch_document_init(), \
          patch.object(FinancialRecord, "insert", new=_fake_insert()), \
-         patch("services.finance_service.activity_service.log_activity", new=AsyncMock()):
+         patch("services.finance_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
         result = await finance_service.create_transaction(USER_ID, payload)
-    assert result.linked_goal_id == goal_id
+    assert result.linked_goal_id == GOAL_ID
+
+
+@pytest.mark.asyncio
+async def test_create_transaction_savings_deposit_increments_linked_goal():
+    """A SAVINGS_DEPOSIT linked to a goal should atomically $inc its progress."""
+    payload = FinanceCreateRequest(
+        type=TransactionType.SAVINGS_DEPOSIT, amount=Decimal("500"),
+        category=FinancialCategory.SAVINGS, linked_goal_id=GOAL_ID,
+    )
+    goal_patch, collection = _patch_goal_update()
+    with _patch_document_init(), \
+         patch.object(FinancialRecord, "insert", new=_fake_insert()), \
+         patch("services.finance_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await finance_service.create_transaction(USER_ID, payload)
+
+    collection.update_one.assert_awaited_once()
+    filter_arg, update_arg = collection.update_one.call_args.args
+    assert filter_arg == {"_id": PydanticObjectId(USER_ID), "active_goals.goal_id": GOAL_ID}
+    assert update_arg["$inc"]["active_goals.$.current_value"].to_decimal() == Decimal("500")
+
+
+@pytest.mark.asyncio
+async def test_create_transaction_expense_does_not_touch_linked_goal():
+    """Regression test for a real bug: an EXPENSE linked to a goal used to add
+    its raw amount to the goal's progress regardless of type — spending counted
+    as savings. Only SAVINGS_DEPOSIT/INVESTMENT should move a goal's current_value."""
+    payload = FinanceCreateRequest(
+        type=TransactionType.EXPENSE, amount=Decimal("200"),
+        category=FinancialCategory.FOOD, linked_goal_id=GOAL_ID,
+    )
+    goal_patch, collection = _patch_goal_update()
+    with _patch_document_init(), \
+         patch.object(FinancialRecord, "insert", new=_fake_insert()), \
+         patch("services.finance_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await finance_service.create_transaction(USER_ID, payload)
+
+    collection.update_one.assert_not_awaited()
 
 
 # ─── update_transaction ─────────────────────────────────────────────────────────
@@ -87,6 +138,33 @@ async def test_update_transaction_normal_case():
             USER_ID, TXN_ID, FinanceUpdateRequest(amount=Decimal("250"))
         )
     assert result.amount == Decimal("250")
+
+
+@pytest.mark.asyncio
+async def test_update_transaction_reconciles_linked_goal_amount_change():
+    """Regression test: editing a goal-linked SAVINGS_DEPOSIT's amount must adjust
+    the goal by the *net* difference, not add the new amount on top of the old
+    (which would double-count what the original create_transaction already applied)."""
+    record = FinancialRecord.model_construct(
+        user_id=PydanticObjectId(USER_ID), type=TransactionType.SAVINGS_DEPOSIT, amount=Decimal("300"),
+        category=FinancialCategory.SAVINGS, description=None, is_recurring=False,
+        recurring_frequency=None, linked_goal_id=GOAL_ID,
+        transaction_date=datetime.now(timezone.utc), created_at=datetime.now(timezone.utc),
+    )
+    record.id = PydanticObjectId(TXN_ID)
+
+    goal_patch, collection = _patch_goal_update()
+    with patch.object(FinancialRecord, "find_one", new=AsyncMock(return_value=record)), \
+         patch.object(FinancialRecord, "save", new=AsyncMock()), \
+         patch("services.finance_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await finance_service.update_transaction(
+            USER_ID, TXN_ID, FinanceUpdateRequest(amount=Decimal("500"))
+        )
+
+    collection.update_one.assert_awaited_once()
+    _, update_arg = collection.update_one.call_args.args
+    assert update_arg["$inc"]["active_goals.$.current_value"].to_decimal() == Decimal("200")  # 500 - 300
 
 
 @pytest.mark.asyncio
@@ -117,6 +195,29 @@ async def test_delete_transaction_normal_case():
          patch("services.finance_service.activity_service.log_activity", new=AsyncMock()):
         await finance_service.delete_transaction(USER_ID, TXN_ID)
     mock_delete.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_transaction_reverses_linked_goal_progress():
+    """Regression test: deleting a goal-linked SAVINGS_DEPOSIT must subtract what
+    it had contributed — otherwise the goal stays credited for a transaction that
+    no longer exists."""
+    record = FinancialRecord.model_construct(
+        user_id=PydanticObjectId(USER_ID), type=TransactionType.SAVINGS_DEPOSIT, amount=Decimal("300"),
+        category=FinancialCategory.SAVINGS, linked_goal_id=GOAL_ID,
+    )
+    record.id = PydanticObjectId(TXN_ID)
+
+    goal_patch, collection = _patch_goal_update()
+    with patch.object(FinancialRecord, "find_one", new=AsyncMock(return_value=record)), \
+         patch.object(FinancialRecord, "delete", new=AsyncMock()), \
+         patch("services.finance_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await finance_service.delete_transaction(USER_ID, TXN_ID)
+
+    collection.update_one.assert_awaited_once()
+    _, update_arg = collection.update_one.call_args.args
+    assert update_arg["$inc"]["active_goals.$.current_value"].to_decimal() == Decimal("-300")
 
 
 @pytest.mark.asyncio

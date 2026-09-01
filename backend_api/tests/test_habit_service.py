@@ -16,15 +16,24 @@ from beanie import PydanticObjectId
 from core.exceptions import NotFoundError
 from models.enums import BurnoutRisk
 from models.habit import HabitTracking
+from models.user import User
 from schemas.habit_schema import HabitCreateRequest
 import services.habit_service as habit_service
 
 USER_ID = "507f1f77bcf86cd799439011"
 LOG_ID = "507f1f77bcf86cd799439044"
+GOAL_ID = "e02fdbdc-00db-419f-848e-e4d6df52b0ef"
+OTHER_GOAL_ID = "a11b1d2b-2222-4c3d-9999-000000000000"
 
 
 def _patch_document_init():
     return patch.object(HabitTracking, "get_motor_collection", return_value=MagicMock())
+
+
+def _patch_goal_update():
+    collection = MagicMock()
+    collection.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
+    return patch.object(User, "get_motor_collection", return_value=collection), collection
 
 
 def _raw_mongo_result(**overrides):
@@ -56,6 +65,7 @@ async def test_upsert_daily_log_returns_the_upserted_record():
         water_intake_liters=Decimal("2.0"), screen_time_hours=Decimal("5.0"), mood_rating=4,
     )
     mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=None)
     mock_collection.find_one_and_update = AsyncMock(return_value=_raw_mongo_result())
 
     with _patch_document_init(), \
@@ -76,6 +86,7 @@ async def test_upsert_daily_log_uses_upsert_true_and_a_user_plus_date_filter():
         water_intake_liters=Decimal("1.5"), screen_time_hours=Decimal("8.0"),
     )
     mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=None)
     mock_collection.find_one_and_update = AsyncMock(return_value=_raw_mongo_result())
 
     with _patch_document_init(), \
@@ -97,6 +108,7 @@ async def test_upsert_daily_log_normalizes_log_date_to_midnight_utc():
         log_date=datetime(2026, 8, 18, 14, 37, 22, tzinfo=timezone.utc),
     )
     mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=None)
     mock_collection.find_one_and_update = AsyncMock(return_value=_raw_mongo_result())
 
     with _patch_document_init(), \
@@ -106,6 +118,83 @@ async def test_upsert_daily_log_normalizes_log_date_to_midnight_utc():
 
     query_filter = mock_collection.find_one_and_update.call_args[0][0]
     assert query_filter["log_date"] == datetime(2026, 8, 18, 0, 0, 0, tzinfo=timezone.utc)
+
+
+@pytest.mark.asyncio
+async def test_upsert_daily_log_first_time_linked_to_goal_adds_flat_one_progress():
+    """A habit log has no numeric field that maps unambiguously onto an arbitrary
+    goal's free-text unit, so linking counts as a flat +1 per day logged."""
+    payload = HabitCreateRequest(
+        sleep_hours=Decimal("7.5"), exercise_minutes=30,
+        water_intake_liters=Decimal("2.0"), screen_time_hours=Decimal("5.0"),
+        linked_goal_id=GOAL_ID,
+    )
+    mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=None)  # no existing log today
+    mock_collection.find_one_and_update = AsyncMock(return_value=_raw_mongo_result(linked_goal_id=GOAL_ID))
+
+    goal_patch, goal_collection = _patch_goal_update()
+    with _patch_document_init(), \
+         patch.object(HabitTracking, "get_motor_collection", return_value=mock_collection), \
+         patch("services.habit_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await habit_service.upsert_daily_log(USER_ID, payload)
+
+    goal_collection.update_one.assert_awaited_once()
+    _, update_arg = goal_collection.update_one.call_args.args
+    assert update_arg["$inc"]["active_goals.$.current_value"].to_decimal() == Decimal("1")
+
+
+@pytest.mark.asyncio
+async def test_upsert_daily_log_relinking_on_same_day_relog_moves_progress():
+    """Logging again for a day already logged (upsert = update) that changes
+    which goal it's linked to must move the +1, not add a second one."""
+    payload = HabitCreateRequest(
+        sleep_hours=Decimal("7.5"), exercise_minutes=30,
+        water_intake_liters=Decimal("2.0"), screen_time_hours=Decimal("5.0"),
+        linked_goal_id=OTHER_GOAL_ID,
+    )
+    mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=_raw_mongo_result(linked_goal_id=GOAL_ID))
+    mock_collection.find_one_and_update = AsyncMock(
+        return_value=_raw_mongo_result(linked_goal_id=OTHER_GOAL_ID)
+    )
+
+    goal_patch, goal_collection = _patch_goal_update()
+    with _patch_document_init(), \
+         patch.object(HabitTracking, "get_motor_collection", return_value=mock_collection), \
+         patch("services.habit_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await habit_service.upsert_daily_log(USER_ID, payload)
+
+    assert goal_collection.update_one.await_count == 2
+    first_filter, first_update = goal_collection.update_one.await_args_list[0].args
+    assert first_filter["active_goals.goal_id"] == GOAL_ID
+    assert first_update["$inc"]["active_goals.$.current_value"].to_decimal() == Decimal("-1")
+    second_filter, second_update = goal_collection.update_one.await_args_list[1].args
+    assert second_filter["active_goals.goal_id"] == OTHER_GOAL_ID
+    assert second_update["$inc"]["active_goals.$.current_value"].to_decimal() == Decimal("1")
+
+
+@pytest.mark.asyncio
+async def test_upsert_daily_log_relog_same_goal_link_leaves_progress_alone():
+    payload = HabitCreateRequest(
+        sleep_hours=Decimal("8.0"), exercise_minutes=45,
+        water_intake_liters=Decimal("2.5"), screen_time_hours=Decimal("4.0"),
+        linked_goal_id=GOAL_ID,
+    )
+    mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=_raw_mongo_result(linked_goal_id=GOAL_ID))
+    mock_collection.find_one_and_update = AsyncMock(return_value=_raw_mongo_result(linked_goal_id=GOAL_ID))
+
+    goal_patch, goal_collection = _patch_goal_update()
+    with _patch_document_init(), \
+         patch.object(HabitTracking, "get_motor_collection", return_value=mock_collection), \
+         patch("services.habit_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await habit_service.upsert_daily_log(USER_ID, payload)
+
+    goal_collection.update_one.assert_not_awaited()
 
 
 # ─── delete_daily_log ─────────────────────────────────────────────────────────────
@@ -124,6 +213,27 @@ async def test_delete_daily_log_normal_case():
          patch("services.habit_service.activity_service.log_activity", new=AsyncMock()):
         await habit_service.delete_daily_log(USER_ID, LOG_ID)
     mock_delete.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_daily_log_reverses_linked_goal_progress():
+    record = HabitTracking.model_construct(
+        user_id=PydanticObjectId(USER_ID), sleep_hours=Decimal("7.0"), exercise_minutes=20,
+        water_intake_liters=Decimal("2.0"), screen_time_hours=Decimal("5.0"),
+        log_date=datetime.now(timezone.utc), linked_goal_id=GOAL_ID,
+    )
+    record.id = PydanticObjectId(LOG_ID)
+
+    goal_patch, goal_collection = _patch_goal_update()
+    with patch.object(HabitTracking, "find_one", new=AsyncMock(return_value=record)), \
+         patch.object(HabitTracking, "delete", new=AsyncMock()), \
+         patch("services.habit_service.activity_service.log_activity", new=AsyncMock()), \
+         goal_patch:
+        await habit_service.delete_daily_log(USER_ID, LOG_ID)
+
+    goal_collection.update_one.assert_awaited_once()
+    _, update_arg = goal_collection.update_one.call_args.args
+    assert update_arg["$inc"]["active_goals.$.current_value"].to_decimal() == Decimal("-1")
 
 
 @pytest.mark.asyncio

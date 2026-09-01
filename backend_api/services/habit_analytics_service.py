@@ -118,10 +118,15 @@ def _daily_habit_score(log: HabitLogMetrics) -> float:
 def _consistency_score(
     logs: list[HabitLogMetrics], window_days: int, reference_date: datetime
 ) -> tuple[float, int]:
+    """Window is the same window_days calendar dates _missed_days uses (today
+    plus the window_days-1 days before it) — logged_days + missed_days always
+    sums to window_days. An earlier version used an inclusive-both-ends range
+    here (window_days + 1 distinct dates), which double-counted the far edge
+    of the window relative to _missed_days."""
     if window_days <= 0:
         return 0.0, 0
-    window_start = reference_date - timedelta(days=window_days)
-    logged_days = {l.log_date.date() for l in logs if window_start <= l.log_date <= reference_date}
+    window_dates = {(reference_date - timedelta(days=i)).date() for i in range(window_days)}
+    logged_days = {l.log_date.date() for l in logs} & window_dates
     percentage = round(min(100.0, (len(logged_days) / window_days) * 100.0), 2)
     return percentage, len(logged_days)
 

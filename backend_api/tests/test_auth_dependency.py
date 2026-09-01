@@ -13,9 +13,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from beanie import PydanticObjectId
-from fastapi import HTTPException
 
 from api.dependencies import _validate_token_and_get_user, get_current_user
+from core.exceptions import AuthenticationError
 from core.security import create_access_token
 from models.user import Profile, User
 
@@ -41,18 +41,16 @@ async def test_valid_token_matching_version_returns_user():
 
 @pytest.mark.asyncio
 async def test_garbage_token_rejected():
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AuthenticationError):
         await _validate_token_and_get_user("not-a-real-token")
-    assert exc_info.value.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_token_for_nonexistent_user_rejected():
     token = create_access_token(subject=USER_ID, token_version=0)
     with patch.object(User, "get", new=AsyncMock(return_value=None)):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthenticationError):
             await _validate_token_and_get_user(token)
-    assert exc_info.value.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -62,10 +60,9 @@ async def test_stale_token_version_rejected():
     stored version has been bumped (by logout or a password change)."""
     token = create_access_token(subject=USER_ID, token_version=0)
     with patch.object(User, "get", new=AsyncMock(return_value=_user(token_version=1))):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthenticationError) as exc_info:
             await _validate_token_and_get_user(token)
-    assert exc_info.value.status_code == 401
-    assert "invalidated" in exc_info.value.detail.lower()
+    assert "invalidated" in exc_info.value.message.lower()
 
 
 @pytest.mark.asyncio
@@ -120,6 +117,5 @@ async def test_get_current_user_falls_back_to_bearer_header_with_no_cookie():
 @pytest.mark.asyncio
 async def test_get_current_user_rejects_when_neither_cookie_nor_header_present():
     request = SimpleNamespace(cookies={})
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AuthenticationError):
         await get_current_user(request, None)
-    assert exc_info.value.status_code == 401

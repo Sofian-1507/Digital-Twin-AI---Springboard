@@ -4,8 +4,10 @@ import { toast } from "react-toastify";
 
 import { Input } from "../components/ui/Field";
 import Button from "../components/ui/Button";
+import { useForceLightTheme } from "../hooks/useForceLightTheme";
 
 function ForgotPassword() {
+  useForceLightTheme();
 
   const [email, setEmail] = useState("");
 

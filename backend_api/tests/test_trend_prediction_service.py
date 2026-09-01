@@ -1,10 +1,11 @@
 """
 tests/test_trend_prediction_service.py — Unit tests for services/trend_prediction_service.py.
 
-This engine never touches the database directly — it only calls the public async
-methods of ForecastService, ProductivityService, and HabitAnalyticsService. So these
-tests mock at that boundary (the service methods), never at the DB/Beanie level,
-matching how the engine is actually used ("consume outputs from" the other services).
+This engine mostly never touches the database directly — it calls the public async
+methods of ForecastService, ProductivityService, and HabitAnalyticsService. The one
+exception is predict_goal_completions(), which also reads User.active_goals directly
+so non-FINANCE goals can be reported as unsupported rather than silently dropped or
+given an incorrect finance-based estimate — tests that exercise it mock User.get too.
 
 Two layers:
 1. Pure-function tests for the fitness-only forecasting math (no mocks).
@@ -16,8 +17,10 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from beanie import PydanticObjectId
 
 from models.enums import GoalCategory
+from models.user import ActiveGoal, Profile, User
 from schemas.forecast_schema import (
     ForecastMethod,
     GoalCompletionResponse,
@@ -42,6 +45,15 @@ VALID_USER_ID = "507f1f77bcf86cd799439011"
 
 def _patch(target: str, return_value):
     return patch(target, new=AsyncMock(return_value=return_value))
+
+
+def _patch_user(active_goals):
+    user = User.model_construct(
+        email="trend-test@example.com", password_hash="x",
+        profile=Profile(name="Trend Test", age=30), active_goals=active_goals,
+    )
+    user.id = PydanticObjectId(VALID_USER_ID)
+    return patch.object(User, "get", new=AsyncMock(return_value=user))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -212,8 +224,14 @@ async def test_predict_goal_completions_wraps_forecast_service_goals():
             confidence_score=0.8,
         )
     ]
+    finance_goal = ActiveGoal(
+        goal_id="g1", title="Emergency Fund", category=GoalCategory.FINANCE,
+        target_value=Decimal("1000"), current_value=Decimal("0"), unit="USD",
+        target_date=datetime(2027, 1, 1, tzinfo=timezone.utc),
+    )
     service = TrendPredictionService()
-    with _patch("services.trend_prediction_service.forecast_service.estimate_all_goal_completions", fake_goals):
+    with _patch("services.trend_prediction_service.forecast_service.estimate_all_goal_completions", fake_goals), \
+         _patch_user([finance_goal]):
         result = await service.predict_goal_completions(VALID_USER_ID)
 
     assert len(result) == 1
@@ -221,6 +239,27 @@ async def test_predict_goal_completions_wraps_forecast_service_goals():
     assert result[0].category == "FINANCE"
     assert result[0].method_used == "linear_regression"
     assert result[0].on_track is True
+
+
+@pytest.mark.asyncio
+async def test_predict_goal_completions_reports_non_finance_goals_as_insufficient_data():
+    """Study/Habit/Fitness goals shouldn't be silently dropped or given an incorrect
+    finance-based estimate — they're reported as unsupported instead."""
+    study_goal = ActiveGoal(
+        goal_id="g2", title="Finish DSA course", category=GoalCategory.STUDY,
+        target_value=Decimal("100"), current_value=Decimal("40"), unit="percent",
+        target_date=datetime(2027, 1, 1, tzinfo=timezone.utc),
+    )
+    service = TrendPredictionService()
+    with _patch("services.trend_prediction_service.forecast_service.estimate_all_goal_completions", []), \
+         _patch_user([study_goal]):
+        result = await service.predict_goal_completions(VALID_USER_ID)
+
+    assert len(result) == 1
+    assert result[0].goal_id == "g2"
+    assert result[0].category == "STUDY"
+    assert result[0].method_used == "insufficient_data"
+    assert result[0].on_track is None
 
 
 @pytest.mark.asyncio
@@ -241,7 +280,8 @@ async def test_predict_all_trends_aggregates_and_averages_confidence():
     with _patch("services.trend_prediction_service.forecast_service.forecast_monthly_savings", savings_fake), \
          _patch("services.trend_prediction_service.productivity_service.predict_performance", study_fake), \
          _patch("services.trend_prediction_service.habit_analytics_service.get_habit_trend", fitness_trend_fake), \
-         _patch("services.trend_prediction_service.forecast_service.estimate_all_goal_completions", goals_fake):
+         _patch("services.trend_prediction_service.forecast_service.estimate_all_goal_completions", goals_fake), \
+         _patch_user([]):
         summary = await service.predict_all_trends(VALID_USER_ID)
 
     # savings=0.2, study=0.2, fitness=insufficient_data->0.0, no goals, no exam confidence

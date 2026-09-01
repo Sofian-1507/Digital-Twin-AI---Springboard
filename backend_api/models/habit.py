@@ -84,3 +84,6 @@ class HabitTracking(Document):
                 name="idx_habit_user_date_unique",
             ),
         ]
+
+    class Config:
+        populate_by_name = True

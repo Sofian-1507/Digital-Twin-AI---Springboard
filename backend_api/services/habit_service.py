@@ -24,8 +24,15 @@ from schemas.habit_schema import (
     KMeansFeatureRow,
 )
 import services.activity_service as activity_service
+from services.goal_progress_service import adjust_active_goal_progress
 
 logger = logging.getLogger("digital_twin_ai.habit_service")
+
+# Same reasoning as study_service.GOAL_PROGRESS_PER_LINK — a habit log has no
+# numeric field that maps unambiguously onto an arbitrary goal's free-text
+# unit, so linking counts as a flat +1 per day logged rather than guessing a
+# unit-specific formula.
+GOAL_PROGRESS_PER_LINK = Decimal("1")
 
 
 def _midnight_utc(dt: Optional[datetime] = None) -> datetime:
@@ -88,6 +95,12 @@ async def upsert_daily_log(
 
     collection = HabitTracking.get_motor_collection()
 
+    # Captured before the upsert so a same-day re-log (upsert = update, not
+    # create) can tell whether linked_goal_id actually changed — this is an
+    # upsert, so "create" and "update" are the same code path here.
+    existing = await collection.find_one({"user_id": uid, "log_date": log_date})
+    old_linked_goal_id = existing.get("linked_goal_id") if existing else None
+
     try:
         result = await collection.find_one_and_update(
             {"user_id": uid, "log_date": log_date},
@@ -107,6 +120,14 @@ async def upsert_daily_log(
         )
 
     record = HabitTracking(**result)
+
+    # Re-link (or unlink) moves the flat +1 contribution from the old goal to
+    # the new one — never both, never neither.
+    if record.linked_goal_id != old_linked_goal_id:
+        if old_linked_goal_id:
+            await adjust_active_goal_progress(user_id, old_linked_goal_id, -GOAL_PROGRESS_PER_LINK)
+        if record.linked_goal_id:
+            await adjust_active_goal_progress(user_id, record.linked_goal_id, GOAL_PROGRESS_PER_LINK)
 
     logger.info(
         "Habit log upserted for user %s on %s",
@@ -140,7 +161,12 @@ async def delete_daily_log(user_id: str, log_id: str) -> None:
     if not record:
         raise NotFoundError("Habit log", log_id)
 
+    linked_goal_id = record.linked_goal_id
+
     await record.delete()
+
+    if linked_goal_id:
+        await adjust_active_goal_progress(user_id, linked_goal_id, -GOAL_PROGRESS_PER_LINK)
 
     await activity_service.log_activity(
         user_id=user_id,

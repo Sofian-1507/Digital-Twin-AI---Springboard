@@ -106,6 +106,29 @@ def test_consistency_score_zero_with_no_logs():
     assert logged_days == 0
 
 
+def test_consistency_score_window_matches_missed_days_window():
+    """logged_days + missed_days must sum to window_days — both helpers must
+    agree on the same set of calendar dates for a given window_days/reference."""
+    reference = datetime(2026, 8, 10, tzinfo=timezone.utc)
+    logs = [
+        _log(log_date=datetime(2026, 8, 8, tzinfo=timezone.utc)),
+        _log(log_date=datetime(2026, 8, 10, tzinfo=timezone.utc)),
+    ]
+    _, logged_days = _consistency_score(logs, window_days=3, reference_date=reference)
+    missed = _missed_days(logs, window_days=3, reference_date=reference)
+    assert logged_days + len(missed) == 3
+
+
+def test_consistency_score_excludes_day_just_outside_window():
+    """A log exactly window_days before the reference date (the boundary
+    _missed_days does NOT count) must not be counted as logged either."""
+    reference = datetime(2026, 8, 10, tzinfo=timezone.utc)
+    logs = [_log(log_date=datetime(2026, 7, 31, tzinfo=timezone.utc))]  # 10 days before
+    percentage, logged_days = _consistency_score(logs, window_days=10, reference_date=reference)
+    assert logged_days == 0
+    assert percentage == 0.0
+
+
 def test_compute_streak_counts_consecutive_days_ending_today():
     reference = datetime(2026, 8, 10, tzinfo=timezone.utc)
     logs = [

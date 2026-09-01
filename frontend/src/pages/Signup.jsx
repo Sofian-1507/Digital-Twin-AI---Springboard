@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { registerUser } from "../services/authService";
 import { useAuth } from "../context/useAuth";
+import { useForceLightTheme } from "../hooks/useForceLightTheme";
 import { Input, Select } from "../components/ui/Field";
 import Button from "../components/ui/Button";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -12,12 +13,14 @@ import { getApiErrorMessage } from "../utils/apiError";
 function Signup() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  useForceLightTheme();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    age: "",
     profession: "Student",
   });
 
@@ -39,6 +42,12 @@ function Signup() {
       return;
     }
 
+    const age = Number(formData.age);
+    if (!formData.age || Number.isNaN(age) || age < 13 || age > 120) {
+      toast.error("Age must be between 13 and 120.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -46,7 +55,7 @@ function Signup() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        age: 18,
+        age,
         monthly_income_baseline: 0,
         occupation: formData.profession,
       };
@@ -139,6 +148,21 @@ function Signup() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Age</label>
+            <Input
+              type="number"
+              name="age"
+              placeholder="Enter Age"
+              min="13"
+              max="120"
+              step="1"
+              value={formData.age}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div>

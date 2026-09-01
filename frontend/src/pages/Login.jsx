@@ -5,32 +5,38 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { loginUser } from "../services/authService";
 import { useAuth } from "../context/useAuth";
+import { useForceLightTheme } from "../hooks/useForceLightTheme";
 import { Input } from "../components/ui/Field";
 import Button from "../components/ui/Button";
 import { getApiErrorMessage } from "../utils/apiError";
 
+// Only the email is ever remembered — never the password. localStorage is
+// readable by any JavaScript on the page (XSS, a malicious extension, etc.),
+// so storing a raw password there would hand out reusable, non-expiring
+// credentials to anything that can run script on this origin. Pre-filling
+// the email is the standard, safe version of "Remember Me"; the password
+// still has to be typed every time.
 const REMEMBER_ME_KEY = "digital_twin_remember_me";
 
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  useForceLightTheme();
 
-  // Load previously saved login details, if Remember Me was selected.
-  const savedLogin = (() => {
+  const savedEmail = (() => {
     try {
-      const saved = localStorage.getItem(REMEMBER_ME_KEY);
-      return saved ? JSON.parse(saved) : null;
+      return localStorage.getItem(REMEMBER_ME_KEY) || "";
     } catch {
-      return null;
+      return "";
     }
   })();
 
   const [formData, setFormData] = useState({
-    email: savedLogin?.email || "",
-    password: savedLogin?.password || "",
+    email: savedEmail,
+    password: "",
   });
 
-  const [rememberMe, setRememberMe] = useState(!!savedLogin);
+  const [rememberMe, setRememberMe] = useState(!!savedEmail);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,15 +62,9 @@ function Login() {
     setIsLoading(true);
 
     try {
-      // Save credentials only when Remember Me is selected.
+      // Save (or clear) only the email — never the password.
       if (rememberMe) {
-        localStorage.setItem(
-          REMEMBER_ME_KEY,
-          JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          })
-        );
+        localStorage.setItem(REMEMBER_ME_KEY, formData.email);
       } else {
         localStorage.removeItem(REMEMBER_ME_KEY);
       }

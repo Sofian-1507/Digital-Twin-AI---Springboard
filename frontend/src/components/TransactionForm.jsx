@@ -22,15 +22,18 @@ function TransactionForm({
       amount: "",
       description: "",
       linked_goal_id: "",
+      is_recurring: false,
+      recurring_frequency: "",
     }
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -44,6 +47,11 @@ function TransactionForm({
 
     if (Number(formData.amount) <= 0) {
       toast.error("Amount must be greater than 0.");
+      return;
+    }
+
+    if (formData.is_recurring && !formData.recurring_frequency) {
+      toast.error("Please select a recurring frequency.");
       return;
     }
 
@@ -62,6 +70,8 @@ function TransactionForm({
           amount: "",
           description: "",
           linked_goal_id: "",
+          is_recurring: false,
+          recurring_frequency: "",
         });
       }
     } finally {
@@ -151,6 +161,38 @@ function TransactionForm({
           onChange={handleChange}
         />
 
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <input
+            type="checkbox"
+            name="is_recurring"
+            checked={!!formData.is_recurring}
+            onChange={handleChange}
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          Recurring transaction
+        </label>
+
+        {formData.is_recurring && (
+          <Select
+            name="recurring_frequency"
+            value={formData.recurring_frequency || ""}
+            onChange={handleChange}
+            required
+          >
+            <option value="" disabled>
+              Select Frequency
+            </option>
+            <option value="DAILY">Daily</option>
+            <option value="WEEKLY">Weekly</option>
+            <option value="BIWEEKLY">Biweekly</option>
+            <option value="MONTHLY">Monthly</option>
+            <option value="QUARTERLY">Quarterly</option>
+            <option value="ANNUALLY">Annually</option>
+          </Select>
+        )}
       </div>
 
       <div className="mt-5 flex gap-2.5">

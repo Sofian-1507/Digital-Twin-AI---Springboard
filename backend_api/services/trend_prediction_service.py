@@ -1,8 +1,8 @@
 """
 services/trend_prediction_service.py — Trend Prediction Engine (Milestone 2, Pillar C).
 
-Does NOT touch the database and does NOT reimplement any other engine's logic.
-It consumes the *public outputs* of the three existing engines:
+Does NOT reimplement any other engine's logic. It consumes the *public outputs*
+of the three existing engines:
   - services.forecast_service.forecast_service            (Savings, Goals)
   - services.productivity_service.productivity_service    (Study)
   - services.habit_analytics_service.habit_analytics_service (Fitness — trend data only)
@@ -13,9 +13,11 @@ probability/confidence score:
   - Study    -> thin wrapper around ProductivityService.predict_performance()
   - Fitness  -> HabitAnalyticsService only reports historical/current trend, so this
                 engine applies its own forward projection on top of that trend
-  - Goals    -> thin wrapper around ForecastService.estimate_all_goal_completions()
-                (currently FINANCE-category only — no other consumed service exposes
-                a per-goal completion estimator)
+  - Goals    -> wraps ForecastService.estimate_all_goal_completions() for FINANCE
+                goals; also reads User.active_goals directly (the one direct DB
+                read in this module) so STUDY/HABIT/FITNESS goals can be reported
+                as "insufficient_data" instead of being silently dropped or given
+                an incorrect finance-based estimate
 
 This module is kept independent: it never modifies the three services it consumes,
 and its own fitness-forecasting math is self-contained (duplicated in miniature from
@@ -27,15 +29,13 @@ from __future__ import annotations
 
 import asyncio
 from datetime import date, datetime, timedelta, timezone
-from beanie import PydanticObjectId
-from models.enums import GoalCategory
-from models.user import User
 from typing import Optional
 
 from beanie import PydanticObjectId
 
-from models.user import User
+from core.exceptions import NotFoundError
 from models.enums import GoalCategory
+from models.user import User
 
 from schemas.trend_prediction_schema import (
     FitnessTrendPrediction,
@@ -214,7 +214,7 @@ class TrendPredictionService:
 
         user = await User.get(PydanticObjectId(user_id))
         if not user:
-            raise ValueError(f"User not found: {user_id}")
+            raise NotFoundError("User", user_id)
 
         finance_results = await forecast_service.estimate_all_goal_completions(user_id)
         finance_by_id = {g.goal_id: g for g in finance_results}

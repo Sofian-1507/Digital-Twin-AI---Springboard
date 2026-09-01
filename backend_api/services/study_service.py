@@ -13,7 +13,7 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 
-from core.exceptions import NotFoundError
+from core.exceptions import BusinessRuleError, NotFoundError
 from models.study import StudyActivity
 from schemas.study_schema import (
     StudyCreateRequest,
@@ -23,8 +23,19 @@ from schemas.study_schema import (
     SubjectPerformanceSummary,
 )
 import services.activity_service as activity_service
+from services.goal_progress_service import adjust_active_goal_progress
 
 logger = logging.getLogger("digital_twin_ai.study_service")
+
+# A study session has no numeric field that maps unambiguously onto an
+# arbitrary goal's free-text `unit` (a goal could be tracked in "percent",
+# "sessions", "hours" — anything the user typed when creating it). Rather than
+# guess a unit-specific formula (the same mistake finance_service.py's earlier
+# version made assuming every amount meant "money saved"), linking a session
+# to a goal counts as flat +1 progress per session — "N of target sessions
+# logged" is a safe, universal interpretation regardless of what the goal's
+# unit actually is.
+GOAL_PROGRESS_PER_LINK = Decimal("1")
 
 
 def _to_response(record: StudyActivity) -> StudyRecordResponse:
@@ -71,6 +82,10 @@ async def log_study_session(
         session_date=payload.session_date or datetime.now(timezone.utc),
     )
     await record.insert()
+
+    if record.linked_goal_id:
+        await adjust_active_goal_progress(user_id, record.linked_goal_id, GOAL_PROGRESS_PER_LINK)
+
     logger.info("Study session logged: %s for user %s", record.subject, user_id)
     await activity_service.log_activity(
         user_id=user_id,
@@ -93,17 +108,35 @@ async def update_session(
     record = await StudyActivity.find_one({"_id": sid, "user_id": uid})
     if not record:
         raise NotFoundError("Session", session_id)
-        
+
+    old_linked_goal_id = record.linked_goal_id
+
     update_data = payload.model_dump(exclude_unset=True)
     if not update_data:
         return _to_response(record)
-        
+
     for key, value in update_data.items():
         setattr(record, key, value)
 
+    # Re-link (or unlink) moves the flat +1 contribution from the old goal to
+    # the new one — never both, never neither.
+    if record.linked_goal_id != old_linked_goal_id:
+        if old_linked_goal_id:
+            await adjust_active_goal_progress(user_id, old_linked_goal_id, -GOAL_PROGRESS_PER_LINK)
+        if record.linked_goal_id:
+            await adjust_active_goal_progress(user_id, record.linked_goal_id, GOAL_PROGRESS_PER_LINK)
+
+    # Validated here, not on StudyUpdateRequest itself — a PATCH payload alone
+    # can't tell whether a max is "missing" or just not part of this particular
+    # update (already set from creation); only the merged record can.
+    if record.quiz_marks is not None and record.max_quiz_marks is None:
+        raise BusinessRuleError("max_quiz_marks is required when quiz_marks is set.")
+    if record.exam_marks is not None and record.max_exam_marks is None:
+        raise BusinessRuleError("max_exam_marks is required when exam_marks is set.")
+
     # Re-trigger percentage computation
     record = record.compute_percentage_scores()
-        
+
     await record.save()
     
     await activity_service.log_activity(
@@ -126,9 +159,14 @@ async def delete_session(user_id: str, session_id: str) -> None:
     record = await StudyActivity.find_one({"_id": sid, "user_id": uid})
     if not record:
         raise NotFoundError("Session", session_id)
-        
+
+    linked_goal_id = record.linked_goal_id
+
     await record.delete()
-    
+
+    if linked_goal_id:
+        await adjust_active_goal_progress(user_id, linked_goal_id, -GOAL_PROGRESS_PER_LINK)
+
     await activity_service.log_activity(
         user_id=user_id,
         action_type="DELETED_STUDY",

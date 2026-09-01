@@ -280,6 +280,9 @@ function Finance() {
         // Connect transaction to selected finance goal
         linked_goal_id: formData.linked_goal_id || undefined,
 
+        is_recurring: !!formData.is_recurring,
+        recurring_frequency: formData.is_recurring ? formData.recurring_frequency : undefined,
+
         transaction_date: formData.date
           ? new Date(formData.date).toISOString()
           : undefined,
@@ -317,6 +320,9 @@ function Finance() {
 
         // Keep the goal connection when editing
         linked_goal_id: formData.linked_goal_id || undefined,
+
+        is_recurring: !!formData.is_recurring,
+        recurring_frequency: formData.is_recurring ? formData.recurring_frequency : undefined,
 
         transaction_date: formData.date
           ? new Date(formData.date).toISOString()
@@ -418,6 +424,9 @@ function Finance() {
       // Preserve the linked goal when editing
       linked_goal_id:
         record.linked_goal_id || "",
+
+      is_recurring: !!record.is_recurring,
+      recurring_frequency: record.recurring_frequency || "",
     };
 
     setEditingRecord(initialData);

@@ -42,11 +42,13 @@ class FinanceUpdateRequest(BaseModel):
     linked_goal_id: Optional[str] = None
     transaction_date: Optional[datetime] = None
 
-    @model_validator(mode="after")
-    def frequency_required_when_recurring(self) -> "FinanceUpdateRequest":
-        if self.is_recurring and not self.recurring_frequency:
-            raise ValueError("recurring_frequency is required when is_recurring is True.")
-        return self
+    # No "frequency required when recurring" validator here, unlike
+    # FinanceCreateRequest — this is a PATCH payload, not the full record. A
+    # request that only sends {"is_recurring": true} is valid as long as the
+    # *existing* record already has recurring_frequency set; this schema can't
+    # see that, only the merged record can, so that check happens in
+    # finance_service.update_transaction instead (same fix already applied to
+    # StudyUpdateRequest for the identical quiz/exam-marks issue).
 
 
 class FinanceRecordResponse(BaseModel):

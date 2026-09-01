@@ -198,6 +198,20 @@ class BacktestResult:
     overall_accuracy_pct: float = 0.0
 
 
+def _exclude_current_month(
+    series: MonthlySeries, reference_date: Optional[datetime] = None
+) -> tuple[list[float], list[float], list[float]]:
+    """Drops the trailing period from income/expense/savings if it's the
+    current calendar month — see backtest_accuracy's docstring for why."""
+    if not series.periods:
+        return [], [], []
+    reference_date = reference_date or datetime.now(timezone.utc)
+    current_period = (reference_date.year, reference_date.month)
+    if series.periods[-1] == current_period:
+        return series.income[:-1], series.expense[:-1], series.savings[:-1]
+    return list(series.income), list(series.expense), list(series.savings)
+
+
 def _backtest_series(values: list[float]) -> BacktestResult:
     """
     Walk-forward backtest: for each cutoff k (1..n-1), forecasts one step ahead using
@@ -213,9 +227,6 @@ def _backtest_series(values: list[float]) -> BacktestResult:
     if n < 2:
         return BacktestResult()
 
-    mean_abs = sum(abs(v) for v in values) / n
-    floor = max(1.0, 0.01 * mean_abs)
-
     points: list[BacktestPoint] = []
     for k in range(1, n):
         method, forecast_values, _ = _forecast_series(values[:k], periods_ahead=1)
@@ -223,6 +234,11 @@ def _backtest_series(values: list[float]) -> BacktestResult:
             continue
         predicted = forecast_values[0]
         actual = values[k]
+        # Floor is derived only from values[:k] — the data a live forecast at
+        # cutoff k would actually have had — not the whole series, which would
+        # leak future magnitude into a supposedly point-in-time score.
+        mean_abs = sum(abs(v) for v in values[:k]) / k
+        floor = max(1.0, 0.01 * mean_abs)
         ape = abs(actual - predicted) / max(abs(actual), floor)
         accuracy_pct = max(0.0, min(100.0, (1 - ape) * 100))
         points.append(BacktestPoint(method=method, actual=actual, predicted=predicted, accuracy_pct=accuracy_pct))
@@ -471,11 +487,19 @@ class ForecastService:
     async def backtest_accuracy(self, user_id: str) -> ForecastAccuracyResponse:
         """Retrospective accuracy (Milestone 2's '≥85%' evaluation criterion) — distinct
         from confidence_score, which is a live, forward-looking heuristic. Walk-forward
-        backtests income/expense/savings against this user's real transaction history."""
+        backtests income/expense/savings against this user's real transaction history.
+
+        The current (still in-progress) calendar month is excluded from the backtest
+        only — _get_monthly_series legitimately includes it for live forward-looking
+        forecasts (it's the most recent real signal), but scoring a forecast against
+        a partial month's total is not a fair accuracy measurement: a $30k/month
+        earner's day-1-of-the-month total looks like a collapse to $1k, which every
+        method will "miss" no matter how good it is."""
         series = await self._get_monthly_series(user_id)
-        income_result = _backtest_series(series.income)
-        expense_result = _backtest_series(series.expense)
-        savings_result = _backtest_series(series.savings)
+        income, expense, savings = _exclude_current_month(series)
+        income_result = _backtest_series(income)
+        expense_result = _backtest_series(expense)
+        savings_result = _backtest_series(savings)
 
         all_points = income_result.points + expense_result.points + savings_result.points
         overall = round(sum(p.accuracy_pct for p in all_points) / len(all_points), 2) if all_points else 0.0

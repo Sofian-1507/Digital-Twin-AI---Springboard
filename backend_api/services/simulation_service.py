@@ -326,11 +326,20 @@ class DecisionSimulationService:
         score_resp, weekly_resp, prediction_resp = await asyncio.gather(
             productivity_service.get_productivity_score(user_id),
             productivity_service.get_weekly_trend(user_id, weeks_back=4),
-            productivity_service.predict_performance(user_id, weeks_ahead=1),
+            productivity_service.predict_performance(user_id, weeks_ahead=request.weeks_ahead),
         )
         active_weeks = [w for w in weekly_resp.trend if w.session_count > 0]
         baseline_weekly_hours = active_weeks[-1].total_study_hours if active_weeks else 0.0
-        baseline_score = score_resp.productivity_score
+        # Baseline is the trend-projected score at the user-selected horizon (not
+        # today's live score) — otherwise "Simulation Period" (weeks_ahead) would be
+        # a validated request field with no effect on the projected outcome at all.
+        # Falls back to today's live score when there isn't enough history to trend
+        # forward (predict_performance returns an empty projection list).
+        baseline_score = (
+            prediction_resp.predicted_productivity[-1].projected_score
+            if prediction_resp.predicted_productivity
+            else score_resp.productivity_score
+        )
         confidence = prediction_resp.productivity_confidence_score
 
         study_goals = [g for g in user.active_goals if g.category == GoalCategory.STUDY]
@@ -393,6 +402,13 @@ class DecisionSimulationService:
             )
             monthly_rate = new_exercise * 30
             goal_months = _average_months_to_goals(fitness_goals, monthly_rate)
+            # habit_analytics_service has no forward-trend method of its own to project
+            # a horizon-adjusted habit_score from (unlike study's predict_performance),
+            # so weeks_ahead is applied here instead as a genuine cumulative projection
+            # — total exercise minutes over the user-selected horizon at the new daily
+            # rate — the same "rate x horizon" shape finance's months_ahead already uses
+            # for Future Saving.
+            cumulative_exercise_minutes = round(new_exercise * 7 * request.weeks_ahead, 2)
             raw_scenarios.append(
                 _RawScenario(
                     name=name,
@@ -401,6 +417,11 @@ class DecisionSimulationService:
                         MetricPoint(label="Daily Exercise", value=new_exercise, unit="min"),
                         MetricPoint(label="Daily Sleep", value=new_sleep, unit="hrs"),
                         MetricPoint(label="Projected Habit Score", value=habit_score, unit="pts"),
+                        MetricPoint(
+                            label=f"Exercise Over {request.weeks_ahead} Weeks",
+                            value=cumulative_exercise_minutes,
+                            unit="min",
+                        ),
                     ],
                     primary_metric_label="Projected Habit Score",
                     primary_metric_value=habit_score,
@@ -483,18 +504,46 @@ class DecisionSimulationService:
 
     # ── Comparison across domains ────────────────────────────────────────────
     async def compare_all_domains(self, user_id: str) -> DomainComparisonResponse:
+        # persist=False: this is a GET (no explicit user "run a simulation" action),
+        # so it must not silently write 3 Simulation + 3 Recommendation docs on every
+        # call — same rationale/pattern as simulate_hybrid_scenarios' sub-domain runs.
         finance, study, fitness = await asyncio.gather(
-            self.simulate_finance_scenarios(user_id, FinanceScenarioRequest()),
-            self.simulate_study_scenarios(user_id, StudyScenarioRequest()),
-            self.simulate_fitness_scenarios(user_id, FitnessScenarioRequest()),
+            self.simulate_finance_scenarios(user_id, FinanceScenarioRequest(), persist=False),
+            self.simulate_study_scenarios(user_id, StudyScenarioRequest(), persist=False),
+            self.simulate_fitness_scenarios(user_id, FitnessScenarioRequest(), persist=False),
         )
         candidates = [finance.recommendation, study.recommendation, fitness.recommendation]
-        scenario_scores = {
-            finance.recommendation.id: max(s.score for s in finance.scenarios),
-            study.recommendation.id: max(s.score for s in study.scenarios),
-            fitness.recommendation.id: max(s.score for s in fitness.scenarios),
+        sims_by_recommendation_id = {
+            finance.recommendation.id: finance,
+            study.recommendation.id: study,
+            fitness.recommendation.id: fitness,
         }
-        overall = max(candidates, key=lambda r: scenario_scores[r.id])
+
+        def relative_improvement(sim: SimulationResponse) -> float:
+            """% improvement of the best scenario over this domain's own
+            baseline (its zero-delta scenario — always scenarios[0], since
+            every domain's scenario list is built in FINANCE/STUDY/FITNESS_
+            SCENARIO_MULTIPLIERS order, starting at multiplier 0.0). Unlike
+            each ScenarioResult.score (min-max normalized only within that
+            domain's own 3 scenarios via _score_scenarios), this is
+            comparable *across* domains despite their different units (INR
+            vs productivity points vs habit points) — raw scores can't be:
+            e.g. a domain whose 3 scenarios only differ by 4% in real terms
+            and a domain whose scenarios differ by 5000% both produce a
+            best-scenario score of ~83 by construction, since normalization
+            only sees relative spread within each domain's own set."""
+            baseline_value = sim.scenarios[0].primary_metric_value
+            best_value = max(s.primary_metric_value for s in sim.scenarios)
+            if baseline_value == 0:
+                # Going from literally nothing to something is an unbounded (mathematically
+                # infinite) relative improvement — always outranks any finite-percentage
+                # improvement elsewhere. Returning best_value's raw magnitude here instead
+                # would make this branch dominate or lose purely based on each domain's
+                # raw unit scale (INR vs habit points), not the improvement itself.
+                return float("inf") if best_value > 0 else 0.0
+            return (best_value - baseline_value) / abs(baseline_value)
+
+        overall = max(candidates, key=lambda r: relative_improvement(sims_by_recommendation_id[r.id]))
 
         return DomainComparisonResponse(
             user_id=user_id,

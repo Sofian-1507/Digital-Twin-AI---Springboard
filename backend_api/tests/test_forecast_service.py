@@ -25,6 +25,7 @@ from services.forecast_service import (
     _build_monthly_series,
     _compute_confidence,
     _estimate_months_to_goal,
+    _exclude_current_month,
     _linear_regression_forecast,
     _moving_average_forecast,
     _naive_forecast,
@@ -32,6 +33,24 @@ from services.forecast_service import (
 )
 
 VALID_USER_ID = "507f1f77bcf86cd799439011"
+
+
+def _recent_months(n: int) -> list[tuple[int, int]]:
+    """Returns n (year, month) tuples ending at the CURRENT month, oldest first —
+    for building cashflow fixtures that stay correct regardless of when the test
+    suite actually runs. A hardcoded absolute month (e.g. always "2026-08") drifts
+    stale the moment real wall-clock time moves past it: _build_monthly_series
+    trims/zero-fills up through the *current* month, so a fixture anchored to a
+    month that's no longer "now" silently gains extra zero-filled months and
+    shifts which forecasting tier gets selected — a real, previously-hit bug."""
+    now = datetime.now(timezone.utc)
+    base = now.year * 12 + (now.month - 1)
+    months = []
+    for i in range(n - 1, -1, -1):
+        total = base - i
+        year, month0 = divmod(total, 12)
+        months.append((year, month0 + 1))
+    return months
 
 
 def _cashflow_items(rows: list[tuple[int, int, float, float]]) -> list[MonthlyCashflowItem]:
@@ -219,6 +238,44 @@ def test_build_monthly_series_empty_when_no_transactions():
     assert series.savings == []
 
 
+def test_exclude_current_month_drops_trailing_period_matching_reference():
+    reference = datetime(2026, 8, 15, tzinfo=timezone.utc)
+    items = _cashflow_items([(2026, 6, 1000, 400), (2026, 7, 1100, 450), (2026, 8, 50, 20)])
+    series = _build_monthly_series(items, lookback_months=6, reference_date=reference)
+
+    income, expense, savings = _exclude_current_month(series, reference_date=reference)
+    assert income == [1000.0, 1100.0]
+    assert expense == [400.0, 450.0]
+    assert savings == [600.0, 650.0]
+
+
+def test_exclude_current_month_keeps_everything_when_last_period_is_not_current():
+    from services.forecast_service import MonthlySeries
+
+    # Direct MonthlySeries construction (not via _build_monthly_series, which
+    # always extends its trailing period through the current month by design)
+    # — this exercises _exclude_current_month's "nothing to drop" branch.
+    series = MonthlySeries(
+        periods=[(2026, 6), (2026, 7)],
+        income=[1000.0, 1100.0],
+        expense=[400.0, 450.0],
+        savings=[600.0, 650.0],
+    )
+    income, expense, savings = _exclude_current_month(
+        series, reference_date=datetime(2026, 9, 1, tzinfo=timezone.utc)
+    )
+    assert income == [1000.0, 1100.0]
+    assert expense == [400.0, 450.0]
+    assert savings == [600.0, 650.0]
+
+
+def test_exclude_current_month_handles_empty_series():
+    from services.forecast_service import MonthlySeries
+
+    income, expense, savings = _exclude_current_month(MonthlySeries())
+    assert income == expense == savings == []
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Service-level tests (finance_service + User.get mocked)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -236,21 +293,24 @@ async def test_forecast_savings_insufficient_data_when_no_history():
 
 @pytest.mark.asyncio
 async def test_forecast_savings_naive_with_single_month():
-    items = _cashflow_items([(2026, 8, 3000, 2000)])
+    (year, month), = _recent_months(1)
+    items = _cashflow_items([(year, month, 3000, 2000)])
     service = ForecastService(lookback_months=6)
     with _patch_cashflow(items):
         result = await service.forecast_monthly_savings("user1", months_ahead=1)
     assert result.method_used == ForecastMethod.NAIVE_LAST_VALUE
     assert result.data_points_used == 1
     assert float(result.projections[0].projected_amount) == pytest.approx(1000.0)
-    assert result.projections[0].year == 2026
-    assert result.projections[0].month == 9
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+    assert result.projections[0].year == next_year
+    assert result.projections[0].month == next_month
 
 
 @pytest.mark.asyncio
 async def test_forecast_savings_linear_regression_with_six_months_upward_trend():
     items = _cashflow_items(
-        [(2026, m, 3000, 3000 - (500 + (m - 3) * 100)) for m in range(3, 9)]
+        [(year, month, 3000, 3000 - (500 + i * 100)) for i, (year, month) in enumerate(_recent_months(6))]
     )  # savings: 500, 600, 700, 800, 900, 1000
     service = ForecastService(lookback_months=6)
     with _patch_cashflow(items):
@@ -310,7 +370,7 @@ async def test_estimate_goal_completion_on_track():
     # Comfortably beyond "now + 6 months" regardless of when this test runs.
     target_date = datetime.now(timezone.utc).replace(day=1) + timedelta(days=365)
     fake_user = _user_with_goal(goal_id, current=0, target=3000, target_date=target_date)
-    items = _cashflow_items([(2026, m, 2000, 1500) for m in range(3, 9)])  # savings 500/mo x6
+    items = _cashflow_items([(year, month, 2000, 1500) for year, month in _recent_months(6)])  # savings 500/mo x6
     service = ForecastService(lookback_months=6)
     with _patch_cashflow(items), _patch_user_get(fake_user):
         result = await service.estimate_goal_completion(VALID_USER_ID, goal_id)
@@ -452,6 +512,28 @@ def test_backtest_series_near_zero_actual_does_not_crash_and_stays_bounded():
         assert 0.0 <= p.accuracy_pct <= 100.0
 
 
+def test_backtest_series_floor_uses_only_past_values_not_future():
+    """The error-normalization floor at cutoff k must be derived from
+    values[:k] only — a huge value placed AFTER the cutoff must not inflate
+    the floor (and therefore the accuracy score) for points scored before it
+    ever appears in the walk-forward window."""
+    small_history = [10.0, 10.0, 10.0]
+    huge_future_value = 100_000.0
+    values = small_history + [huge_future_value]
+
+    result_with_future_spike = _backtest_series(values)
+    result_without_future_spike = _backtest_series(small_history)
+
+    # The first two backtest points (k=1, k=2) only ever see small_history as
+    # "past" data regardless of what comes after — their accuracy must be
+    # identical whether or not the huge future spike is appended.
+    early_points_with = result_with_future_spike.points[:2]
+    early_points_without = result_without_future_spike.points
+    assert [round(p.accuracy_pct, 6) for p in early_points_with] == [
+        round(p.accuracy_pct, 6) for p in early_points_without
+    ]
+
+
 @pytest.mark.asyncio
 async def test_backtest_accuracy_returns_structured_response():
     items = _cashflow_items([(2026, m, 2000 + m * 10, 1500) for m in range(3, 9)])
@@ -477,3 +559,39 @@ async def test_backtest_accuracy_handles_no_history_without_crashing():
     assert result.overall_accuracy_pct == 0.0
     assert result.income_accuracy.points_evaluated == 0
     assert result.by_method == {}
+
+
+@pytest.mark.asyncio
+async def test_backtest_accuracy_excludes_partial_current_month():
+    """A partial current month (e.g. one day of transactions logged so far)
+    must not be scored — it isn't a fair comparison against full prior months
+    and would tank accuracy on an artifact, not a real forecasting miss."""
+    months = _recent_months(7)  # oldest .. current month, inclusive
+    full_months = months[:-1]
+    rows = [(y, m, 3000.0, 1900.0) for (y, m) in full_months]
+    # Current month: a tiny fraction of a normal month's totals.
+    current_year, current_month = months[-1]
+    rows.append((current_year, current_month, 100.0, 60.0))
+
+    service = ForecastService(lookback_months=7)
+    with _patch_cashflow(_cashflow_items(rows)):
+        result_with_partial = await service.backtest_accuracy(VALID_USER_ID)
+
+    with _patch_cashflow(_cashflow_items([(y, m, 3000.0, 1900.0) for (y, m) in full_months])):
+        result_full_months_only = await service.backtest_accuracy(VALID_USER_ID)
+
+    # Same number of points evaluated either way — the partial month was
+    # dropped, not just scored leniently.
+    assert result_with_partial.income_accuracy.points_evaluated == result_full_months_only.income_accuracy.points_evaluated
+    assert result_with_partial.overall_accuracy_pct == result_full_months_only.overall_accuracy_pct
+
+
+
+# Note: there is no service-level "keeps all points when the last month isn't
+# current" test — ForecastService.backtest_accuracy always calls
+# _get_monthly_series with the real wall-clock "now", and _build_monthly_series
+# always extends its trailing period through the current month by design, so
+# the trailing period is unconditionally "current" on every live call. The
+# "nothing dropped" branch is a defensive case in the pure _exclude_current_month
+# function only, covered directly above
+# (test_exclude_current_month_keeps_everything_when_last_period_is_not_current).

@@ -2,7 +2,7 @@
 models/simulation.py — Beanie ODM Documents for the Decision Simulation & Recommendation Engine
 (Milestone 3). New collections: `simulations`, `recommendations`.
 
-Uses the SimulationDomain/SimulationStatus/RecommendationCategory/Priority/RecommendationStatus/
+Uses the SimulationDomain/SimulationStatus/RecommendationCategory/Priority/
 UserFeedback enums already defined in models/enums.py.
 """
 from __future__ import annotations
@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field
 from models.enums import (
     Priority,
     RecommendationCategory,
-    RecommendationStatus,
     SimulationDomain,
     SimulationStatus,
     UserFeedback,
@@ -64,7 +63,6 @@ class Recommendation(Document):
     reason: str = Field(..., max_length=1000)
     recommended_scenario_name: str
     priority: Priority = Priority.MEDIUM
-    status: RecommendationStatus = RecommendationStatus.UNREAD
     user_feedback: Optional[UserFeedback] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -5,7 +5,7 @@ api/dependencies.py — Reusable FastAPI dependency injection functions.
 import logging
 from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from beanie import PydanticObjectId
@@ -30,39 +30,23 @@ async def _validate_token_and_get_user(token: Optional[str]) -> User:
     string in tests, without needing to construct a Request.
     """
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError("Could not validate credentials.")
 
     decoded = decode_access_token(token)
     if not decoded:
         logger.warning("Invalid or expired JWT token presented.")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError("Could not validate credentials.")
     user_id, token_version = decoded
 
     user = await User.get(PydanticObjectId(user_id))
     if not user:
         logger.warning("JWT references non-existent user_id: %s", user_id)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account not found.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError("User account not found.")
 
     if token_version != user.token_version:
         logger.warning("Stale token_version for user %s (token had %s, current is %s).",
                         user_id, token_version, user.token_version)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session has been invalidated. Please log in again.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError("Session has been invalidated. Please log in again.")
 
     return user
 

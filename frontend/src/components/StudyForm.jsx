@@ -20,6 +20,11 @@ const DEFAULT_FORM = {
   session_type: "",
   attendance_pct: "",
   linked_goal_id: "",
+  quiz_marks: "",
+  max_quiz_marks: "",
+  exam_marks: "",
+  max_exam_marks: "",
+  focus_score: "",
 };
 
 function StudyForm({
@@ -50,13 +55,18 @@ function StudyForm({
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!formData.date || !formData.subject || !formData.hours) {
-      toast.error("Please fill in Date, Subject, and Hours.");
+    if (!formData.date || !formData.subject || (!formData.hours && !formData.minutes)) {
+      toast.error("Please fill in Date, Subject, and a study duration.");
       return;
     }
 
-    if (Number(formData.hours) <= 0 || Number(formData.hours) > 24) {
-      toast.error("Hours must be between 0.1 and 24.");
+    // Validated against the COMBINED duration (hours + minutes), matching what
+    // Study.jsx actually sends as study_hours — checking `hours` alone rejected
+    // legitimate short sessions like "0 hours, 30 minutes" even though 0.5h is
+    // well within the backend's accepted range (0.1–24).
+    const totalHours = Number(formData.hours || 0) + Number(formData.minutes || 0) / 60;
+    if (totalHours <= 0 || totalHours > 24) {
+      toast.error("Study duration must be between 6 minutes (0.1h) and 24 hours.");
       return;
     }
 
@@ -73,6 +83,15 @@ function StudyForm({
       attendance > 100
     ) {
       toast.error("Attendance must be between 0 and 100.");
+      return;
+    }
+
+    if (formData.quiz_marks !== "" && formData.quiz_marks != null && formData.max_quiz_marks === "") {
+      toast.error("Enter the max quiz marks too, so the percentage can be computed.");
+      return;
+    }
+    if (formData.exam_marks !== "" && formData.exam_marks != null && formData.max_exam_marks === "") {
+      toast.error("Enter the max exam marks too, so the percentage can be computed.");
       return;
     }
 
@@ -120,7 +139,6 @@ function StudyForm({
           step="1"
           value={formData.hours}
           onChange={handleChange}
-          required
         />
 
         <Input
@@ -176,6 +194,65 @@ function StudyForm({
             </option>
           ))}
         </Select>
+
+      </div>
+
+      <p className="mb-3 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+        Quiz / exam scores (optional)
+      </p>
+
+      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
+
+        <Input
+          type="number"
+          name="quiz_marks"
+          placeholder="Quiz marks"
+          min="0"
+          step="0.01"
+          value={formData.quiz_marks}
+          onChange={handleChange}
+        />
+
+        <Input
+          type="number"
+          name="max_quiz_marks"
+          placeholder="Out of (max quiz marks)"
+          min="0"
+          step="0.01"
+          value={formData.max_quiz_marks}
+          onChange={handleChange}
+        />
+
+        <Input
+          type="number"
+          name="exam_marks"
+          placeholder="Exam marks"
+          min="0"
+          step="0.01"
+          value={formData.exam_marks}
+          onChange={handleChange}
+        />
+
+        <Input
+          type="number"
+          name="max_exam_marks"
+          placeholder="Out of (max exam marks)"
+          min="0"
+          step="0.01"
+          value={formData.max_exam_marks}
+          onChange={handleChange}
+        />
+
+        <Input
+          type="number"
+          name="focus_score"
+          placeholder="Focus score (0-100)"
+          min="0"
+          max="100"
+          step="1"
+          value={formData.focus_score}
+          onChange={handleChange}
+        />
 
       </div>
 

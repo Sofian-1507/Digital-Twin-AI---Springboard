@@ -12,7 +12,7 @@ from typing import Optional
 
 from beanie import PydanticObjectId
 
-from core.exceptions import NotFoundError
+from core.exceptions import BusinessRuleError, NotFoundError
 from models.finance import FinancialRecord
 from models.enums import TransactionType
 from schemas.finance_schema import (
@@ -24,8 +24,26 @@ from schemas.finance_schema import (
     CategoryBreakdownItem,
 )
 import services.activity_service as activity_service
+from services.goal_progress_service import adjust_active_goal_progress
 
 logger = logging.getLogger("digital_twin_ai.finance_service")
+
+# Only these transaction types genuinely represent progress toward a savings-
+# style goal — an EXPENSE or INCOME linked to a goal shouldn't move its
+# current_value (an earlier version of this file added the raw amount for
+# every linked transaction regardless of type, which counted spending as
+# progress).
+GOAL_PROGRESS_TYPES = {TransactionType.SAVINGS_DEPOSIT, TransactionType.INVESTMENT}
+
+
+def _goal_contribution(
+    type_: TransactionType, amount: Decimal, linked_goal_id: Optional[str]
+) -> tuple[Optional[str], Decimal]:
+    """Returns (goal_id, signed_contribution) for one transaction — contribution
+    is 0 unless the transaction type actually represents goal progress."""
+    if linked_goal_id and type_ in GOAL_PROGRESS_TYPES:
+        return linked_goal_id, amount
+    return None, Decimal("0")
 
 
 def _to_response(record: FinancialRecord) -> FinanceRecordResponse:
@@ -60,23 +78,11 @@ async def create_transaction(
         transaction_date=payload.transaction_date or datetime.now(timezone.utc),
     )
     await record.insert()
-        # Update linked goal progress when a transaction is linked to a goal.
-    if payload.linked_goal_id:
-        from models.user import User
 
-        user = await User.get(PydanticObjectId(user_id))
+    goal_id, contribution = _goal_contribution(record.type, record.amount, record.linked_goal_id)
+    if goal_id:
+        await adjust_active_goal_progress(user_id, goal_id, contribution)
 
-        if user:
-            for goal in user.active_goals:
-                if goal.goal_id == payload.linked_goal_id:
-                    goal.current_value += payload.amount
-                    await user.save()
-                    logger.info(
-                        "Updated goal '%s' progress to %.2f",
-                        goal.title,
-                        goal.current_value,
-                    )
-                    break
     logger.info("Transaction logged: %s %.2f for user %s", record.type, record.amount, user_id)
     await activity_service.log_activity(
         user_id=user_id,
@@ -99,16 +105,38 @@ async def update_transaction(
     record = await FinancialRecord.find_one({"_id": tid, "user_id": uid})
     if not record:
         raise NotFoundError("Transaction", transaction_id)
-        
+
+    old_goal_id, old_contribution = _goal_contribution(record.type, record.amount, record.linked_goal_id)
+
     update_data = payload.model_dump(exclude_unset=True)
     if not update_data:
         return _to_response(record)
-        
+
     for key, value in update_data.items():
         setattr(record, key, value)
 
+    # Validated here, not on FinanceUpdateRequest itself — a PATCH payload alone
+    # can't tell whether recurring_frequency is "missing" or just not part of
+    # this particular update (already set from creation); only the merged
+    # record can (same fix applied to StudyUpdateRequest for quiz/exam marks).
+    if record.is_recurring and not record.recurring_frequency:
+        raise BusinessRuleError("recurring_frequency is required when is_recurring is True.")
+
     await record.save()
-    
+
+    new_goal_id, new_contribution = _goal_contribution(record.type, record.amount, record.linked_goal_id)
+
+    # Reconcile goal progress against whatever this record contributed *before*
+    # the edit — not just apply the new amount, which would double-count.
+    if old_goal_id == new_goal_id:
+        if old_goal_id:
+            await adjust_active_goal_progress(user_id, old_goal_id, new_contribution - old_contribution)
+    else:
+        if old_goal_id:
+            await adjust_active_goal_progress(user_id, old_goal_id, -old_contribution)
+        if new_goal_id:
+            await adjust_active_goal_progress(user_id, new_goal_id, new_contribution)
+
     await activity_service.log_activity(
         user_id=user_id,
         action_type="UPDATED_FINANCE",
@@ -116,7 +144,7 @@ async def update_transaction(
         entity_id=str(record.id),
         description=f"Updated financial record {record.id}"
     )
-    
+
     return _to_response(record)
 
 async def delete_transaction(user_id: str, transaction_id: str) -> None:
@@ -129,9 +157,14 @@ async def delete_transaction(user_id: str, transaction_id: str) -> None:
     record = await FinancialRecord.find_one({"_id": tid, "user_id": uid})
     if not record:
         raise NotFoundError("Transaction", transaction_id)
-        
+
+    goal_id, contribution = _goal_contribution(record.type, record.amount, record.linked_goal_id)
+
     await record.delete()
-    
+
+    if goal_id:
+        await adjust_active_goal_progress(user_id, goal_id, -contribution)
+
     await activity_service.log_activity(
         user_id=user_id,
         action_type="DELETED_FINANCE",

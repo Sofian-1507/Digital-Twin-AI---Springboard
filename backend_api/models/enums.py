@@ -103,13 +103,6 @@ class Priority(str, Enum):
     CRITICAL = "CRITICAL"
 
 
-class RecommendationStatus(str, Enum):
-    UNREAD = "UNREAD"
-    VIEWED = "VIEWED"
-    APPLIED = "APPLIED"
-    DISMISSED = "DISMISSED"
-
-
 class UserFeedback(str, Enum):
     HELPFUL = "HELPFUL"
     UNHELPFUL = "UNHELPFUL"

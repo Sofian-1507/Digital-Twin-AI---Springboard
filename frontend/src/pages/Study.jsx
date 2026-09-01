@@ -251,6 +251,18 @@ function Study() {
 
         linked_goal_id: formData.linked_goal_id || null,
 
+        // Optional quiz/exam scores — omitted entirely (not sent as "") when
+        // left blank, since the backend expects a real Decimal/int or nothing.
+        ...(formData.quiz_marks !== "" && formData.quiz_marks != null
+          ? { quiz_marks: Number(formData.quiz_marks), max_quiz_marks: Number(formData.max_quiz_marks) }
+          : {}),
+        ...(formData.exam_marks !== "" && formData.exam_marks != null
+          ? { exam_marks: Number(formData.exam_marks), max_exam_marks: Number(formData.max_exam_marks) }
+          : {}),
+        ...(formData.focus_score !== "" && formData.focus_score != null
+          ? { focus_score: Number(formData.focus_score) }
+          : {}),
+
         session_date: formData.date
           ? new Date(formData.date).toISOString()
           : undefined,
@@ -293,6 +305,16 @@ function Study() {
         attendance_pct: Number(formData.attendance_pct),
 
         linked_goal_id: formData.linked_goal_id || null,
+
+        ...(formData.quiz_marks !== "" && formData.quiz_marks != null
+          ? { quiz_marks: Number(formData.quiz_marks), max_quiz_marks: Number(formData.max_quiz_marks) }
+          : {}),
+        ...(formData.exam_marks !== "" && formData.exam_marks != null
+          ? { exam_marks: Number(formData.exam_marks), max_exam_marks: Number(formData.max_exam_marks) }
+          : {}),
+        ...(formData.focus_score !== "" && formData.focus_score != null
+          ? { focus_score: Number(formData.focus_score) }
+          : {}),
 
         session_date: formData.date
           ? new Date(formData.date).toISOString()
@@ -380,6 +402,12 @@ function Study() {
 
       linked_goal_id:
         record.linked_goal_id || "",
+
+      quiz_marks: record.quiz_marks ?? "",
+      max_quiz_marks: record.max_quiz_marks ?? "",
+      exam_marks: record.exam_marks ?? "",
+      max_exam_marks: record.max_exam_marks ?? "",
+      focus_score: record.focus_score ?? "",
     });
   };
 
