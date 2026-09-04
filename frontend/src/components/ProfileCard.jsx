@@ -18,6 +18,7 @@ function ProfileCard({ user, onEdit }) {
 
       <div
         className="mx-auto mb-5 flex h-35 w-35 items-center justify-center rounded-full bg-indigo-100 text-4xl font-semibold text-indigo-600"
+        role="img"
         aria-label={`Avatar for ${name}`}
       >
         {initials}

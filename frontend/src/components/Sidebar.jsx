@@ -14,8 +14,13 @@ import {
   LogOut,
   User,
   ChevronUp,
+  ChevronsLeft,
+  ChevronsRight,
+  X,
 } from "lucide-react";
 import { useAuth } from "../context/useAuth";
+
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
 // Grouped by purpose rather than one flat list: Overview (glance at everything),
 // Track (log/review data), Foresight (what the model predicts). Identity
@@ -47,17 +52,30 @@ const menuGroups = [
   },
 ];
 
-function navLinkClasses({ isActive }) {
-  return `mb-2 flex items-center justify-center gap-3.5 rounded-lg px-3 py-3 text-[15px] no-underline transition-colors group-hover:justify-start ${
-    isActive
-      ? "bg-indigo-600 font-semibold text-white"
-      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-  }`;
+/**
+ * Label/heading visibility follows `expanded` only at the lg breakpoint and up.
+ * Below lg the sidebar only ever renders as the full-width mobile drawer (see
+ * MainLayout), so labels always show there regardless of the desktop
+ * expanded/collapsed preference.
+ */
+function labelClasses(expanded, extra = "") {
+  return `whitespace-nowrap ${expanded ? "" : "lg:hidden"} ${extra}`;
+}
+
+function navLinkClasses(expanded) {
+  return ({ isActive }) =>
+    `mb-1 flex items-center gap-3.5 rounded-lg px-3 py-3 text-[15px] no-underline transition-colors justify-start ${
+      expanded ? "" : "lg:justify-center"
+    } ${
+      isActive
+        ? "bg-indigo-600 font-semibold text-white"
+        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+    }`;
 }
 
 /** Avatar + name trigger at the bottom of the sidebar — opens upward (it's
  * pinned to the bottom of the screen) with My Profile / Settings / Logout. */
-function ProfileMenu({ name, initials, onLogout }) {
+function ProfileMenu({ name, initials, expanded, onLogout }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -83,19 +101,21 @@ function ProfileMenu({ name, initials, onLogout }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex w-full items-center justify-center gap-3 rounded-lg px-1 py-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-white/10 group-hover:justify-start"
+        className={`flex w-full items-center gap-3 rounded-lg px-1 py-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-white/10 justify-start ${
+          expanded ? "" : "lg:justify-center"
+        }`}
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[13px] font-bold text-white">
           {initials}
         </div>
-        <div className="hidden min-w-0 flex-1 text-left group-hover:block">
+        <div className={`min-w-0 flex-1 text-left ${expanded ? "" : "lg:hidden"}`}>
           <h4 className="truncate text-[13px] font-medium text-slate-800 dark:text-slate-100">{name}</h4>
           <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Digital Twin User</p>
         </div>
         <ChevronUp
           size={16}
           strokeWidth={1.8}
-          className={`hidden shrink-0 text-slate-500 transition-transform dark:text-slate-400 group-hover:block ${open ? "" : "rotate-180"}`}
+          className={`shrink-0 text-slate-500 transition-transform dark:text-slate-400 ${expanded ? "" : "lg:hidden"} ${open ? "" : "rotate-180"}`}
         />
       </button>
 
@@ -137,10 +157,20 @@ function ProfileMenu({ name, initials, onLogout }) {
   );
 }
 
-function Sidebar() {
+/**
+ * `expanded` / `onToggleExpanded` control the persistent desktop (lg+) rail
+ * width (icon-only vs. icon+label) — a real toggle instead of the old
+ * hover-to-widen behavior, so keyboard and touch users can reach the labels
+ * too. `mobileOpen` / `onCloseMobile` control the below-lg off-canvas drawer,
+ * which always renders full-width regardless of `expanded`.
+ */
+function Sidebar({ expanded, onToggleExpanded, mobileOpen, onCloseMobile }) {
   const { user, logout, toggleDarkMode } = useAuth();
   const navigate = useNavigate();
   const isDark = Boolean(user?.preferences?.dark_mode);
+  const asideRef = useRef(null);
+  const triggerRef = useRef(null);
+  const linkClasses = navLinkClasses(expanded);
 
   const handleLogout = () => {
     logout();
@@ -155,65 +185,134 @@ function Sidebar() {
     .toUpperCase()
     .slice(0, 2);
 
+  // Mobile drawer: trap focus, close on Escape, restore focus to whatever
+  // opened it — same contract as Modal.jsx/Drawer.jsx. Desktop rail isn't a
+  // modal overlay, so this only runs while the drawer is actually open.
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    triggerRef.current = document.activeElement;
+
+    const panel = asideRef.current;
+    const focusables = panel?.querySelectorAll(FOCUSABLE);
+    (focusables?.[0] || panel)?.focus();
+
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        onCloseMobile?.();
+        return;
+      }
+      if (e.key !== "Tab" || !panel) return;
+
+      const items = Array.from(panel.querySelectorAll(FOCUSABLE));
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      triggerRef.current?.focus?.();
+    };
+  }, [mobileOpen, onCloseMobile]);
+
   return (
-    <aside className="peer group fixed left-0 top-0 z-30 flex h-screen w-16 flex-col overflow-hidden border-r border-slate-200 bg-white text-slate-800 transition-[width] duration-200 ease-out hover:w-64 hover:overflow-y-auto dark:border-r-0 dark:bg-slate-900 dark:text-white">
-      <div className="flex items-center gap-3 border-b border-slate-200 px-3 py-6 dark:border-white/10 group-hover:px-5">
+    <aside
+      ref={asideRef}
+      role={mobileOpen ? "dialog" : undefined}
+      aria-modal={mobileOpen ? "true" : undefined}
+      aria-label="Main navigation"
+      tabIndex={-1}
+      className={`fixed left-0 top-0 z-40 flex h-screen w-64 flex-col overflow-y-auto border-r border-slate-200 bg-white text-slate-800 transition-[width,transform] duration-200 ease-out focus:outline-none dark:border-r-0 dark:bg-slate-900 dark:text-white ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      } lg:translate-x-0 ${expanded ? "lg:w-64" : "lg:w-16"}`}
+    >
+      <div className={`flex items-center gap-3 border-b border-slate-200 px-4 py-6 dark:border-white/10 ${expanded ? "" : "lg:px-3"}`}>
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">
           DT
         </div>
 
-        <div className="hidden whitespace-nowrap group-hover:block">
+        <div className={`min-w-0 flex-1 ${labelClasses(expanded)}`}>
           <h2 className="text-[19px] font-semibold">Digital Twin</h2>
           <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">AI Decision Assistant</p>
         </div>
+
+        <button
+          type="button"
+          onClick={onCloseMobile}
+          aria-label="Close menu"
+          className="ml-auto shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 lg:hidden dark:hover:bg-white/10"
+        >
+          <X size={18} strokeWidth={1.8} />
+        </button>
       </div>
 
-      <nav className="flex-1 px-2 py-6 group-hover:px-3.5" aria-label="Main">
+      <nav className={`flex-1 px-2 py-6 ${expanded ? "" : "lg:px-2.5"}`} aria-label="Main">
         {menuGroups.map((group) => (
           <div key={group.label} className="mb-5">
-            <p className="mb-2 hidden whitespace-nowrap pl-3 text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 group-hover:block">
+            <p className={labelClasses(expanded, "mb-2 pl-3 text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400")}>
               {group.label.toUpperCase()}
             </p>
 
             {group.items.map(({ name, path, icon: Icon }) => (
-              <NavLink key={name} to={path} aria-label={name} className={navLinkClasses}>
+              <NavLink key={name} to={path} aria-label={name} onClick={onCloseMobile} className={linkClasses}>
                 <span className="flex w-5 shrink-0 justify-center">
                   <Icon size={18} strokeWidth={1.8} />
                 </span>
-                <span className="hidden whitespace-nowrap group-hover:inline">{name}</span>
+                <span className={labelClasses(expanded)}>{name}</span>
               </NavLink>
             ))}
           </div>
         ))}
 
         <div className="mt-2 border-t border-slate-200 pt-4 dark:border-white/10">
-          <NavLink to="/assistant" aria-label="AI Assistant (preview)" className={navLinkClasses}>
+          <NavLink to="/assistant" aria-label="AI Assistant (preview)" onClick={onCloseMobile} className={linkClasses}>
             <span className="flex w-5 shrink-0 justify-center">
               <MessageSquare size={18} strokeWidth={1.8} />
             </span>
-            <span className="hidden items-center gap-2 whitespace-nowrap group-hover:flex">
+            <span className={labelClasses(expanded, "flex items-center gap-2")}>
               AI Assistant
-              <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-500/20 dark:text-violet-300">
-                Preview
-              </span>
             </span>
           </NavLink>
         </div>
       </nav>
 
-      <div className="border-t border-slate-200 px-2 py-4 dark:border-white/10 group-hover:px-3.5">
+      <div className={`border-t border-slate-200 px-2 py-4 dark:border-white/10 ${expanded ? "" : "lg:px-2.5"}`}>
+        <button
+          type="button"
+          onClick={onToggleExpanded}
+          aria-pressed={expanded}
+          className={`mb-2 hidden h-9 w-full items-center gap-2.5 rounded-lg border border-slate-200 px-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:flex dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white ${
+            expanded ? "justify-start" : "justify-center"
+          }`}
+        >
+          {expanded ? <ChevronsLeft size={17} strokeWidth={1.8} /> : <ChevronsRight size={17} strokeWidth={1.8} />}
+          <span className={labelClasses(expanded, "text-xs")}>Collapse</span>
+        </button>
+
         <button
           type="button"
           onClick={toggleDarkMode}
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          className="mb-2 flex h-9 w-full items-center justify-center gap-2.5 rounded-lg px-1 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white group-hover:justify-start group-hover:px-2"
+          className={`mb-2 flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 justify-start dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white ${
+            expanded ? "" : "lg:justify-center"
+          }`}
         >
           {isDark ? <Sun size={17} strokeWidth={1.8} /> : <Moon size={17} strokeWidth={1.8} />}
-          <span className="hidden whitespace-nowrap text-xs group-hover:inline">{isDark ? "Light mode" : "Dark mode"}</span>
+          <span className={labelClasses(expanded, "text-xs")}>{isDark ? "Light mode" : "Dark mode"}</span>
         </button>
 
-        <ProfileMenu name={name} initials={initials} onLogout={handleLogout} />
+        <ProfileMenu name={name} initials={initials} expanded={expanded} onLogout={handleLogout} />
       </div>
     </aside>
   );

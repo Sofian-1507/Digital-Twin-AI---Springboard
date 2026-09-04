@@ -304,7 +304,7 @@ function Habits() {
   };
 
   return (
-    <>
+    <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
           Habit Dashboard
@@ -409,7 +409,7 @@ function Habits() {
         onConfirm={confirmDelete}
         onCancel={() => setConfirmDeleteId(null)}
       />
-    </>
+    </div>
   );
 }
 

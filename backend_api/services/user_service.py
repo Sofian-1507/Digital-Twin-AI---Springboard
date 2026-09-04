@@ -17,7 +17,7 @@ from beanie.operators import Set, Push, Pull, Inc
 from core.exceptions import NotFoundError, BusinessRuleError, ConflictError, AuthenticationError
 from core.security import hash_password, verify_password
 from models.user import User, Profile, ActiveGoal, DigitalTwinState, UserPreferences
-from models.enums import TransactionType
+from models.enums import TransactionType, GoalStatus
 from models.finance import FinancialRecord
 from models.study import StudyActivity
 from models.habit import HabitTracking
@@ -68,8 +68,10 @@ async def create_user(payload: RegisterRequest) -> User:
         profile=Profile(
             name=payload.name,
             age=payload.age,
+            gender=payload.gender,
             occupation=payload.occupation,
             monthly_income_baseline=Decimal(str(payload.monthly_income_baseline)),
+            risk_tolerance=payload.risk_tolerance,
         ),
     )
     await user.insert()
@@ -300,6 +302,17 @@ async def update_active_goal(user: User, goal_id: str, payload: ActiveGoalUpdate
         f"active_goals.$.{key}": Decimal128(str(value)) if isinstance(value, Decimal) else value
         for key, value in update_data.items()
     }
+
+    # Auto-derive status from current_value vs target_value on every update, using
+    # whichever of the two this payload touches merged with the goal's existing values —
+    # covers editing current_value alone (progress update), target_value alone (re-target
+    # after completion reopens it), or both at once.
+    merged_current = update_data.get("current_value", goal.current_value)
+    merged_target = update_data.get("target_value", goal.target_value)
+    set_fields["active_goals.$.status"] = (
+        GoalStatus.COMPLETED.value if merged_current >= merged_target else GoalStatus.ACTIVE.value
+    )
+
     collection = User.get_motor_collection()
     result = await collection.update_one(
         {"_id": user.id, "active_goals.goal_id": goal_id},

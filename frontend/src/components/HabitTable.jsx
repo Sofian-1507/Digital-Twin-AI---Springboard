@@ -100,7 +100,7 @@ function HabitTable({ habits, onDelete }) {
                   <td className="border-b border-slate-100 dark:border-slate-700 p-3">
                     <button
                       onClick={() => onDelete && onDelete(habit.id)}
-                      className="p-0 text-red-400 hover:text-red-600"
+                      className="rounded-md p-1.5 text-red-400 hover:bg-slate-100 hover:text-red-600 dark:hover:bg-white/10"
                       aria-label="Delete"
                     >
                       <Trash2 size={16} />

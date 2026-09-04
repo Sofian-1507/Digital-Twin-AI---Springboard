@@ -21,7 +21,10 @@ function Signup() {
     password: "",
     confirmPassword: "",
     age: "",
+    gender: "",
     profession: "Student",
+    monthly_income_baseline: "",
+    risk_tolerance: "MODERATE",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -56,8 +59,12 @@ function Signup() {
         email: formData.email,
         password: formData.password,
         age,
-        monthly_income_baseline: 0,
+        gender: formData.gender || undefined,
+        monthly_income_baseline: formData.monthly_income_baseline !== ""
+          ? Number(formData.monthly_income_baseline)
+          : 0,
         occupation: formData.profession,
+        risk_tolerance: formData.risk_tolerance,
       };
 
       const data = await registerUser(payload);
@@ -71,8 +78,30 @@ function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900 p-6">
-      <div className="w-full max-w-md rounded-2xl border-t-4 border-t-indigo-600 bg-white p-8 shadow-xl sm:p-9 dark:bg-slate-800">
+    <div className="flex h-screen w-full bg-white dark:bg-slate-800">
+
+      {/* Brand panel — hidden below md, mirrors Login's split layout. Fills
+          the full window height on its half (independent of the form
+          column's scroll) rather than floating as a centered card, so the
+          page always fills the browser window. */}
+      <div className="hidden w-1/2 shrink-0 flex-col justify-center bg-gradient-to-br from-indigo-700 to-indigo-600 px-16 text-white md:flex">
+        <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 text-sm font-bold">
+          DT
+        </div>
+        <h2 className="max-w-[18ch] font-serif text-[32px] font-semibold leading-tight text-white">
+          Start building the twin that predicts what's next.
+        </h2>
+        <p className="mt-4 max-w-[36ch] text-[15px] leading-relaxed text-white/75">
+          A few details now, and Digital Twin starts forecasting your savings, study score,
+          and habit consistency from your very first log.
+        </p>
+      </div>
+
+      {/* Form column scrolls independently — Signup's field count regularly
+          exceeds one screen's height, so this column (not the whole page)
+          is what scrolls, keeping the brand panel fixed at full height. */}
+      <div className="w-full flex-1 overflow-y-auto p-6 sm:p-10">
+        <div className="mx-auto w-full max-w-sm py-6">
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Digital Twin AI</p>
           <h1 className="mt-2 text-2xl font-semibold text-slate-800 dark:text-slate-100">Create Account</h1>
@@ -118,7 +147,7 @@ function Signup() {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:text-slate-400"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -141,7 +170,7 @@ function Signup() {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:text-slate-400"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -166,11 +195,44 @@ function Signup() {
           </div>
 
           <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Gender</label>
+            <Select name="gender" value={formData.gender} onChange={handleChange}>
+              <option value="">Select Gender</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="NON_BINARY">Non-binary</option>
+              <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+            </Select>
+          </div>
+
+          <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Profession</label>
             <Select name="profession" value={formData.profession} onChange={handleChange}>
               <option value="Student">Student</option>
               <option value="Employee">Employee</option>
               <option value="Freelancer">Freelancer</option>
+            </Select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Monthly Income (₹)</label>
+            <Input
+              type="number"
+              name="monthly_income_baseline"
+              placeholder="Monthly Income (optional)"
+              min="0"
+              step="0.01"
+              value={formData.monthly_income_baseline}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk Tolerance</label>
+            <Select name="risk_tolerance" value={formData.risk_tolerance} onChange={handleChange}>
+              <option value="CONSERVATIVE">Conservative</option>
+              <option value="MODERATE">Moderate</option>
+              <option value="AGGRESSIVE">Aggressive</option>
             </Select>
           </div>
 
@@ -185,7 +247,9 @@ function Signup() {
             Login
           </Link>
         </p>
+        </div>
       </div>
+
     </div>
   );
 }

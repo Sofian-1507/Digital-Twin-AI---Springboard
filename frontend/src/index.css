@@ -17,7 +17,11 @@
   --color-slate-200: #E4DACB; /* border */
   --color-slate-300: #CBBBA0; /* border-strong */
   --color-slate-400: #A69A87; /* ink-4 — placeholders, disabled */
-  --color-slate-500: #8A7F72; /* ink-3 — muted labels */
+  --color-slate-500: #756A5C; /* ink-3 — muted labels (darkened from #8A7F72: the
+     lighter value read fine but only hit 3.5-3.9:1 against paper/white, under
+     the 4.5:1 WCAG floor for sub-18pt text — this passes ~4.7-5.3:1 while
+     dark-mode call sites are unaffected since they already override to
+     slate-400 for this role) */
   --color-slate-600: #6E6355; /* ink-2 — secondary text */
   --color-slate-700: #4A4033; /* dark-mode surface/border */
   --color-slate-800: #2B2521; /* ink — primary text / dark-mode surface */

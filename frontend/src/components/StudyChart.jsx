@@ -40,9 +40,9 @@ function StudyChart({ data = [] }) {
             strokeDasharray="3 3"
           />
 
-          <XAxis dataKey="day" interval={0} tick={{ fontSize: 10 }} />
+          <XAxis dataKey="day" interval={0} tick={{ fill: CHART_COLORS.muted, fontSize: 10 }} />
 
-          <YAxis />
+          <YAxis tick={{ fill: CHART_COLORS.muted, fontSize: 12 }} />
 
           <Tooltip />
 

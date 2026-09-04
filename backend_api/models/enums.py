@@ -27,6 +27,11 @@ class GoalCategory(str, Enum):
     CAREER = "CAREER"
 
 
+class GoalStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+
+
 class TransactionType(str, Enum):
     INCOME = "INCOME"
     EXPENSE = "EXPENSE"

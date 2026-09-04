@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for working in this repo. See `README.md` for the full project description and setup instructions — this file covers conventions and non-obvious behavior an agent (or a new contributor) needs to know before making changes.
+Guidance for working in this repo. See `README.md` for the full project description and setup instructions — this file covers conventions and non-obvious behavior an agent (or a new contributor) needs to know before making changes. For UI/UX-specific work, see `SKILLS.md`, which documents the design-review workflow (audit → visualize → plan → implement) this project's frontend changes go through.
 
 ## Stack
 
@@ -30,8 +30,8 @@ cd frontend && npx eslint . && npx vite build # lint + build check
 - **Forecasting method tiers**: several engines auto-select a forecasting method based on how much history a user has — `insufficient_data` (0 points) → `naive_last_value` (1) → `moving_average` (2-3) → `linear_regression` (4+), each with its own confidence-score formula. This logic is intentionally duplicated per-engine (not shared) to keep engines decoupled; see `forecast_service.py`'s `_select_method`/`_compute_confidence` for the canonical version.
 - **Errors**: raise domain exceptions from `core/exceptions.py` (`NotFoundError`, `ConflictError`, `BusinessRuleError`, `AuthenticationError`) — never a raw `HTTPException` — so every error response has the same `{"error": ..., "message": ...}` shape. They're registered as global handlers in `main.py`.
 - **Raw Motor writes need explicit `Decimal128` conversion.** Beanie's ODM-level `.save()`/`.update()` calls handle `Decimal` ↔ `Decimal128` BSON encoding automatically; a raw `collection.update_one(...)` call does not. Forgetting this is a real, previously-hit bug (see `user_service.update_active_goal`).
-- **Auth**: JWT carries a `tv` (token_version) claim, checked against `User.token_version` in `api/dependencies.py`. Logout and password-change bump the counter, invalidating every previously issued token at once (no per-device session concept). A token/user with no `tv`/`token_version` defaults to `0` for backward compatibility.
-- **Rate limiting** (`core/rate_limit.py`, `slowapi`) is scoped only to `/auth/login`, `/auth/register`, `/users/me/change-password` — not applied app-wide.
+- **Auth**: the JWT is set by the backend as an httpOnly cookie (not readable/stored by frontend JS — `frontend/src/services/api.js` sends it via `withCredentials: true`), carrying a `tv` (token_version) claim checked against `User.token_version` in `api/dependencies.py`. Logout and password-change bump the counter, invalidating every previously issued token at once (no per-device session concept). A token/user with no `tv`/`token_version` defaults to `0` for backward compatibility.
+- **Rate limiting** (`core/rate_limit.py`, `slowapi`) is scoped only to `/auth/login`, `/auth/register`, `/users/me/change-password`, and `/assistant/chat` (LLM calls cost money/quota, same reasoning as the auth-route limits) — not applied app-wide.
 
 ## Frontend conventions
 
@@ -40,6 +40,10 @@ cd frontend && npx eslint . && npx vite build # lint + build check
 - **Design system primitives** live in `src/components/ui/` (Button, Card, Modal, Drawer, Badge, Skeleton, EmptyState, Field, Pagination, StatTile) — reuse these rather than one-off markup.
 - **Currency**: always render money through `formatCurrency(amount, currency)` (`src/utils/currency.js`), with `currency` sourced from `user.preferences.currency` — never hardcode a `$`.
 - An `ErrorBoundary` wraps the whole app (`App.jsx`) — a render-time crash shows a recovery screen instead of a blank page.
+- **Color/type/radius tokens** live in `src/index.css`'s `@theme` block (the "Field Notes" warm paper/ink palette, overriding Tailwind's own gray/indigo/etc. scale rather than renaming classes app-wide). `src/utils/chartColors.js` mirrors the same colors as literal hex for Recharts/Plotly, which can't consume Tailwind classes or CSS variables — keep the two in sync by hand when either changes.
+- **Sidebar/`MainLayout`** use an explicit `expanded`/`mobileOpen` state (lifted into `MainLayout.jsx`, persisted to `localStorage`), not CSS `:hover` — the rail must stay keyboard- and touch-operable, not just mouse-hover-operable.
+- **`ui/Field.jsx`'s `Select`** is a custom-styled dropdown (not the native OS popup) with full Arrow/Home/End/Enter/Escape keyboard support — a drop-in replacement for `<select>` (same `name`/`value`/`onChange`/`<option>` children), so no call site needs native-`<select>`-specific handling.
+- Any UI change should go through the workflow in `SKILLS.md` before landing — audit findings first, then a plan, then the edit plus `npx eslint . && npx vite build`.
 
 ## Testing
 
@@ -49,6 +53,5 @@ There is no frontend test suite yet.
 
 ## Known gaps (deliberately not fixed, see conversation history for context)
 
-- Auth token lives in `localStorage`, not an httpOnly cookie (XSS-exposed, standard tradeoff for bearer-token SPAs without a same-origin dev proxy set up yet).
 - `GET /simulation/{simulation_id}` exists on the backend but has no frontend caller.
 - Several service-layer functions in the frontend (`forecastService.js`, `trendService.js`, etc.) are unused today but kept deliberately as documented "API-surface completeness" bindings — not dead code to prune.

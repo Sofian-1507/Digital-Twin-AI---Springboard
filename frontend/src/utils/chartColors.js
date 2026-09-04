@@ -11,7 +11,7 @@ export const CHART_COLORS = {
   warning: "#B5780F",   // amber
   danger: "#B23A34",    // red
   grid: "#E4DACB",      // slate-200 — gridlines
-  muted: "#8A7F72",     // slate-500 — secondary series/labels
+  muted: "#756A5C",     // slate-500 — secondary series/labels (kept in sync with the darkened contrast-fix value)
 };
 
 export default CHART_COLORS;

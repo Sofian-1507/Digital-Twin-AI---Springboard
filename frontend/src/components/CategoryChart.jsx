@@ -51,7 +51,7 @@ function CategoryChart({ data, currency = "USD" }) {
 
           <Tooltip />
 
-          <Legend />
+          <Legend wrapperStyle={{ color: CHART_COLORS.muted, fontSize: 12 }} />
 
         </PieChart>
       </ResponsiveContainer>

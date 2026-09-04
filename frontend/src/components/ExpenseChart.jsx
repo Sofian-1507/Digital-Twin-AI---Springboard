@@ -25,9 +25,9 @@ function ExpenseChart({ data, currency = "USD" }) {
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
 
-          <XAxis dataKey="month" />
+          <XAxis dataKey="month" tick={{ fill: CHART_COLORS.muted, fontSize: 12 }} />
 
-          <YAxis />
+          <YAxis tick={{ fill: CHART_COLORS.muted, fontSize: 12 }} />
 
           <Tooltip />
 

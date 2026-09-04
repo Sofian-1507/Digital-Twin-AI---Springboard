@@ -43,13 +43,13 @@ function FutureChart({ data }) {
             strokeDasharray="3 3"
           />
 
-          <XAxis dataKey="month" interval={0} tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={45} />
+          <XAxis dataKey="month" interval={0} tick={{ fill: CHART_COLORS.muted, fontSize: 10 }} angle={-45} textAnchor="end" height={45} />
 
-          <YAxis />
+          <YAxis tick={{ fill: CHART_COLORS.muted, fontSize: 12 }} />
 
           <Tooltip />
 
-          <Legend />
+          <Legend wrapperStyle={{ color: CHART_COLORS.muted, fontSize: 12 }} />
 
           <Line
             type="monotone"

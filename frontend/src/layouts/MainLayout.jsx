@@ -1,13 +1,67 @@
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { Menu } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
 
+const EXPANDED_KEY = "digital_twin_sidebar_expanded";
+
+function readStoredExpanded() {
+  try {
+    const raw = localStorage.getItem(EXPANDED_KEY);
+    return raw === null ? true : raw === "true";
+  } catch {
+    return true;
+  }
+}
+
 function MainLayout() {
+  const [expanded, setExpanded] = useState(readStoredExpanded);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(EXPANDED_KEY, String(expanded));
+    } catch {
+      // Storage unavailable (private browsing, quota) — the toggle still
+      // works for this session, it just won't be remembered next visit.
+    }
+  }, [expanded]);
+
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
-      <Sidebar />
+      <Sidebar
+        expanded={expanded}
+        onToggleExpanded={() => setExpanded((e) => !e)}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+      />
 
-      <div className="min-h-screen min-w-0 w-full ml-16 transition-[margin-left] duration-200 ease-out peer-hover:ml-64">
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <div
+        className={`min-h-screen min-w-0 w-full transition-[margin-left] duration-200 ease-out ${
+          expanded ? "lg:ml-64" : "lg:ml-16"
+        }`}
+      >
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:hidden dark:border-slate-700 dark:bg-slate-900">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+            className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+          >
+            <Menu size={20} strokeWidth={1.8} />
+          </button>
+          <span className="font-serif text-[15px] font-semibold text-slate-800 dark:text-slate-100">Digital Twin</span>
+        </div>
+
         <main className="p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>

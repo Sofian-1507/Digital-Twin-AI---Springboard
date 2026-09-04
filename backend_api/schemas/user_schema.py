@@ -10,7 +10,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from models.enums import Gender, RiskTolerance, GoalCategory, BurnoutRisk
+from models.enums import Gender, RiskTolerance, GoalCategory, GoalStatus, BurnoutRisk
 
 
 # ─── Subdocument Schemas ──────────────────────────────────────────────────────
@@ -59,6 +59,7 @@ class ActiveGoalResponse(BaseModel):
     unit: str
     target_date: datetime
     created_at: Optional[datetime]
+    status: GoalStatus
 
 
 class ActiveGoalCreateRequest(BaseModel):

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { UserX } from "lucide-react";
 
 import PreferencesForm from "../components/PreferencesForm";
 import ChangePasswordForm from "../components/ChangePasswordForm";
@@ -8,6 +9,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import { SkeletonCard } from "../components/ui/Skeleton";
+import EmptyState from "../components/ui/EmptyState";
 
 import { getUser, updatePreferences, deleteUser } from "../services/userService";
 import { changePassword } from "../services/authService";
@@ -63,7 +65,13 @@ function Settings() {
   };
 
   if (isLoading) return <SkeletonCard lines={4} />;
-  if (!user) return <p className="text-slate-500 dark:text-slate-400">Could not load settings.</p>;
+  if (!user) return (
+    <EmptyState
+      icon={UserX}
+      title="Could not load your settings"
+      message="Something went wrong loading your settings. Please refresh the page to try again."
+    />
+  );
 
   return (
     <div className="max-w-2xl">

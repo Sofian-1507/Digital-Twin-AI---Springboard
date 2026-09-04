@@ -1,4 +1,4 @@
-import { Children, useEffect, useRef, useState } from "react";
+import { Children, useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 
 const inputClasses = `w-full rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100
@@ -37,8 +37,11 @@ function extractOptions(children) {
  */
 export function Select({ className = "", children, name, value, onChange, disabled = false, ...rest }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef(null);
+  const listboxId = useId();
   const options = extractOptions(children);
+  const selectable = options.filter((o) => !o.disabled);
   const selected = options.find((o) => String(o.value) === String(value));
 
   useEffect(() => {
@@ -58,7 +61,52 @@ export function Select({ className = "", children, name, value, onChange, disabl
 
   function selectOption(option) {
     setOpen(false);
+    setActiveIndex(-1);
     onChange?.({ target: { name, value: option.value, type: "select-one" } });
+  }
+
+  function openAt(index) {
+    setOpen(true);
+    setActiveIndex(index);
+  }
+
+  const selectedIndex = selectable.findIndex((o) => String(o.value) === String(value));
+
+  function handleKeyDown(e) {
+    if (disabled) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        if (!open) openAt(selectedIndex >= 0 ? selectedIndex : 0);
+        else setActiveIndex((i) => Math.min(i + 1, selectable.length - 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        if (!open) openAt(selectedIndex >= 0 ? selectedIndex : selectable.length - 1);
+        else setActiveIndex((i) => Math.max(i - 1, 0));
+        break;
+      case "Home":
+        if (open) { e.preventDefault(); setActiveIndex(0); }
+        break;
+      case "End":
+        if (open) { e.preventDefault(); setActiveIndex(selectable.length - 1); }
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (open && activeIndex >= 0) selectOption(selectable[activeIndex]);
+        else openAt(selectedIndex >= 0 ? selectedIndex : 0);
+        break;
+      case "Escape":
+        setOpen(false);
+        break;
+      case "Tab":
+        setOpen(false);
+        break;
+      default:
+        break;
+    }
   }
 
   return (
@@ -72,9 +120,12 @@ export function Select({ className = "", children, name, value, onChange, disabl
         type="button"
         name={name}
         disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? setOpen(false) : openAt(selectedIndex >= 0 ? selectedIndex : 0))}
+        onKeyDown={handleKeyDown}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={listboxId}
+        aria-activedescendant={open && activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined}
         className="flex h-full w-full items-center justify-between gap-2 rounded-lg bg-transparent text-left focus:outline-none disabled:cursor-not-allowed"
         {...rest}
       >
@@ -90,30 +141,34 @@ export function Select({ className = "", children, name, value, onChange, disabl
 
       {open && (
         <div
+          id={listboxId}
           role="listbox"
           className="absolute inset-x-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-md dark:border-slate-700 dark:bg-slate-800"
         >
-          {options
-            .filter((option) => !option.disabled)
-            .map((option) => {
-              const isSelected = String(option.value) === String(value);
-              return (
-                <div
-                  key={option.value}
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => selectOption(option)}
-                  className={`flex cursor-pointer items-center justify-between gap-2 px-3.5 py-2.5 text-sm ${
-                    isSelected
-                      ? "bg-indigo-100/60 font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-                      : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/40"
-                  }`}
-                >
-                  <span className="truncate">{option.label}</span>
-                  {isSelected && <Check size={15} strokeWidth={2} className="shrink-0" />}
-                </div>
-              );
-            })}
+          {selectable.map((option, index) => {
+            const isSelected = String(option.value) === String(value);
+            const isActive = index === activeIndex;
+            return (
+              <div
+                key={option.value}
+                id={`${listboxId}-opt-${index}`}
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => selectOption(option)}
+                className={`flex cursor-pointer items-center justify-between gap-2 px-3.5 py-2.5 text-sm ${
+                  isActive
+                    ? "bg-indigo-600 text-white"
+                    : isSelected
+                    ? "bg-indigo-100/60 font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                    : "text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected && <Check size={15} strokeWidth={2} className="shrink-0" />}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -9,6 +9,7 @@ Two layers, mirroring tests/test_forecast_service.py's style:
    AsyncMock, and constructing a real in-memory User instance (Beanie Documents are
    plain Pydantic models — no DB connection needed unless .insert()/.get() is called).
 """
+from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -17,6 +18,7 @@ from beanie import PydanticObjectId
 from core.exceptions import AuthenticationError, ConflictError
 from core.security import hash_password
 from models.activity import UserActivity
+from models.enums import Gender, RiskTolerance
 from models.feedback import AssistantFeedback
 from models.finance import FinancialRecord
 from models.habit import HabitTracking
@@ -130,6 +132,42 @@ async def test_create_user_normal_registration():
 
 
 @pytest.mark.asyncio
+async def test_create_user_defaults_gender_none_and_risk_tolerance_moderate():
+    """When signup doesn't send gender/risk_tolerance, the profile still gets
+    RiskTolerance's schema default (MODERATE) — not silently unset."""
+    payload = RegisterRequest(email="defaults@example.com", password="SecurePass123", name="Defaults User", age=28)
+
+    with patch.object(User, "find_one", new=AsyncMock(return_value=None)), \
+         patch.object(User, "get_motor_collection", return_value=MagicMock()), \
+         patch.object(User, "insert", new=AsyncMock()):
+        user = await create_user(payload)
+
+    assert user.profile.gender is None
+    assert user.profile.risk_tolerance == RiskTolerance.MODERATE
+
+
+@pytest.mark.asyncio
+async def test_create_user_full_profile_fields_pass_through():
+    """Regression test: signup now covers every Profile field (gender,
+    risk_tolerance) up front, not just name/age/occupation/income."""
+    payload = RegisterRequest(
+        email="full@example.com", password="SecurePass123", name="Full Profile User", age=30,
+        gender=Gender.FEMALE, occupation="Engineer", monthly_income_baseline=5000.0,
+        risk_tolerance=RiskTolerance.AGGRESSIVE,
+    )
+
+    with patch.object(User, "find_one", new=AsyncMock(return_value=None)), \
+         patch.object(User, "get_motor_collection", return_value=MagicMock()), \
+         patch.object(User, "insert", new=AsyncMock()):
+        user = await create_user(payload)
+
+    assert user.profile.gender == Gender.FEMALE
+    assert user.profile.occupation == "Engineer"
+    assert user.profile.monthly_income_baseline == Decimal("5000.0")
+    assert user.profile.risk_tolerance == RiskTolerance.AGGRESSIVE
+
+
+@pytest.mark.asyncio
 async def test_create_user_duplicate_email_rejected():
     payload = RegisterRequest(email="taken@example.com", password="SecurePass123", name="Dupe", age=28)
     existing = User.model_construct(email="taken@example.com", password_hash="x", profile=Profile(name="Existing User", age=25))
@@ -233,6 +271,43 @@ async def test_update_active_goal_uses_positional_set_scoped_to_one_goal():
     query_filter, update_doc = call_args[0]
     assert query_filter == {"_id": user.id, "active_goals.goal_id": "goal-a"}
     assert "active_goals.$.title" in update_doc["$set"]
+    assert update_doc["$set"]["active_goals.$.status"] == "ACTIVE"
+
+
+@pytest.mark.asyncio
+async def test_update_active_goal_marks_completed_when_current_reaches_target():
+    goal = ActiveGoal(goal_id="goal-a", title="Goal A", category="FINANCE", target_value=1000, current_value=200, unit="INR", target_date="2027-01-01T00:00:00Z")
+    user = User.model_construct(email="goals@example.com", password_hash="x", profile=Profile(name="Goal Owner", age=30), active_goals=[goal])
+    user.id = PydanticObjectId("507f1f77bcf86cd799439014")
+
+    mock_result = MagicMock(matched_count=1)
+    mock_collection = MagicMock()
+    mock_collection.update_one = AsyncMock(return_value=mock_result)
+
+    with patch.object(User, "get_motor_collection", return_value=mock_collection), \
+         patch.object(User, "sync", new=AsyncMock()):
+        await update_active_goal(user, "goal-a", ActiveGoalUpdateRequest(current_value=Decimal("1000")))
+
+    update_doc = mock_collection.update_one.call_args[0][1]
+    assert update_doc["$set"]["active_goals.$.status"] == "COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_update_active_goal_reopens_when_target_raised_above_current():
+    goal = ActiveGoal(goal_id="goal-a", title="Goal A", category="FINANCE", target_value=1000, current_value=1000, unit="INR", target_date="2027-01-01T00:00:00Z")
+    user = User.model_construct(email="goals@example.com", password_hash="x", profile=Profile(name="Goal Owner", age=30), active_goals=[goal])
+    user.id = PydanticObjectId("507f1f77bcf86cd799439014")
+
+    mock_result = MagicMock(matched_count=1)
+    mock_collection = MagicMock()
+    mock_collection.update_one = AsyncMock(return_value=mock_result)
+
+    with patch.object(User, "get_motor_collection", return_value=mock_collection), \
+         patch.object(User, "sync", new=AsyncMock()):
+        await update_active_goal(user, "goal-a", ActiveGoalUpdateRequest(target_value=Decimal("2000")))
+
+    update_doc = mock_collection.update_one.call_args[0][1]
+    assert update_doc["$set"]["active_goals.$.status"] == "ACTIVE"
 
 
 @pytest.mark.asyncio

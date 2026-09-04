@@ -22,7 +22,7 @@ function MessageFeedback({ messageIndex, feedback, onFeedback }) {
         type="button"
         aria-label="Helpful"
         onClick={() => onFeedback(messageIndex, "up")}
-        className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-emerald-600 dark:hover:bg-slate-700/40 dark:hover:text-emerald-400"
+        className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-emerald-600 dark:hover:bg-slate-700/40 dark:hover:text-emerald-400"
       >
         <ThumbsUp size={13} strokeWidth={1.8} />
       </button>
@@ -30,7 +30,7 @@ function MessageFeedback({ messageIndex, feedback, onFeedback }) {
         type="button"
         aria-label="Not helpful"
         onClick={() => onFeedback(messageIndex, "down")}
-        className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-red-600 dark:hover:bg-slate-700/40 dark:hover:text-red-400"
+        className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600 dark:hover:bg-slate-700/40 dark:hover:text-red-400"
       >
         <ThumbsDown size={13} strokeWidth={1.8} />
       </button>

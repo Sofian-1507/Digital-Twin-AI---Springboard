@@ -29,8 +29,8 @@ function ScenarioChart({ scenarios }) {
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} />
+          <XAxis dataKey="name" tick={{ fill: CHART_COLORS.muted, fontSize: 12 }} />
+          <YAxis tick={{ fill: CHART_COLORS.muted, fontSize: 12 }} />
           <Tooltip />
           <Bar dataKey="value" name={primaryLabel} fill={CHART_COLORS.action} radius={[4, 4, 0, 0]} />
         </BarChart>

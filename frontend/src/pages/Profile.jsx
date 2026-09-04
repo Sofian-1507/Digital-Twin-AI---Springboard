@@ -158,6 +158,7 @@ function Profile() {
                       key={g.goal_id}
                       title={g.title}
                       value={`${Number(g.current_value).toLocaleString()} / ${Number(g.target_value).toLocaleString()} ${g.unit}`}
+                      completed={g.status === "COMPLETED"}
                       onEdit={() => startEditGoal(g)}
                       onDelete={() => handleDeleteGoal(g.goal_id)}
                     />

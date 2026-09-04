@@ -67,6 +67,7 @@ def _serialize_user(user: User) -> UserResponse:
                 unit=g.unit,
                 target_date=g.target_date,
                 created_at=g.created_at,
+                status=g.status,
             )
             for g in user.active_goals
         ],

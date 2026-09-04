@@ -14,7 +14,7 @@ from typing import Optional, Annotated
 from beanie import Document, Indexed, DecimalAnnotation
 from pydantic import BaseModel, Field, field_validator, model_validator, EmailStr
 
-from models.enums import Gender, RiskTolerance, GoalCategory, BurnoutRisk
+from models.enums import Gender, RiskTolerance, GoalCategory, GoalStatus, BurnoutRisk
 
 
 # ─── Subdocument: UserPreferences ─────────────────────────────────────────────
@@ -52,6 +52,11 @@ class ActiveGoal(BaseModel):
     unit: str = Field(..., max_length=20)
     target_date: datetime
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Auto-derived from current_value vs target_value on every update (see
+    # user_service.update_active_goal) — not user-settable directly. Defaults to ACTIVE
+    # for both new goals and every pre-existing goal subdocument (which has no status
+    # key at all), matching the token_version backward-compatibility pattern above.
+    status: GoalStatus = Field(default=GoalStatus.ACTIVE)
 
     class Config:
         populate_by_name = True

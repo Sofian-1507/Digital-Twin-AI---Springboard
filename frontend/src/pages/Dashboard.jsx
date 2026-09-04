@@ -110,7 +110,7 @@ function Dashboard() {
   const savingsRate    = savingsRatePct != null ? `${savingsRatePct.toFixed(1)}%` : "—";
   const studyScore     = productivityScore ? `${Math.round(productivityScore.productivity_score)}%` : "—";
   const habitRate      = consistencyScore ? `${Math.round(consistencyScore.consistency_score)}%` : "—";
-  const goalsCompleted = goals.length ? `${goals.filter(g => Number(g.current_value) >= Number(g.target_value)).length}/${goals.length}` : "—";
+  const goalsCompleted = goals.length ? `${goals.filter(g => g.status === "COMPLETED").length}/${goals.length}` : "—";
 
   return (
     <div>
@@ -266,7 +266,7 @@ function Dashboard() {
               <ul className="mt-4 space-y-3">
                 {goals.length > 0
                   ? goals.slice(0, 5).map((g) => {
-                      const done = Number(g.current_value) >= Number(g.target_value);
+                      const done = g.status === "COMPLETED";
                       return (
                         <li key={g.goal_id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                           {done
