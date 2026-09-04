@@ -44,21 +44,25 @@ function StudyForm({
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!formData.date || !formData.subject || (!formData.hours && !formData.minutes)) {
-      toast.error("Please fill in Date, Subject, and a study duration.");
-      return;
-    }
+    const errors = {};
+    if (!formData.date) errors.date = "Date is required.";
+    if (!formData.subject) errors.subject = "Subject is required.";
 
     // Validated against the COMBINED duration (hours + minutes), matching what
     // Study.jsx actually sends as study_hours — checking `hours` alone rejected
@@ -66,32 +70,26 @@ function StudyForm({
     // well within the backend's accepted range (0.1–24).
     const totalHours = Number(formData.hours || 0) + Number(formData.minutes || 0) / 60;
     if (totalHours <= 0 || totalHours > 24) {
-      toast.error("Study duration must be between 6 minutes (0.1h) and 24 hours.");
-      return;
+      errors.hours = "Duration must be between 6 minutes (0.1h) and 24 hours.";
     }
 
-    if (!formData.session_type) {
-      toast.error("Please select a session type.");
-      return;
-    }
+    if (!formData.session_type) errors.session_type = "Select a session type.";
 
     const attendance = Number(formData.attendance_pct);
-
-    if (
-      Number.isNaN(attendance) ||
-      attendance < 0 ||
-      attendance > 100
-    ) {
-      toast.error("Attendance must be between 0 and 100.");
-      return;
+    if (Number.isNaN(attendance) || attendance < 0 || attendance > 100) {
+      errors.attendance_pct = "Attendance must be between 0 and 100.";
     }
 
     if (formData.quiz_marks !== "" && formData.quiz_marks != null && formData.max_quiz_marks === "") {
-      toast.error("Enter the max quiz marks too, so the percentage can be computed.");
-      return;
+      errors.max_quiz_marks = "Enter the max quiz marks too, so the percentage can be computed.";
     }
     if (formData.exam_marks !== "" && formData.exam_marks != null && formData.max_exam_marks === "") {
-      toast.error("Enter the max exam marks too, so the percentage can be computed.");
+      errors.max_exam_marks = "Enter the max exam marks too, so the percentage can be computed.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -118,6 +116,7 @@ function StudyForm({
           name="date"
           value={formData.date}
           onChange={handleChange}
+          error={fieldErrors.date}
           required
         />
 
@@ -127,6 +126,7 @@ function StudyForm({
           placeholder="Subject"
           value={formData.subject}
           onChange={handleChange}
+          error={fieldErrors.subject}
           required
         />
 
@@ -139,6 +139,7 @@ function StudyForm({
           step="1"
           value={formData.hours}
           onChange={handleChange}
+          error={fieldErrors.hours}
         />
 
         <Input
@@ -156,6 +157,7 @@ function StudyForm({
           name="session_type"
           value={formData.session_type}
           onChange={handleChange}
+          error={fieldErrors.session_type}
           required
         >
           <option value="" disabled>
@@ -178,6 +180,7 @@ function StudyForm({
           step="1"
           value={formData.attendance_pct}
           onChange={handleChange}
+          error={fieldErrors.attendance_pct}
           required
         />
 
@@ -221,6 +224,7 @@ function StudyForm({
           step="0.01"
           value={formData.max_quiz_marks}
           onChange={handleChange}
+          error={fieldErrors.max_quiz_marks}
         />
 
         <Input
@@ -241,6 +245,7 @@ function StudyForm({
           step="0.01"
           value={formData.max_exam_marks}
           onChange={handleChange}
+          error={fieldErrors.max_exam_marks}
         />
 
         <Input

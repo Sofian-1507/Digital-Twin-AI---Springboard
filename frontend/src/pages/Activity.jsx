@@ -99,12 +99,12 @@ function Activity() {
           <table className="w-full sm:min-w-125 border-collapse text-sm">
             <thead>
               <tr>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left">
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left">
                   <SortButton label="Time" active dir={sortDir} onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))} />
                 </th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Action</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Entity</th>
-                <th className="hidden sm:table-cell border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Action</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Entity</th>
+                <th className="hidden sm:table-cell border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
               </tr>
             </thead>
             <tbody>
@@ -113,19 +113,19 @@ function Activity() {
                 const at = act.action_type || "";
                 return (
                   <tr key={act.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                    <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                    <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
                       {new Date(act.timestamp).toLocaleString(undefined, {
                         year: 'numeric', month: 'short', day: 'numeric',
                         hour: '2-digit', minute: '2-digit'
                       })}
                     </td>
-                    <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                    <td className="border-b border-slate-100 dark:border-slate-700 p-2.5">
                       <Badge tone={activityBadgeTone(at)}>
                         {at.replace(/_/g, ' ')}
                       </Badge>
                     </td>
-                    <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{act.entity_type}</td>
-                    <td className="hidden sm:table-cell border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">
+                    <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 text-slate-600 dark:text-slate-400">{act.entity_type}</td>
+                    <td className="hidden sm:table-cell border-b border-slate-100 dark:border-slate-700 p-2.5 text-slate-600 dark:text-slate-400">
                       {act.description || "-"}
                     </td>
                   </tr>

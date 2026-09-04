@@ -22,9 +22,11 @@ function CategoryChart({ data, currency = "USD" }) {
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
-      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">Expense Categories</h3>
+      <h3 className="mb-5 text-lg font-semibold text-slate-800 dark:text-slate-100">
+        Expense Categories <span className="text-sm font-normal text-slate-400">(Last 6 Months)</span>
+      </h3>
       <p className="sr-only">
-        Expense breakdown by category. {top ? `Top category: ${top.name}, ${formatCurrency(Math.round(top.value), currency)}.` : "No data yet."}
+        Expense breakdown by category over the last 6 months. {top ? `Top category: ${top.name}, ${formatCurrency(Math.round(top.value), currency)}.` : "No data yet."}
       </p>
 
       <ResponsiveContainer width="100%" height={300}>

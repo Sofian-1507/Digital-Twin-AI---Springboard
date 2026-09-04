@@ -98,36 +98,36 @@ function StudyTable({ sessions, onEdit, onDelete }) {
 
             <thead>
               <tr>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left">
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left">
                   <SortButton label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
                 </th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Subject</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left">
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Subject</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left">
                   <SortButton label="Hours" active={sortKey === "hours"} dir={sortDir} onClick={() => toggleSort("hours")} />
                 </th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Session Type</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Session Type</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {sortedSessions.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
                     {item.session_date ? new Date(item.session_date).toLocaleDateString() : "-"}
                   </td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.subject}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 text-slate-600 dark:text-slate-400">{item.subject}</td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">{item.study_hours ?? item.hours ?? 0} hrs</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">{item.study_hours ?? item.hours ?? 0} hrs</td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5">
                     <Badge tone={item.session_type === "DEEP_WORK" || item.session_type === "REVIEW" ? "success" : "warning"}>
                       {item.session_type ? item.session_type.replace(/_/g, " ") : "-"}
                     </Badge>
                   </td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5">
                     <div className="flex gap-1">
                       <button
                         onClick={() => onEdit && onEdit(item)}

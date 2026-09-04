@@ -22,23 +22,32 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   function handleChange(e) {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   }
 
   async function submit(e) {
     e.preventDefault();
 
-    if (!formData.title || !formData.target_value || !formData.unit || !formData.target_date) {
-      toast.error("Title, Target Value, Unit, and Target Date are required.");
-      return;
-    }
-    if (Number(formData.target_value) <= 0) {
-      toast.error("Target Value must be greater than 0.");
+    const errors = {};
+    if (!formData.title) errors.title = "Title is required.";
+    if (!formData.target_value) errors.target_value = "Target value is required.";
+    else if (Number(formData.target_value) <= 0) errors.target_value = "Must be greater than 0.";
+    if (!formData.unit) errors.unit = "Unit is required.";
+    if (!formData.target_date) errors.target_date = "Target date is required.";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -84,6 +93,7 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
           value={formData.title}
           onChange={handleChange}
           placeholder="Goal Title"
+          error={fieldErrors.title}
           required
         />
 
@@ -103,6 +113,7 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
           value={formData.target_value}
           onChange={handleChange}
           placeholder="Target Value"
+          error={fieldErrors.target_value}
           required
         />
 
@@ -123,6 +134,7 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
           value={formData.unit}
           onChange={handleChange}
           placeholder="Unit (e.g. USD, hours)"
+          error={fieldErrors.unit}
           required
         />
 
@@ -131,6 +143,7 @@ function GoalForm({ onSave, initialData = null, onUpdate = null, onCancel = null
           type="date"
           value={formData.target_date}
           onChange={handleChange}
+          error={fieldErrors.target_date}
           required
         />
 

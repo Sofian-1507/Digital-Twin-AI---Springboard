@@ -2,18 +2,21 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Circle, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
+import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
 
 import FinanceChart from "../components/FinanceChart";
 import StudyChart from "../components/StudyChart";
 import DigitalTwinCard from "../components/DigitalTwinCard";
+import GoalForm from "../components/GoalForm";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import EmptyState from "../components/ui/EmptyState";
+import Modal from "../components/ui/Modal";
 import { StatGrid, StatTile } from "../components/ui/StatTile";
 import { SkeletonStatGrid, SkeletonChart, SkeletonTable } from "../components/ui/Skeleton";
 
-import { getUser } from "../services/userService";
+import { getUser, addGoal } from "../services/userService";
 import { getCashflow } from "../services/financeService";
 import { getSessions } from "../services/studyService";
 import { getTrendSummary } from "../services/trendService";
@@ -22,6 +25,47 @@ import { getConsistencyScore } from "../services/habitAnalyticsService";
 import { getActivityHistory } from "../services/activityService";
 import { buildChartData, computeSavingsRate, buildStudyChartData } from "../utils/dashboardHelpers";
 import { activityBadgeTone } from "../utils/activityBadge";
+import { CHART_COLORS } from "../utils/chartColors";
+import { useAuth } from "../context/useAuth";
+
+/**
+ * Compact circular gauge for a KPI-vs-target value (savings rate, consistency
+ * score) — replaces a plain percentage + separate progress bar with a single
+ * unified visual, per the "performance vs target" chart guidance for exactly
+ * this data shape. Center label uses the same absolute-overlay technique as
+ * SavingsProgress.jsx's donut chart.
+ */
+function GoalGauge({ percentage, color }) {
+  const clamped = Math.min(100, Math.max(0, percentage ?? 0));
+  const data = [{ value: clamped, fill: color }];
+
+  return (
+    <div className="relative mx-auto h-28 w-28">
+      <ResponsiveContainer width="100%" height="100%">
+        <RadialBarChart
+          innerRadius="72%"
+          outerRadius="100%"
+          barSize={10}
+          data={data}
+          startAngle={90}
+          endAngle={-270}
+        >
+          <RadialBar
+            dataKey="value"
+            background={{ fill: CHART_COLORS.grid }}
+            cornerRadius={5}
+            isAnimationActive={false}
+          />
+        </RadialBarChart>
+      </ResponsiveContainer>
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span className="font-mono text-xl font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+          {Math.round(clamped)}%
+        </span>
+      </div>
+    </div>
+  );
+}
 
 /** Quick-add: each option deep-links to the page that already owns that record's form. */
 function AddRecordMenu() {
@@ -60,6 +104,7 @@ function AddRecordMenu() {
 }
 
 function Dashboard() {
+  const { refreshUser } = useAuth();
   const [userData, setUserData]         = useState(null);
   const [financeChart, setFinanceChart] = useState([]);
   const [studyChart, setStudyChart]     = useState([]);
@@ -69,6 +114,7 @@ function Dashboard() {
   const [trend, setTrend]               = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading]       = useState(true);
+  const [addingGoal, setAddingGoal]     = useState(false);
 
   useEffect(() => {
     async function fetchAll() {
@@ -111,6 +157,18 @@ function Dashboard() {
   const studyScore     = productivityScore ? `${Math.round(productivityScore.productivity_score)}%` : "—";
   const habitRate      = consistencyScore ? `${Math.round(consistencyScore.consistency_score)}%` : "—";
   const goalsCompleted = goals.length ? `${goals.filter(g => g.status === "COMPLETED").length}/${goals.length}` : "—";
+
+  const handleAddGoal = async (goalPayload) => {
+    const updatedUser = await addGoal(goalPayload);
+    setUserData(updatedUser);
+    // Keep AuthContext's copy in sync too — Finance.jsx and Study.jsx read
+    // active_goals off useAuth() for their goal-linking dropdowns, not off
+    // this page's own userData, so without this they'd keep showing the
+    // pre-add goal list until the next login.
+    await refreshUser();
+    setAddingGoal(false);
+    toast.success("Goal added successfully.");
+  };
 
   return (
     <div>
@@ -210,28 +268,28 @@ function Dashboard() {
 
           <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-3">
 
-            <Card>
+            <Card className="text-center">
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Financial Goal</h3>
-              <div className="my-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label="Savings rate progress" aria-valuenow={savingsRatePct != null ? Math.min(100, savingsRatePct) : 0} aria-valuemin={0} aria-valuemax={100}>
-                <div className="h-full rounded-full bg-indigo-600" style={{ width: `${savingsRatePct != null ? Math.min(100, savingsRatePct) : 0}%` }}></div>
+              <div className="my-4" role="progressbar" aria-label="Savings rate progress" aria-valuenow={savingsRatePct != null ? Math.min(100, savingsRatePct) : 0} aria-valuemin={0} aria-valuemax={100}>
+                <GoalGauge percentage={savingsRatePct} color={CHART_COLORS.action} />
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{savingsRatePct != null ? `${savingsRatePct.toFixed(0)}% Savings Rate` : "No data yet"}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{savingsRatePct != null ? "Savings Rate" : "No data yet"}</p>
             </Card>
 
-            <Card>
+            <Card className="text-center">
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Study Goal</h3>
-              <div className="my-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label="Study consistency progress" aria-valuenow={productivityScore ? Math.min(100, productivityScore.productivity_score) : 0} aria-valuemin={0} aria-valuemax={100}>
-                <div className="h-full rounded-full bg-indigo-600" style={{ width: `${productivityScore ? Math.min(100, productivityScore.productivity_score) : 0}%` }}></div>
+              <div className="my-4" role="progressbar" aria-label="Study consistency progress" aria-valuenow={productivityScore ? Math.min(100, productivityScore.productivity_score) : 0} aria-valuemin={0} aria-valuemax={100}>
+                <GoalGauge percentage={productivityScore?.productivity_score} color={CHART_COLORS.positive} />
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{productivityScore ? `${Math.round(productivityScore.productivity_score)}% Consistency` : "No data yet"}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{productivityScore ? "Consistency" : "No data yet"}</p>
             </Card>
 
-            <Card>
+            <Card className="text-center">
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Lifestyle Goal</h3>
-              <div className="my-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label="Lifestyle score progress" aria-valuenow={consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0} aria-valuemin={0} aria-valuemax={100}>
-                <div className="h-full rounded-full bg-indigo-600" style={{ width: `${consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0}%` }}></div>
+              <div className="my-4" role="progressbar" aria-label="Lifestyle score progress" aria-valuenow={consistencyScore ? Math.min(100, consistencyScore.consistency_score) : 0} aria-valuemin={0} aria-valuemax={100}>
+                <GoalGauge percentage={consistencyScore?.consistency_score} color={CHART_COLORS.warning} />
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{consistencyScore ? `${Math.round(consistencyScore.consistency_score)}/100 Lifestyle Score` : "No data yet"}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{consistencyScore ? "Lifestyle Score (out of 100)" : "No data yet"}</p>
             </Card>
 
           </div>
@@ -261,7 +319,19 @@ function Dashboard() {
             </Card>
 
             <Card>
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Active Goals</h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Active Goals</h3>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    className="px-2 py-1 text-xs"
+                    onClick={() => setAddingGoal(true)}
+                  >
+                    + Add Goal
+                  </Button>
+                  <Link to="/goals" className="text-sm font-medium text-indigo-600 hover:underline">View all</Link>
+                </div>
+              </div>
 
               <ul className="mt-4 space-y-3">
                 {goals.length > 0
@@ -278,7 +348,7 @@ function Dashboard() {
                     })
                   : (
                     <li className="text-sm italic text-slate-400">
-                      No active goals yet. Add one from your Profile page.
+                      No active goals yet. Add one above or from the Goals page.
                     </li>
                   )}
               </ul>
@@ -309,21 +379,21 @@ function Dashboard() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className="border-b border-slate-200 dark:border-slate-700 p-4 text-left font-semibold text-slate-500 dark:text-slate-400">Time</th>
-                    <th className="border-b border-slate-200 dark:border-slate-700 p-4 text-left font-semibold text-slate-500 dark:text-slate-400">Action</th>
-                    <th className="border-b border-slate-200 dark:border-slate-700 p-4 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Time</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Action</th>
+                    <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentActivity.map((act) => (
                     <tr key={act.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                      <td className="border-b border-slate-100 dark:border-slate-700 p-4 font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                      <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
                         {new Date(act.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       </td>
-                      <td className="border-b border-slate-100 dark:border-slate-700 p-4">
+                      <td className="border-b border-slate-100 dark:border-slate-700 p-2.5">
                         <Badge tone={activityBadgeTone(act.action_type)}>{(act.action_type || "").replace(/_/g, " ")}</Badge>
                       </td>
-                      <td className="border-b border-slate-100 dark:border-slate-700 p-4 text-slate-600 dark:text-slate-400">{act.description || "-"}</td>
+                      <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 text-slate-600 dark:text-slate-400">{act.description || "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -333,6 +403,10 @@ function Dashboard() {
           </Card>
         </>
       )}
+
+      <Modal open={addingGoal} onClose={() => setAddingGoal(false)} title="New Goal" maxWidth="max-w-lg">
+        <GoalForm onSave={handleAddGoal} onCancel={() => setAddingGoal(false)} />
+      </Modal>
 
     </div>
   );

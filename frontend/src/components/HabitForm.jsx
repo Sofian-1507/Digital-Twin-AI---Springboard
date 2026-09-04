@@ -15,24 +15,31 @@ function HabitForm({ addHabit, goals = [] }) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (
-      !formData.date ||
-      !formData.water ||
-      !formData.sleep ||
-      !formData.exercise
-    ) {
-      toast.error("Please fill in all habit fields.");
+    const errors = {};
+    if (!formData.date) errors.date = "Date is required.";
+    if (!formData.water) errors.water = "Water intake is required.";
+    if (!formData.sleep) errors.sleep = "Sleep hours are required.";
+    if (!formData.exercise) errors.exercise = "Exercise minutes are required.";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -66,6 +73,7 @@ function HabitForm({ addHabit, goals = [] }) {
           name="date"
           value={formData.date}
           onChange={handleChange}
+          error={fieldErrors.date}
         />
 
         <Input
@@ -77,6 +85,7 @@ function HabitForm({ addHabit, goals = [] }) {
           placeholder="Water (L)"
           value={formData.water}
           onChange={handleChange}
+          error={fieldErrors.water}
         />
 
         <Input
@@ -88,6 +97,7 @@ function HabitForm({ addHabit, goals = [] }) {
           placeholder="Sleep (hrs)"
           value={formData.sleep}
           onChange={handleChange}
+          error={fieldErrors.sleep}
         />
 
         <Input
@@ -98,6 +108,7 @@ function HabitForm({ addHabit, goals = [] }) {
           placeholder="Exercise (min)"
           value={formData.exercise}
           onChange={handleChange}
+          error={fieldErrors.exercise}
         />
 
         <Input

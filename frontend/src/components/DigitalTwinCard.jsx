@@ -58,7 +58,7 @@ function DigitalTwinCard({ twinState }) {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
         {metrics.map((m) => (
           <div key={m.label}>
             <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{m.label}</div>

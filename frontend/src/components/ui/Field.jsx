@@ -5,9 +5,37 @@ const inputClasses = `w-full rounded-lg border border-slate-200 bg-white dark:bo
   placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20
   dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500`;
 
-/** Shared text/number/date input — standardizes border, radius, and focus ring. */
-export function Input({ className = "", ...props }) {
-  return <input className={`${inputClasses} ${className}`} {...props} />;
+const errorClasses = "border-red-500 focus:border-red-500 focus:ring-red-500/20 dark:border-red-500";
+
+/** Shared text/number/date input — standardizes border, radius, and focus ring.
+ * Pass `error` (a message string) to switch the border/ring to the danger
+ * color, set `aria-invalid`, and render the message underneath, wired via
+ * `aria-describedby` — every call site gets inline validation for free.
+ * Only wraps in a container when `error` is set — plain (no error) usage
+ * stays a bare `<input>` so existing layout classNames (e.g. `flex-1` on a
+ * flex-item Input) keep applying to the actual flex/grid item, not a new
+ * wrapper div around it. */
+export function Input({ className = "", error, id, ...props }) {
+  const generatedId = useId();
+
+  if (!error) {
+    return <input id={id} className={`${inputClasses} ${className}`} {...props} />;
+  }
+
+  const errorId = `${id ?? generatedId}-error`;
+
+  return (
+    <div className={className}>
+      <input
+        id={id}
+        className={`${inputClasses} ${errorClasses} w-full`}
+        aria-invalid="true"
+        aria-describedby={errorId}
+        {...props}
+      />
+      <p id={errorId} className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>
+    </div>
+  );
 }
 
 /** Reads { value, label, disabled } option descriptors off <option> children —
@@ -35,11 +63,13 @@ function extractOptions(children) {
  * needs to change — onChange still receives an event-shaped
  * { target: { name, value } }.
  */
-export function Select({ className = "", children, name, value, onChange, disabled = false, ...rest }) {
+export function Select({ className = "", error, id, children, name, value, onChange, disabled = false, ...rest }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef(null);
   const listboxId = useId();
+  const generatedId = useId();
+  const errorId = error ? `${id ?? generatedId}-error` : undefined;
   const options = extractOptions(children);
   const selectable = options.filter((o) => !o.disabled);
   const selected = options.find((o) => String(o.value) === String(value));
@@ -110,11 +140,13 @@ export function Select({ className = "", children, name, value, onChange, disabl
   }
 
   return (
+    <div className={className}>
     <div
       ref={wrapperRef}
-      className={`relative ${inputClasses} h-11.5 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 ${
-        disabled ? "cursor-not-allowed opacity-60" : ""
-      } ${className}`}
+      id={id}
+      className={`relative ${inputClasses} h-11.5 w-full focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 ${
+        error ? errorClasses : ""
+      } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
     >
       <button
         type="button"
@@ -126,6 +158,8 @@ export function Select({ className = "", children, name, value, onChange, disabl
         aria-expanded={open}
         aria-controls={listboxId}
         aria-activedescendant={open && activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined}
+        aria-invalid={error ? "true" : undefined}
+        aria-describedby={errorId}
         className="flex h-full w-full items-center justify-between gap-2 rounded-lg bg-transparent text-left focus:outline-none disabled:cursor-not-allowed"
         {...rest}
       >
@@ -172,10 +206,31 @@ export function Select({ className = "", children, name, value, onChange, disabl
         </div>
       )}
     </div>
+    {error && <p id={errorId} className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>}
+    </div>
   );
 }
 
-/** Shared textarea — same visual language as Input. */
-export function Textarea({ className = "", ...props }) {
-  return <textarea className={`${inputClasses} ${className}`} {...props} />;
+/** Shared textarea — same visual language and error-state contract as Input. */
+export function Textarea({ className = "", error, id, ...props }) {
+  const generatedId = useId();
+
+  if (!error) {
+    return <textarea id={id} className={`${inputClasses} ${className}`} {...props} />;
+  }
+
+  const errorId = `${id ?? generatedId}-error`;
+
+  return (
+    <div className={className}>
+      <textarea
+        id={id}
+        className={`${inputClasses} ${errorClasses} w-full`}
+        aria-invalid="true"
+        aria-describedby={errorId}
+        {...props}
+      />
+      <p id={errorId} className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>
+    </div>
+  );
 }

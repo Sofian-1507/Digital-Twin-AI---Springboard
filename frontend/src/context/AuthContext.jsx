@@ -81,8 +81,22 @@ export function AuthProvider({ children }) {
     setUser(updated);
   };
 
+  /**
+   * Re-fetches the full user and updates the shared context copy. Several
+   * pages (Finance, Study) read `active_goals` off this context's `user`
+   * rather than fetching their own copy, so a goal added/edited/deleted
+   * anywhere (Goals page, Dashboard's quick-add) needs to call this
+   * afterward — otherwise those pages keep showing the pre-mutation goal
+   * list until the next full login/session restore.
+   */
+  const refreshUser = async () => {
+    const data = await getUser();
+    setUser(data);
+    return data;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, toggleDarkMode }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, toggleDarkMode, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

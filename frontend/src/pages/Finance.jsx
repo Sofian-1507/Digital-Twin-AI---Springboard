@@ -164,7 +164,12 @@ function Finance() {
         ] = await Promise.all([
           getTransactions({ limit: 50 }),
           getExpenseProjection(3),
-          getCategoryBreakdown(1),
+          // 6 months, matching the window every other chart on this page uses
+          // (ExpenseChart's 6-month actuals, Dashboard's getCashflow(6)) — a
+          // 1-month window meant categories logged outside the last 30 days
+          // silently disappeared from this chart even though they're still
+          // "recent" by every other chart's definition.
+          getCategoryBreakdown(6),
           getIncomeProjection(3),
         ]);
 
@@ -487,18 +492,13 @@ function Finance() {
               {financeGoals.map((goal) => (
                 <SavingsProgress
                   key={goal.goal_id}
-                  transactions={transactions}
                   goal={goal}
                   currency={currency}
                 />
               ))}
             </div>
           ) : (
-            <SavingsProgress
-              transactions={transactions}
-              goal={null}
-              currency={currency}
-            />
+            <SavingsProgress goal={null} currency={currency} />
           )}
 
           <TransactionTable
