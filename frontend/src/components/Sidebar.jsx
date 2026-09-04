@@ -8,6 +8,7 @@ import {
   BrainCircuit,
   MessageSquare,
   Activity,
+  Target,
   Sun,
   Moon,
   Settings,
@@ -33,6 +34,7 @@ const menuGroups = [
     label: "Overview",
     items: [
       { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+      { name: "Goals",     path: "/goals",      icon: Target },
       { name: "Activity",  path: "/activity",   icon: Activity },
     ],
   },
@@ -68,7 +70,7 @@ function navLinkClasses(expanded) {
       expanded ? "" : "lg:justify-center"
     } ${
       isActive
-        ? "bg-indigo-600 font-semibold text-white"
+        ? "bg-indigo-100 font-semibold text-indigo-700 dark:bg-[#1E3330] dark:text-[#5EEAD4]"
         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
     }`;
 }

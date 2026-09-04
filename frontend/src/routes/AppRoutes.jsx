@@ -16,6 +16,7 @@ import ProtectedRoute from "../utils/ProtectedRoute";
 // Protected pages are code-split — they're only ever needed after login,
 // so there's no reason to bundle them into the initial (public) page load.
 const Dashboard  = lazy(() => import("../pages/Dashboard"));
+const Goals      = lazy(() => import("../pages/Goals"));
 const Profile    = lazy(() => import("../pages/Profile"));
 const Settings   = lazy(() => import("../pages/Settings"));
 const Finance    = lazy(() => import("../pages/Finance"));
@@ -66,6 +67,15 @@ function AppRoutes() {
           element={
             <Suspense fallback={<h2>Loading...</h2>}>
               <Dashboard />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="/goals"
+          element={
+            <Suspense fallback={<h2>Loading...</h2>}>
+              <Goals />
             </Suspense>
           }
         />

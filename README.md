@@ -96,6 +96,7 @@ npm run dev
 - **Assistant** — a canned-response preview of an in-app assistant (not yet backed by a real model).
 - **Activity** — a unified audit log of create/update/delete actions across the app.
 - **Dark mode** — a manual toggle (stored in user preferences), applied consistently across the whole UI via a `data-theme` attribute.
+- **Design system** — "Studio": a warm-paper visual identity (Fraunces display serif, Inter body, JetBrains Mono for every number) defined as design tokens in `frontend/src/index.css`, so it cascades to every page and component with no per-file styling. See `SKILLS.md` for the design-review workflow this was built through.
 
 ---
 
@@ -103,6 +104,6 @@ npm run dev
 
 | Layer | Tools |
 | :--- | :--- |
-| Frontend | React 19, Vite, React Router 7, Tailwind CSS v4, Recharts, Axios, lucide-react, react-toastify |
+| Frontend | React 19, Vite, React Router 7, Tailwind CSS v4, Recharts, Axios, lucide-react, react-toastify (fonts: Fraunces / Inter / JetBrains Mono) |
 | Backend | FastAPI, Motor + Beanie (async MongoDB ODM), Pydantic v2, python-jose (JWT), passlib (bcrypt) |
 | Database | MongoDB Atlas |

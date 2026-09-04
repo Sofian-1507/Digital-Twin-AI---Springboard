@@ -74,30 +74,30 @@ function HabitTable({ habits, onDelete }) {
 
             <thead>
               <tr>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3 text-left">
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2 text-left">
                   <SortButton label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
                 </th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3 text-left font-semibold text-slate-500 dark:text-slate-400">Water (L)</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3 text-left">
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2 text-left font-semibold text-slate-500 dark:text-slate-400">Water (L)</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2 text-left">
                   <SortButton label="Sleep" active={sortKey === "sleep"} dir={sortDir} onClick={() => toggleSort("sleep")} />
                 </th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3 text-left font-semibold text-slate-500 dark:text-slate-400">Exercise</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3 text-left font-semibold text-slate-500 dark:text-slate-400">Mood</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2 text-left font-semibold text-slate-500 dark:text-slate-400">Exercise</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2 text-left font-semibold text-slate-500 dark:text-slate-400">Mood</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {sortedHabits.map((habit) => (
                 <tr key={habit.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.date}</td>
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.water} L</td>
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.sleep} hrs</td>
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.exercise} min</td>
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.date}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.water} L</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.sleep} hrs</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2 font-mono tabular-nums text-slate-600 dark:text-slate-400">{habit.exercise} min</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2">
                     <Badge tone="info">{habit.mood}</Badge>
                   </td>
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2">
                     <button
                       onClick={() => onDelete && onDelete(habit.id)}
                       className="rounded-md p-1.5 text-red-400 hover:bg-slate-100 hover:text-red-600 dark:hover:bg-white/10"

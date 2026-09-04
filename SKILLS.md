@@ -1,16 +1,29 @@
 # SKILLS.md
 
-How UI/UX work in this repo goes through Claude Code's `apple-design-skill`. See `CLAUDE.md` for
-general repo conventions — this file is specifically about the design-review workflow.
+How UI/UX work in this repo goes through Claude Code design skills — `apple-design-skill` and,
+for full design-system work (new palette/type/token direction, not a targeted fix), `ui-ux-pro-max`.
+See `CLAUDE.md` for general repo conventions — this file is specifically about the design-review
+workflow.
 
-## What it is
+## What they are
 
-`apple-design-skill` is a Claude Code skill that reviews and improves UI against Apple's Human
-Interface Guidelines, translated into platform-agnostic principles (this is a React/Tailwind web
-app, not a native Apple platform — the skill maps HIG concepts like "control size" and "system
-colors" onto their web/CSS equivalents). It's invoked with `/apple-design-skill` and grounds every
-finding in a specific guideline reference (`references/hig/*.md`) rather than opinion, so
-recommendations come with a citeable "why," not just a "this looks off."
+`apple-design-skill` reviews and improves UI against Apple's Human Interface Guidelines, translated
+into platform-agnostic principles (this is a React/Tailwind web app, not a native Apple platform —
+the skill maps HIG concepts like "control size" and "system colors" onto their web/CSS equivalents).
+It's invoked with `/apple-design-skill` and grounds every finding in a specific guideline reference
+(`references/hig/*.md`) rather than opinion, so recommendations come with a citeable "why," not just
+a "this looks off."
+
+`ui-ux-pro-max` is a dataset-driven skill (`~/.claude/skills/ui-ux-pro-max/scripts/search.py`) for
+generating or comparing whole design directions — typography pairings, color palettes by product
+category, spacing/density presets — searched by `--domain` (color/typography/style/ux/chart/...) or
+combined into a full `--design-system` recommendation for a given product category. Used on this
+project for the ground-up "Studio" redesign (see below): it supplied the candidate typography
+pairings and the `data-dense-dashboard` category's density/radius defaults, cross-checked against
+`apple-design-skill`'s HIG contrast/dark-mode/layout guidance rather than either skill's output being
+trusted alone. **Retry once with a narrower query if a result looks off-category** — the dataset
+search can misfire on a broad first query (it returned a landing-page pattern and a handwritten font
+pairing for a data-dashboard query once, corrected by re-querying with an explicit `--domain`).
 
 ## The workflow used on this project
 
@@ -56,9 +69,29 @@ These are the actual standards this repo's UI is held to, established by prior a
 
 ## Where the current design system lives
 
-- Color/radius/shadow tokens: `frontend/src/index.css`'s `@theme` block (the "Field Notes"
-  warm paper/ink palette — see the inline comments there for the rationale behind each override).
+- Color/radius/shadow tokens: `frontend/src/index.css`'s `@theme` block (the "Studio" warm-paper
+  system — Fraunces + Inter + JetBrains Mono, teal accent, soft two-layer shadows — see the inline
+  comments there for the rationale behind each override). This superseded the earlier "Field Notes"
+  system in a full ground-up redesign; `frontend/design.md` still describes Field Notes and has not
+  been rewritten for Studio yet — treat it as historical until it's updated.
 - Shared primitives: `frontend/src/components/ui/` (per `CLAUDE.md`'s Frontend conventions).
 - Chart colors: `frontend/src/utils/chartColors.js` — kept in sync with `index.css` **by hand**
   since Recharts/Plotly take literal hex values, not Tailwind classes. If a token in `index.css`
-  changes, check this file too — an audit has already caught it drifting out of sync once.
+  changes, check this file too — an audit has already caught it drifting out of sync once. Also
+  check for literal font-family strings passed to non-Recharts chart libs (e.g. Plotly's `layout.font`
+  in `ScenarioExplorer.jsx`) — those don't inherit `@theme` either and were previously caught stale.
+
+## Lesson from the Studio redesign: verify a token's *every* usage before recoloring it
+
+The color ramp is dual-purposed throughout this app — most Tailwind class names (`slate-300`,
+`indigo-600`, etc.) serve more than one role depending on context, e.g. `border-slate-200` (a
+light-mode border) vs. `dark:text-slate-200` (a dark-mode text color, used at dozens of call sites)
+resolve through the **same token**. A mid-redesign mistake in this repo: assuming `slate-300` was
+mostly a rarely-used "border-strong" token and repainting it as a mid-gray for a border-contrast fix,
+without first grepping how it was actually used — it turned out to be the dominant dark-mode
+secondary-text color across nearly every table/form/card in the app, and the new value would have
+silently dropped dark-mode text contrast below WCAG AA. Caught before shipping by grepping every
+`.jsx` usage of the class name first. **Before assigning a token a new value, grep for every class
+name built on it (`slate-300`, `text-slate-300`, `dark:text-slate-300`, `border-slate-300`, ...)
+across `.jsx` files — not just the usage you're trying to fix — and compute contrast for each
+distinct role the grep turns up**, not only the one the change was originally aimed at.

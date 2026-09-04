@@ -259,39 +259,39 @@ function TransactionTable({
           <table className="w-full min-w-150 border-collapse text-sm">
             <thead>
               <tr>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left">
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left">
                   <SortButton label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
                 </th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Type</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Category</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-right">
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Type</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Category</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-right">
                   <div className="flex justify-end">
                     <SortButton label="Amount" active={sortKey === "amount"} dir={sortDir} onClick={() => toggleSort("amount")} />
                   </div>
                 </th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
-                <th className="border-b border-slate-200 dark:border-slate-700 p-3.5 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Description</th>
+                <th className="border-b border-slate-200 dark:border-slate-700 p-2.5 text-left font-semibold text-slate-500 dark:text-slate-400">Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {sortedTransactions.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 font-mono tabular-nums text-slate-600 dark:text-slate-400">
                     {item.transaction_date ? new Date(item.transaction_date).toLocaleDateString() : "-"}
                   </td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5">
                     <Badge tone={String(item.type).toUpperCase() === "INCOME" ? "success" : "danger"}>{item.type}</Badge>
                   </td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.category}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 text-slate-600 dark:text-slate-400">{item.category}</td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-400">{formatCurrency(item.amount, currency)}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-400">{formatCurrency(item.amount, currency)}</td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5 text-slate-600 dark:text-slate-400">{item.description}</td>
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5 text-slate-600 dark:text-slate-400">{item.description}</td>
 
-                  <td className="border-b border-slate-100 dark:border-slate-700 p-3.5">
+                  <td className="border-b border-slate-100 dark:border-slate-700 p-2.5">
                     <div className="flex gap-1">
                       <button
                         onClick={() => onEdit && onEdit(item)}

@@ -20,11 +20,11 @@ const ACCENTS = {
 export function StatTile({ label, value, accent = "neutral", predicted = false, sublabel }) {
   const tone = predicted ? "predicted" : accent;
   return (
-    <div className={`rounded-2xl border-t-4 bg-white p-6 shadow-sm dark:bg-slate-800 ${ACCENTS[tone]}`}>
+    <div className={`rounded-2xl border-t-4 bg-white p-5 shadow-sm dark:bg-slate-800 ${ACCENTS[tone]}`}>
       <h4 className={`text-sm font-medium ${predicted ? "text-violet-600" : "text-slate-500 dark:text-slate-400"}`}>
         {predicted ? "✦ " : ""}{label}
       </h4>
-      <p className={`mt-3 font-mono text-2xl font-semibold tabular-nums ${predicted ? "text-violet-600" : "text-slate-800 dark:text-slate-100"}`}>{value}</p>
+      <p className={`mt-2.5 font-mono text-2xl font-semibold tabular-nums ${predicted ? "text-violet-600" : "text-slate-800 dark:text-slate-100"}`}>{value}</p>
       {sublabel && <p className="mt-1 text-xs text-slate-400">{sublabel}</p>}
     </div>
   );
@@ -32,7 +32,7 @@ export function StatTile({ label, value, accent = "neutral", predicted = false, 
 
 /** Responsive grid wrapper — 4-across desktop, 2-across tablet, 1-across mobile. */
 export function StatGrid({ children }) {
-  return <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">{children}</div>;
+  return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>;
 }
 
 export default StatTile;

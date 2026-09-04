@@ -28,6 +28,7 @@ function TransactionForm({
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -35,23 +36,25 @@ function TransactionForm({
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!formData.date || !formData.amount) {
-      toast.error("Please fill in Date and Amount.");
-      return;
-    }
-
-    if (Number(formData.amount) <= 0) {
-      toast.error("Amount must be greater than 0.");
-      return;
-    }
-
+    const errors = {};
+    if (!formData.date) errors.date = "Date is required.";
+    if (!formData.amount) errors.amount = "Amount is required.";
+    else if (Number(formData.amount) <= 0) errors.amount = "Amount must be greater than 0.";
     if (formData.is_recurring && !formData.recurring_frequency) {
-      toast.error("Please select a recurring frequency.");
+      errors.recurring_frequency = "Select a recurring frequency.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -88,6 +91,7 @@ function TransactionForm({
           name="date"
           value={formData.date}
           onChange={handleChange}
+          error={fieldErrors.date}
           required
         />
 
@@ -136,6 +140,7 @@ function TransactionForm({
           step="0.01"
           value={formData.amount}
           onChange={handleChange}
+          error={fieldErrors.amount}
           required
         />
 
@@ -180,6 +185,7 @@ function TransactionForm({
             name="recurring_frequency"
             value={formData.recurring_frequency || ""}
             onChange={handleChange}
+            error={fieldErrors.recurring_frequency}
             required
           >
             <option value="" disabled>

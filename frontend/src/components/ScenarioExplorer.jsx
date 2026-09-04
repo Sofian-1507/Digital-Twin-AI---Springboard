@@ -86,7 +86,7 @@ function ScenarioExplorer() {
           margin: { l: 48, r: 16, t: 16, b: 60 },
           paper_bgcolor: "transparent",
           plot_bgcolor: "transparent",
-          font: { family: '"Source Sans 3", ui-sans-serif, sans-serif', color: CHART_COLORS.muted, size: 12 },
+          font: { family: '"Inter", ui-sans-serif, sans-serif', color: CHART_COLORS.muted, size: 12 },
           legend: { orientation: "h", y: -0.2 },
           xaxis: { tickangle: -20, gridcolor: CHART_COLORS.grid },
           yaxis: { title: "Score", range: [0, 100], gridcolor: CHART_COLORS.grid },

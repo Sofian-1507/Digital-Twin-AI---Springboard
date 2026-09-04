@@ -24,19 +24,29 @@ function ProfileForm({ user, onSave, onCancel }) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   function handleChange(e) {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   }
 
   async function submit(e) {
     e.preventDefault();
 
-    if (!formData.name || !formData.age) {
-      toast.error("Name and Age are required.");
+    const errors = {};
+    if (!formData.name) errors.name = "Name is required.";
+    if (!formData.age) errors.age = "Age is required.";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -70,6 +80,7 @@ function ProfileForm({ user, onSave, onCancel }) {
           value={formData.name}
           onChange={handleChange}
           placeholder="Name"
+          error={fieldErrors.name}
           required
         />
 
@@ -81,6 +92,7 @@ function ProfileForm({ user, onSave, onCancel }) {
           value={formData.age}
           onChange={handleChange}
           placeholder="Age"
+          error={fieldErrors.age}
           required
         />
 

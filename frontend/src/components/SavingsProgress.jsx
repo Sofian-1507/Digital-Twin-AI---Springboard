@@ -2,51 +2,36 @@ import { PieChart, Pie, Cell } from "recharts";
 import { formatCurrency } from "../utils/currency";
 import { CHART_COLORS } from "../utils/chartColors";
 
-function SavingsProgress({ transactions, goal: activeGoal, currency = "USD" }) {
-
-  // Bug fix: comparing against "Income"/"Expense" never matched the backend's
-  // actual uppercase enum values ("INCOME"/"EXPENSE"), so this always computed
-  // $0 savings regardless of real data.
-  const income = transactions
-    .filter((item) => String(item.type).toUpperCase() === "INCOME")
-    .reduce(
-      (total, item) =>
-        total + Number(item.amount),
-      0
-    );
-
-  const expense = transactions
-    .filter((item) => String(item.type).toUpperCase() === "EXPENSE")
-    .reduce(
-      (total, item) =>
-        total + Number(item.amount),
-      0
-    );
-
-  const savings = income - expense;
+/**
+ * Bug fix: this used to compute "savings" as (all income − all expenses)
+ * across every transaction on the account, and show that same account-wide
+ * number on every goal's card — so two goals with a $1,000 target each would
+ * both claim the same $800 of total savings as 80% complete, with no way to
+ * tell how much was actually set aside for either one specifically.
+ *
+ * The backend already tracks this correctly per goal: `goal.current_value`
+ * is incremented only by SAVINGS_DEPOSIT/INVESTMENT transactions actually
+ * linked to that goal's id (see finance_service.py's `_goal_contribution` /
+ * `GOAL_PROGRESS_TYPES`), reconciled on every create/update/delete. Use that
+ * instead of re-deriving a number from the raw transaction list.
+ */
+function SavingsProgress({ goal: activeGoal, currency = "USD" }) {
 
   if (!activeGoal) {
     return (
       <div className="rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Savings Goal</h3>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          You haven't set a finance goal yet — add one from your Profile to track progress here.
+          You haven't set a finance goal yet — add one from the Goals page to track progress here.
         </p>
       </div>
     );
   }
 
   const goal = Number(activeGoal.target_value);
+  const savings = Number(activeGoal.current_value);
 
-  // Bug fix (kept from the bar version): Math.min alone let a negative
-  // `savings` value (more spent than earned) produce a negative percentage,
-  // which the donut can't render either — clamp to 0 first.
-  const percentage = Math.max(
-    0,
-    Math.min(Math.round((savings / goal) * 100), 100)
-  );
-  const isNegative = savings < 0;
-  const fillColor = isNegative ? CHART_COLORS.danger : CHART_COLORS.positive;
+  const percentage = Math.max(0, Math.min(Math.round((savings / goal) * 100), 100));
 
   const donutData = [
     { name: "completed", value: percentage },
@@ -73,25 +58,23 @@ function SavingsProgress({ transactions, goal: activeGoal, currency = "USD" }) {
               stroke="none"
               isAnimationActive={false}
             >
-              <Cell fill={fillColor} />
+              <Cell fill={CHART_COLORS.positive} />
               <Cell fill={CHART_COLORS.grid} />
             </Pie>
           </PieChart>
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className={`font-mono text-lg font-semibold tabular-nums ${isNegative ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`}>
+            <span className="font-mono text-lg font-semibold tabular-nums text-slate-800 dark:text-slate-100">
               {percentage}%
             </span>
           </div>
         </div>
 
         <div className="min-w-0">
-          <p className={`font-mono text-xl font-semibold tabular-nums ${isNegative ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`}>
+          <p className="font-mono text-xl font-semibold tabular-nums text-slate-800 dark:text-slate-100">
             {formatCurrency(savings, currency)}
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400">of {formatCurrency(goal, currency)} goal</p>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            {isNegative ? "Spending more than you earn" : `${percentage}% Completed`}
-          </p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{percentage}% Completed</p>
         </div>
       </div>
 

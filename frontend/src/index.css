@@ -1,66 +1,68 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, ui-serif, serif;
-  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-serif: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, ui-serif, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  /* "Field Notes" design system — warm paper/ink palette, applied by
-     overriding Tailwind's own scale rather than renaming every class in the
-     app: every existing bg-slate-50 / text-slate-800 / border-violet-500 /
-     etc. now resolves to the literal spec color. Unlike the previous
-     override, every shade actually used anywhere in the app (50-900, plus
-     the -100/-700 tone shades Badge needs) is defined — before this, slate
-     500/700/900 and every family's -100/-700 fell through to Tailwind's
-     stock cool gray, which is why dark mode and Sidebar never matched. */
-  --color-slate-50:  #F6F1E7; /* paper */
-  --color-slate-100: #EFE7D8; /* surface-2 */
-  --color-slate-200: #E4DACB; /* border */
-  --color-slate-300: #CBBBA0; /* border-strong */
-  --color-slate-400: #A69A87; /* ink-4 — placeholders, disabled */
-  --color-slate-500: #756A5C; /* ink-3 — muted labels (darkened from #8A7F72: the
-     lighter value read fine but only hit 3.5-3.9:1 against paper/white, under
-     the 4.5:1 WCAG floor for sub-18pt text — this passes ~4.7-5.3:1 while
-     dark-mode call sites are unaffected since they already override to
-     slate-400 for this role) */
-  --color-slate-600: #6E6355; /* ink-2 — secondary text */
-  --color-slate-700: #4A4033; /* dark-mode surface/border */
-  --color-slate-800: #2B2521; /* ink — primary text / dark-mode surface */
-  --color-slate-900: #1C1712; /* Sidebar + dark-mode base */
+  /* "Studio" design system — warm paper, a real display serif, and room to
+     breathe (see SKILLS.md for the ui-ux-pro-max/apple-design-skill audit
+     this came from). Applied by overriding Tailwind's own scale rather than
+     renaming every class in the app: every existing bg-slate-50 /
+     text-slate-800 / border-violet-500 / etc. now resolves to the literal
+     spec color, so this cascades to ~70 components with no markup changes. */
+  /* Every rung below is a real Tailwind Stone-scale value, not an invented
+     one — this ramp is dual-purposed throughout the app (e.g. text-slate-600
+     is light-mode secondary text, dark:bg-slate-600 is a dark-mode fill;
+     dark:text-slate-200/300/400 are dark-mode text at decreasing prominence)
+     so every rung needs to work as BOTH a light-mode value and, via the
+     dark: variant, a dark-mode text color against the slate-800 card — Stone
+     is already balanced for exactly that dual role, unlike a custom ramp. */
+  --color-slate-50:  #FAF9F6; /* paper */
+  --color-slate-100: #F5F5F4; /* surface-2 / dark-mode primary text, 13.9:1 on dark card */
+  --color-slate-200: #E7E5E4; /* light border/fill / dark-mode text, 12.1:1 on dark card */
+  --color-slate-300: #D6D3D1; /* light border-strong / dark-mode text, 10.2:1 on dark card */
+  --color-slate-400: #A8A29E; /* ink-4 — placeholders / dark-mode muted text, 6.0:1 on dark card */
+  --color-slate-500: #78716C; /* ink-3 — muted labels, 4.8:1 on paper */
+  --color-slate-600: #57534E; /* ink-2 — secondary text, 7.6:1 on paper */
+  --color-slate-700: #44403C; /* dark-mode surface/border, 10.3:1 as light-mode text */
+  --color-slate-800: #292524; /* ink — primary text / dark-mode card surface, 15.2:1 on paper */
+  --color-slate-900: #1C1917; /* Sidebar + dark-mode base */
 
-  --color-indigo-100: #D3E6DF; /* action accent, soft tint (Badge "info") */
-  --color-indigo-600: #2F6F5E; /* action accent — teal */
-  --color-indigo-700: #234F42; /* action accent — hover */
+  --color-indigo-100: #E4F1EF; /* action accent, soft tint (Badge "info", active nav fill) */
+  --color-indigo-600: #0F766E; /* action accent — teal, 5.2:1 on paper */
+  --color-indigo-700: #0B5852; /* action accent — hover */
 
-  --color-violet-100: #E8E1F2;
-  --color-violet-300: #B7A8DE;
-  --color-violet-500: #8267C4; /* the one accent reserved for AI-predicted content */
-  --color-violet-600: #6B54B0;
-  --color-violet-700: #543F91;
+  --color-violet-100: #F0E6EE;
+  --color-violet-300: #C9A8C4;
+  --color-violet-500: #8B4B8A; /* the one accent reserved for AI-predicted content, 6.05:1 on white */
+  --color-violet-600: #733B73;
+  --color-violet-700: #5A2E5C;
 
-  --color-emerald-100: #DCEEE0;
-  --color-emerald-600: #1F7A52;
-  --color-emerald-700: #175E3F;
+  --color-emerald-100: #E7F5EC;
+  --color-emerald-600: #15803D;
+  --color-emerald-700: #116830;
 
-  --color-amber-100: #F3E6C9;
-  --color-amber-600: #B5780F;
-  --color-amber-700: #8F5E0B;
+  --color-amber-100: #FBEEE0;
+  --color-amber-600: #B45309;
+  --color-amber-700: #8F4207;
 
-  --color-red-100: #F4DAD7;
-  --color-red-600: #B23A34;
-  --color-red-700: #8C2C27;
+  --color-red-100: #FBE9EE;
+  --color-red-600: #BE123C;
+  --color-red-700: #9A0F31;
 
-  /* Small, uniform corner radius — notebook/ledger feel instead of the
-     soft, heavily-rounded "SaaS card" look. Cascades to every rounded-lg /
-     rounded-xl / rounded-2xl usage app-wide with no component edits. */
-  --radius-lg:  6px;
-  --radius-xl:  6px;
-  --radius-2xl: 4px;
+  /* Three-tier radius: controls, cards, modals — the Studio spec's signature
+     soft-but-defined surface language, replacing the previous uniform
+     small-radius "ledger" look. */
+  --radius-lg:  8px;
+  --radius-xl:  14px;
+  --radius-2xl: 20px;
 
-  /* Subtle warm-tinted shadows in place of Tailwind's neutral defaults —
+  /* Soft two-layer shadow in place of the previous sharp warm-tinted one —
      same zero-edit cascade to every shadow-sm/md/xl usage. */
-  --shadow-sm: 0 1px 2px 0 rgb(43 37 33 / 0.07);
-  --shadow-md: 0 4px 8px -2px rgb(43 37 33 / 0.09), 0 2px 4px -2px rgb(43 37 33 / 0.06);
-  --shadow-xl: 0 20px 25px -5px rgb(43 37 33 / 0.15), 0 8px 10px -6px rgb(43 37 33 / 0.1);
+  --shadow-sm: 0 1px 2px rgb(28 25 23 / 0.05), 0 4px 10px -6px rgb(28 25 23 / 0.10);
+  --shadow-md: 0 2px 6px rgb(28 25 23 / 0.06), 0 10px 24px -10px rgb(28 25 23 / 0.18);
+  --shadow-xl: 0 4px 14px rgb(28 25 23 / 0.10), 0 24px 48px -16px rgb(28 25 23 / 0.28);
 }
 
 /* Manual dark mode: driven by data-theme="dark" on <html> (see AuthContext,
